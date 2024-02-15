@@ -2,25 +2,23 @@
 using Prism.Modularity;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Mvvm;
 using Prometheus.Modules.ModuleName.Views;
 
 namespace Prometheus.Modules.ModuleName
 {
-    public class ModuleNameModule : IModule
+    public class ModuleNameModule : ModuleBase
     {
-        private readonly IRegionManager _regionManager;
-
-        public ModuleNameModule(IRegionManager regionManager)
+        public ModuleNameModule(IRegionManager regionManager) : base(regionManager)
         {
-            _regionManager = regionManager;
         }
 
-        public void OnInitialized(IContainerProvider containerProvider)
+        public override void OnInitialized(IContainerProvider containerProvider)
         {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, "ViewA");
+            RegionManager.RequestNavigate(RegionNames.ContentRegion, "ViewA");
         }
 
-        public void RegisterTypes(IContainerRegistry containerRegistry)
+        public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<ViewA>();
         }

@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Prometheus.Services.Interfaces\Prometheus.Services.Interfaces.csproj" />
   </ItemGroup>
 

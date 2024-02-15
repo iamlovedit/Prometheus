@@ -5,12 +5,28 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="HandyControl" Version="3.5.0" />
     <PackageReference Include="Prism.DryIoc" Version="8.1.97" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Prometheus.Core\Prometheus.Core.csproj" />
-    <ProjectReference Include="..\Modules\Prometheus.Modules.ModuleName\Prometheus.Modules.ModuleName.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Home\Prometheus.Modules.Home.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Match\Prometheus.Modules.Match.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Summoner\Prometheus.Modules.Summoner.csproj" />
     <ProjectReference Include="..\Services\Prometheus.Services.Interfaces\Prometheus.Services.Interfaces.csproj" />
     <ProjectReference Include="..\Services\Prometheus.Services\Prometheus.Services.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 </Project>

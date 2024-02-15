@@ -1,4 +1,4 @@
-﻿using System.Windows;
+﻿using HandyControl.Controls;
 
 namespace Prometheus.Views
 {

@@ -1,6 +1,8 @@
 ﻿using Prism.Ioc;
 using Prism.Modularity;
-using Prometheus.Modules.ModuleName;
+using Prometheus.Modules.Home;
+using Prometheus.Modules.Match;
+using Prometheus.Modules.Summoner;
 using Prometheus.Services;
 using Prometheus.Services.Interfaces;
 using Prometheus.Views;
@@ -20,12 +22,14 @@ namespace Prometheus
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterSingleton<IMessageService, MessageService>();
+
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
-            moduleCatalog.AddModule<ModuleNameModule>();
+            moduleCatalog.AddModule<SummonerModule>();
+            moduleCatalog.AddModule<MatchModule>();
+            moduleCatalog.AddModule<HomeModule>();
         }
     }
 }

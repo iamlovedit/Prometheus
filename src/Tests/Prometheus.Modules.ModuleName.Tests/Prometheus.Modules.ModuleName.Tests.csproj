@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Modules\Prometheus.Modules.ModuleName\Prometheus.Modules.ModuleName.csproj" />
+    <Folder Include="ViewModels\" />
   </ItemGroup>
 
 </Project>

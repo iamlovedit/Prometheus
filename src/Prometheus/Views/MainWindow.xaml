@@ -1,11 +1,77 @@
-﻿<Window x:Class="Prometheus.Views.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:prism="http://prismlibrary.com/"
-        prism:ViewModelLocator.AutoWireViewModel="True"
-        xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
-        Title="{Binding Title}" Height="350" Width="525" >
-    <Grid>
-        <ContentControl prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
+﻿<hc:Window
+    x:Class="Prometheus.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:viewmodels="clr-namespace:Prometheus.ViewModels"
+    Title="{Binding Title}"
+    Width="800"
+    Height="650"
+    d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition
+                Width="150"
+                MinWidth="120"
+                MaxWidth="200" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid>
+            <Grid.Resources>
+                <Style BasedOn="{StaticResource ButtonPrimary}" TargetType="{x:Type Button}">
+                    <Setter Property="Width" Value="100" />
+                </Style>
+            </Grid.Resources>
+            <hc:UniformSpacingPanel
+                ItemHorizontalAlignment="Left"
+                Orientation="Vertical"
+                VerticalSpacing="12">
+                <Button
+                    Command="{Binding HomeCommand}"
+                    Content="{DynamicResource Home}"
+                    ToolTip="{DynamicResource Home}" />
+                <Button
+                    Command="{Binding InventoryCommand}"
+                    Content="{DynamicResource Inventory}"
+                    ToolTip="{DynamicResource Inventory}" />
+                <Button
+                    Command="{Binding CareerCommand}"
+                    Content="{DynamicResource Career}"
+                    ToolTip="{DynamicResource Career}" />
+                <Button
+                    Command="{Binding SearchCommand}"
+                    Content="{DynamicResource Search}"
+                    ToolTip="{DynamicResource Search}" />
+                <Button
+                    Command="{Binding MatchCommand}"
+                    Content="{DynamicResource Match}"
+                    ToolTip="{DynamicResource Match}" />
+            </hc:UniformSpacingPanel>
+            <hc:UniformSpacingPanel
+                VerticalAlignment="Bottom"
+                ItemHorizontalAlignment="Left"
+                Orientation="Vertical"
+                VerticalSpacing="12">
+                <Button
+                    Command="{Binding SettingCommand}"
+                    Content="{DynamicResource Setting}"
+                    ToolTip="{DynamicResource Setting}" />
+            </hc:UniformSpacingPanel>
+        </Grid>
+
+        <GridSplitter
+            Grid.Column="1"
+            Width="4"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Stretch"
+            ShowsPreview="True" />
+        <ContentControl Grid.Column="2" prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
     </Grid>
-</Window>
+</hc:Window>
