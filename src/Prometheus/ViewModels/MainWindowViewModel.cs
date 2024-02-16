@@ -2,7 +2,6 @@
 using Prism.Mvvm;
 using Prism.Regions;
 using Prometheus.Core;
-using Prometheus.Modules.Match.Views;
 
 namespace Prometheus.ViewModels
 {
@@ -60,7 +59,7 @@ namespace Prometheus.ViewModels
             _utilityCommand ?? (_utilityCommand = new DelegateCommand(ExecuteUtilityCommand));
         void ExecuteUtilityCommand()
         {
-
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.UtilityView);
         }
 
         private DelegateCommand _matchCommand;
@@ -68,7 +67,7 @@ namespace Prometheus.ViewModels
             _matchCommand ?? (_matchCommand = new DelegateCommand(ExecuteMatchCommand));
         void ExecuteMatchCommand()
         {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, nameof(MatchView));
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.MatchView);
         }
 
 
@@ -77,7 +76,7 @@ namespace Prometheus.ViewModels
             _settingCommand ?? (_settingCommand = new DelegateCommand(ExecuteSettingCommand));
         void ExecuteSettingCommand()
         {
-
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.SettingView);
         }
     }
 }

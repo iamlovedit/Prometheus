@@ -9,5 +9,9 @@
     <sys:String x:Key="Inventory">Inventory</sys:String>
     <sys:String x:Key="Utility">Utility</sys:String>
     <sys:String x:Key="Setting">Setting</sys:String>
-
+    <sys:String x:Key="Generic">Generic</sys:String>
+    <sys:String x:Key="Preference">Preference</sys:String>
+    <sys:String x:Key="System">System</sys:String>
+    <sys:String x:Key="Language">Language</sys:String>
+    <sys:String x:Key="Personalization">Personalization</sys:String>
 </ResourceDictionary>

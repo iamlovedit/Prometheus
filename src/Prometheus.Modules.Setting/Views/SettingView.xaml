@@ -1,9 +1,40 @@
-﻿<UserControl x:Class="Prometheus.Modules.Setting.Views.SettingView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:prism="http://prismlibrary.com/"             
-             prism:ViewModelLocator.AutoWireViewModel="True">
-    <Grid>
-            
-    </Grid>
+﻿<UserControl
+    x:Class="Prometheus.Modules.Setting.Views.SettingView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:viewmodels="clr-namespace:Prometheus.Modules.Setting.ViewModels"
+    d:DataContext="{d:DesignInstance Type=viewmodels:SettingViewModel}"
+    d:DesignHeight="600"
+    d:DesignWidth="400"
+    mc:Ignorable="d"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Prometheus.Core;component/Resources/GlobalResource.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <TabControl>
+        <TabItem Header="{DynamicResource Generic}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <hc:PropertyGrid SelectedObject="{Binding DemoModel}" />
+            </Grid>
+        </TabItem>
+        <TabItem Header="{DynamicResource Preference}">
+            <hc:PropertyGrid SelectedObject="{Binding PreferenceSetting}" />
+
+        </TabItem>
+        <TabItem Header="{DynamicResource System}">
+            <hc:PropertyGrid SelectedObject="{Binding SystemSetting}" />
+        </TabItem>
+    </TabControl>
 </UserControl>

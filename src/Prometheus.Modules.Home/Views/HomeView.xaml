@@ -7,8 +7,17 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Home.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:HomeViewModel}"
+    d:DesignHeight="600"
+    d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Prometheus.Core;component/Resources/GlobalResource.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
     <Grid>
         <TextBlock Text="I am HomeView" />
     </Grid>

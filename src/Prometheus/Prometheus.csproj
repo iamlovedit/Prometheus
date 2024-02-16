@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows8.0</TargetFramework>
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
@@ -11,8 +11,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Prometheus.Core\Prometheus.Core.csproj" />
     <ProjectReference Include="..\Prometheus.Modules.Home\Prometheus.Modules.Home.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Inventory\Prometheus.Modules.Inventory.csproj" />
     <ProjectReference Include="..\Prometheus.Modules.Match\Prometheus.Modules.Match.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Search\Prometheus.Modules.Search.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Setting\Prometheus.Modules.Setting.csproj" />
     <ProjectReference Include="..\Prometheus.Modules.Summoner\Prometheus.Modules.Summoner.csproj" />
+    <ProjectReference Include="..\Prometheus.Modules.Utility\Prometheus.Modules.Utility.csproj" />
     <ProjectReference Include="..\Services\Prometheus.Services.Interfaces\Prometheus.Services.Interfaces.csproj" />
     <ProjectReference Include="..\Services\Prometheus.Services\Prometheus.Services.csproj" />
   </ItemGroup>

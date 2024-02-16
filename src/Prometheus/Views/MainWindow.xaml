@@ -13,6 +13,7 @@
     Height="650"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <Grid Margin="12">
         <Grid.ColumnDefinitions>

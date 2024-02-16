@@ -9,4 +9,9 @@
     <sys:String x:Key="Inventory">藏品</sys:String>
     <sys:String x:Key="Utility">实用工具</sys:String>
     <sys:String x:Key="Setting">设置</sys:String>
+    <sys:String x:Key="Generic">通用</sys:String>
+    <sys:String x:Key="Preference">偏好</sys:String>
+    <sys:String x:Key="System">系统</sys:String>
+    <sys:String x:Key="Language">语言</sys:String>
+    <sys:String x:Key="Personalization">Personalization</sys:String>
 </ResourceDictionary>

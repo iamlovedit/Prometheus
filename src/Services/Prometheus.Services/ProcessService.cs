@@ -1,14 +1,20 @@
-﻿using Prometheus.Services.Interfaces;
+﻿using Prometheus.Core.Exceptions;
+using Prometheus.Services.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Management;
+using System.Runtime.InteropServices;
 
 namespace Prometheus.Services
 {
     public class ProcessService : IProcessService
     {
+        [DllImport("shell32.dll", SetLastError = true)]
+        private static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, out int pNumArgs);
+
         public int GetClientProcessId()
         {
             return GetClientProcess()?.Id ?? 0;
@@ -17,20 +23,25 @@ namespace Prometheus.Services
         public Dictionary<string, string> GetProcessCommandLines()
         {
             var process = GetClientProcess();
-            var commands = GetCommandLines(process);
-            var argumentsDict = new Dictionary<string, string>();
-            foreach (var command in commands)
+            var commandLine = GetCommandLine(process);
+            if (string.IsNullOrEmpty(commandLine))
             {
-                var equalIndex = command.IndexOf('=');
+                throw new ClientNotFoundException();
+            }
+            var arguments = CommandLineToArgs(commandLine);
+            var argumentsDict = new Dictionary<string, string>();
+            foreach (var argument in arguments)
+            {
+                var equalIndex = argument.IndexOf('=');
                 if (equalIndex != -1)
                 {
-                    var key = command.Substring(0, equalIndex);
-                    var value = command.Substring(equalIndex + 1);
+                    var key = argument.Substring(0, equalIndex);
+                    var value = argument.Substring(equalIndex + 1);
                     argumentsDict[key] = value;
                 }
                 else
                 {
-                    argumentsDict[command] = string.Empty;
+                    argumentsDict[argument] = string.Empty;
                 }
             }
             return argumentsDict;
@@ -38,7 +49,7 @@ namespace Prometheus.Services
 
         private Process GetClientProcess()
         {
-            return Process.GetProcesses().FirstOrDefault(p => p.ProcessName == "LeagueClientUx") ?? throw new ArgumentNullException("process", "client not found!");
+            return Process.GetProcesses().FirstOrDefault(p => p.ProcessName == "LeagueClientUx") ?? throw new ClientNotFoundException();
         }
 
         private IEnumerable<string> GetCommandLines(Process process)
@@ -55,6 +66,37 @@ namespace Prometheus.Services
                 throw new ArgumentNullException("commands", "commands is null!");
             }
             return commands.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Replace('"', ' ').Trim());
+        }
+
+        private string GetCommandLine(Process process)
+        {
+            var query = "SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + process.Id;
+            using var searcher = new ManagementObjectSearcher(query);
+            using var collection = searcher.Get();
+            return collection.OfType<ManagementObject>().Select(o => o["Commandline"].ToString()).FirstOrDefault();
+        }
+
+        public string[] CommandLineToArgs(string commandLine)
+        {
+            var argv = CommandLineToArgvW(commandLine, out var argumentCount);
+            if (argv == IntPtr.Zero)
+            {
+                throw new Win32Exception();
+            }
+            try
+            {
+                var arguments = new string[argumentCount];
+                for (var i = 0; i < arguments.Length; i++)
+                {
+                    var p = Marshal.ReadIntPtr(argv, i * IntPtr.Size);
+                    arguments[i] = Marshal.PtrToStringUni(p);
+                }
+                return arguments;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(argv);
+            }
         }
     }
 }
