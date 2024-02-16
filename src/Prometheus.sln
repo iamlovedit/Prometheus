@@ -23,13 +23,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Match", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Summoner", "Prometheus.Modules.Summoner\Prometheus.Modules.Summoner.csproj", "{E1CFCB64-8EF5-47BE-BE7B-A598D6DBFCA0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Modules.Home", "Prometheus.Modules.Home\Prometheus.Modules.Home.csproj", "{7097DAA7-01A5-4167-8FC6-2988B74A3C19}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Home", "Prometheus.Modules.Home\Prometheus.Modules.Home.csproj", "{7097DAA7-01A5-4167-8FC6-2988B74A3C19}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Modules.Utility", "Prometheus.Modules.Utility\Prometheus.Modules.Utility.csproj", "{710DD36E-5C01-4974-AF58-345FDE79D202}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Utility", "Prometheus.Modules.Utility\Prometheus.Modules.Utility.csproj", "{710DD36E-5C01-4974-AF58-345FDE79D202}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Modules.Inventory", "Prometheus.Modules.Inventory\Prometheus.Modules.Inventory.csproj", "{5BF1C97B-4216-464C-B33C-9206A052DF7E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Inventory", "Prometheus.Modules.Inventory\Prometheus.Modules.Inventory.csproj", "{5BF1C97B-4216-464C-B33C-9206A052DF7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Modules.Setting", "Prometheus.Modules.Setting\Prometheus.Modules.Setting.csproj", "{C37B8962-FBA7-4FA6-A81B-F9460A0FD89E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Setting", "Prometheus.Modules.Setting\Prometheus.Modules.Setting.csproj", "{C37B8962-FBA7-4FA6-A81B-F9460A0FD89E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Modules.Search", "Prometheus.Modules.Search\Prometheus.Modules.Search.csproj", "{33E10705-0DDD-437B-B1C6-AB409B587172}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -81,6 +83,10 @@ Global
 		{C37B8962-FBA7-4FA6-A81B-F9460A0FD89E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C37B8962-FBA7-4FA6-A81B-F9460A0FD89E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C37B8962-FBA7-4FA6-A81B-F9460A0FD89E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33E10705-0DDD-437B-B1C6-AB409B587172}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33E10705-0DDD-437B-B1C6-AB409B587172}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33E10705-0DDD-437B-B1C6-AB409B587172}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33E10705-0DDD-437B-B1C6-AB409B587172}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,6 +101,7 @@ Global
 		{710DD36E-5C01-4974-AF58-345FDE79D202} = {2F7FCD7A-248D-48BA-8D3C-D7BE0CBAF33C}
 		{5BF1C97B-4216-464C-B33C-9206A052DF7E} = {2F7FCD7A-248D-48BA-8D3C-D7BE0CBAF33C}
 		{C37B8962-FBA7-4FA6-A81B-F9460A0FD89E} = {2F7FCD7A-248D-48BA-8D3C-D7BE0CBAF33C}
+		{33E10705-0DDD-437B-B1C6-AB409B587172} = {2F7FCD7A-248D-48BA-8D3C-D7BE0CBAF33C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E64C70DB-D083-4023-8736-444D63BE697A}
