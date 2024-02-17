@@ -52,6 +52,7 @@ namespace Prometheus.Services
             return Process.GetProcesses().FirstOrDefault(p => p.ProcessName == "LeagueClientUx") ?? throw new ClientNotFoundException();
         }
 
+        [Obsolete]
         private IEnumerable<string> GetCommandLines(Process process)
         {
             var query = "SELECT CommandLine FROM Win32_Process WHERE ProcessId = " + process.Id;
