@@ -10,10 +10,10 @@ using System.Runtime.InteropServices;
 
 namespace Prometheus.Services
 {
-    public class ProcessService : IProcessService
+    public partial class ProcessService : IProcessService
     {
-        [DllImport("shell32.dll", SetLastError = true)]
-        private static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, out int pNumArgs);
+        [LibraryImport("shell32.dll", EntryPoint = "CommandLineToArgvW", SetLastError = true)]
+        private static partial IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, out int pNumArgs);
 
         public int GetClientProcessId()
         {

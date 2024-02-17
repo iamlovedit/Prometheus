@@ -2,14 +2,17 @@
 using Prism.Mvvm;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Services.Interfaces;
+using System.Windows;
 
 namespace Prometheus.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
-
+        private string _token;
+        private string _port;
         private readonly IRegionManager _regionManager;
-
+        private readonly IProcessService _processService;
         private string _title = "Prometheus";
         public string Title
         {
@@ -17,9 +20,24 @@ namespace Prometheus.ViewModels
             set { SetProperty(ref _title, value); }
         }
 
-        public MainWindowViewModel(IRegionManager regionManager)
+        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService)
         {
             _regionManager = regionManager;
+            _processService = processService;
+        }
+
+        private DelegateCommand _loadedCommand;
+        public DelegateCommand LoadedCommand =>
+            _loadedCommand ?? (_loadedCommand = new DelegateCommand(ExecuteLoadedCommand));
+        void ExecuteLoadedCommand()
+        {
+            var argsMap = _processService.GetProcessCommandLines();
+            _port = argsMap["--app-port"];
+            _token = argsMap["--remoting-auth-token"];
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView, new NavigationParameters()
+            {
+                {ParameterNames.Client_Status, Application.Current.FindResource("HomePage.ClientConnected").ToString()}
+            });
         }
 
         private DelegateCommand _homeCommand;

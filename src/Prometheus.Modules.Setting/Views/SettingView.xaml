@@ -10,8 +10,8 @@
     d:DataContext="{d:DesignInstance Type=viewmodels:SettingViewModel}"
     d:DesignHeight="600"
     d:DesignWidth="400"
-    mc:Ignorable="d"
-    prism:ViewModelLocator.AutoWireViewModel="True">
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -20,7 +20,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
     <TabControl>
-        <TabItem Header="{DynamicResource Generic}">
+        <TabItem Header="{DynamicResource Setting.Generic}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -29,11 +29,11 @@
                 <hc:PropertyGrid SelectedObject="{Binding DemoModel}" />
             </Grid>
         </TabItem>
-        <TabItem Header="{DynamicResource Preference}">
+        <TabItem Header="{DynamicResource Setting.Preference}">
             <hc:PropertyGrid SelectedObject="{Binding PreferenceSetting}" />
 
         </TabItem>
-        <TabItem Header="{DynamicResource System}">
+        <TabItem Header="{DynamicResource Setting.System}">
             <hc:PropertyGrid SelectedObject="{Binding SystemSetting}" />
         </TabItem>
     </TabControl>

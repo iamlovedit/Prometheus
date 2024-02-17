@@ -5,6 +5,7 @@
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.ViewModels"
@@ -15,6 +16,11 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
     <Grid Margin="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition
@@ -36,24 +42,24 @@
                 VerticalSpacing="12">
                 <Button
                     Command="{Binding HomeCommand}"
-                    Content="{DynamicResource Home}"
-                    ToolTip="{DynamicResource Home}" />
+                    Content="{DynamicResource Menu.Home}"
+                    ToolTip="{DynamicResource Menu.Home}" />
                 <Button
                     Command="{Binding InventoryCommand}"
-                    Content="{DynamicResource Inventory}"
-                    ToolTip="{DynamicResource Inventory}" />
+                    Content="{DynamicResource Menu.Inventory}"
+                    ToolTip="{DynamicResource Menu.Inventory}" />
                 <Button
                     Command="{Binding CareerCommand}"
-                    Content="{DynamicResource Career}"
-                    ToolTip="{DynamicResource Career}" />
+                    Content="{DynamicResource Menu.Career}"
+                    ToolTip="{DynamicResource Menu.Career}" />
                 <Button
                     Command="{Binding SearchCommand}"
-                    Content="{DynamicResource Search}"
-                    ToolTip="{DynamicResource Search}" />
+                    Content="{DynamicResource Menu.Search}"
+                    ToolTip="{DynamicResource Menu.Search}" />
                 <Button
                     Command="{Binding MatchCommand}"
-                    Content="{DynamicResource Match}"
-                    ToolTip="{DynamicResource Match}" />
+                    Content="{DynamicResource Menu.Match}"
+                    ToolTip="{DynamicResource Menu.Match}" />
             </hc:UniformSpacingPanel>
             <hc:UniformSpacingPanel
                 VerticalAlignment="Bottom"
@@ -62,8 +68,8 @@
                 VerticalSpacing="12">
                 <Button
                     Command="{Binding SettingCommand}"
-                    Content="{DynamicResource Setting}"
-                    ToolTip="{DynamicResource Setting}" />
+                    Content="{DynamicResource Menu.Setting}"
+                    ToolTip="{DynamicResource Menu.Setting}" />
             </hc:UniformSpacingPanel>
         </Grid>
 

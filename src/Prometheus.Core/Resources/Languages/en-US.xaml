@@ -2,16 +2,18 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
-    <sys:String x:Key="Home">Home</sys:String>
-    <sys:String x:Key="Career">Career</sys:String>
-    <sys:String x:Key="Search">Search</sys:String>
-    <sys:String x:Key="Match">Match</sys:String>
-    <sys:String x:Key="Inventory">Inventory</sys:String>
-    <sys:String x:Key="Utility">Utility</sys:String>
-    <sys:String x:Key="Setting">Setting</sys:String>
-    <sys:String x:Key="Generic">Generic</sys:String>
-    <sys:String x:Key="Preference">Preference</sys:String>
-    <sys:String x:Key="System">System</sys:String>
-    <sys:String x:Key="Language">Language</sys:String>
-    <sys:String x:Key="Personalization">Personalization</sys:String>
+    <sys:String x:Key="Menu.Home">Home</sys:String>
+    <sys:String x:Key="Menu.Career">Career</sys:String>
+    <sys:String x:Key="Menu.Search">Search</sys:String>
+    <sys:String x:Key="Menu.Match">Match</sys:String>
+    <sys:String x:Key="Menu.Inventory">Inventory</sys:String>
+    <sys:String x:Key="Menu.Utility">Utility</sys:String>
+    <sys:String x:Key="Menu.Setting">Setting</sys:String>
+    <sys:String x:Key="Setting.Generic">Generic</sys:String>
+    <sys:String x:Key="Setting.Preference">Preference</sys:String>
+    <sys:String x:Key="Setting.System">System</sys:String>
+    <sys:String x:Key="Setting.Language">Language</sys:String>
+    <sys:String x:Key="Setting.Personalization">Personalization</sys:String>
+    <sys:String x:Key="HomePage.ClientConnected">LOL Client Connected</sys:String>
+    <sys:String x:Key="HomePage.Developing">Developing</sys:String>
 </ResourceDictionary>

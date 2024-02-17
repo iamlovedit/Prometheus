@@ -7,6 +7,8 @@ using Prometheus.Modules.Search;
 using Prometheus.Modules.Setting;
 using Prometheus.Modules.Summoner;
 using Prometheus.Modules.Utility;
+using Prometheus.Services;
+using Prometheus.Services.Interfaces;
 using Prometheus.Views;
 using System.Windows;
 
@@ -17,6 +19,7 @@ namespace Prometheus
     /// </summary>
     public partial class App
     {
+
         protected override Window CreateShell()
         {
             return Container.Resolve<MainWindow>();
@@ -24,7 +27,7 @@ namespace Prometheus
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-
+            containerRegistry.RegisterSingleton<IProcessService, ProcessService>();
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)

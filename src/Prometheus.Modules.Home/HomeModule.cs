@@ -3,8 +3,6 @@ using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Home.Views;
-using Prometheus.Services;
-using Prometheus.Services.Interfaces;
 
 namespace Prometheus.Modules.Home
 {
@@ -16,13 +14,13 @@ namespace Prometheus.Modules.Home
 
         public override void OnInitialized(IContainerProvider containerProvider)
         {
-            RegionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
+
         }
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<HomeView>(RegionNames.HomeView);
-            containerRegistry.RegisterSingleton<IProcessService, ProcessService>();
+
         }
     }
 }

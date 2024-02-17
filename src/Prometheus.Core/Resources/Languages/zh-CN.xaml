@@ -2,16 +2,18 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
-    <sys:String x:Key="Home">主页</sys:String>
-    <sys:String x:Key="Career">生涯</sys:String>
-    <sys:String x:Key="Search">战绩查询</sys:String>
-    <sys:String x:Key="Match">对局信息</sys:String>
-    <sys:String x:Key="Inventory">藏品</sys:String>
-    <sys:String x:Key="Utility">实用工具</sys:String>
-    <sys:String x:Key="Setting">设置</sys:String>
-    <sys:String x:Key="Generic">通用</sys:String>
-    <sys:String x:Key="Preference">偏好</sys:String>
-    <sys:String x:Key="System">系统</sys:String>
-    <sys:String x:Key="Language">语言</sys:String>
-    <sys:String x:Key="Personalization">Personalization</sys:String>
+    <sys:String x:Key="Menu.Home">主页</sys:String>
+    <sys:String x:Key="Menu.Career">生涯</sys:String>
+    <sys:String x:Key="Menu.Search">战绩查询</sys:String>
+    <sys:String x:Key="Menu.Match">对局信息</sys:String>
+    <sys:String x:Key="Menu.Inventory">藏品</sys:String>
+    <sys:String x:Key="Menu.Utility">实用工具</sys:String>
+    <sys:String x:Key="Menu.Setting">设置</sys:String>
+    <sys:String x:Key="Setting.Generic">通用</sys:String>
+    <sys:String x:Key="Setting.Preference">偏好</sys:String>
+    <sys:String x:Key="Setting.System">系统</sys:String>
+    <sys:String x:Key="Setting.Language">语言</sys:String>
+    <sys:String x:Key="Setting.Personalization">个性化</sys:String>
+    <sys:String x:Key="HomePage.ClientConnected">英雄联盟客户端已链接</sys:String>
+    <sys:String x:Key="HomePage.Developing">主页功能开发中</sys:String>
 </ResourceDictionary>
