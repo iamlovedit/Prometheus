@@ -28,6 +28,8 @@ namespace Prometheus
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<IProcessService, ProcessService>();
+            containerRegistry.RegisterSingleton<IHttpService, HttpService>();
+            containerRegistry.RegisterSingleton<IClientListener, ClientListener>();
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)

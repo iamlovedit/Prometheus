@@ -2,6 +2,7 @@
     x:Class="Prometheus.Modules.Setting.Views.SettingView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -19,15 +20,9 @@
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>
-    <TabControl>
+    <!--<TabControl>
         <TabItem Header="{DynamicResource Setting.Generic}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <hc:PropertyGrid SelectedObject="{Binding DemoModel}" />
-            </Grid>
+        <hc:PropertyGrid SelectedObject="{Binding DemoModel}" />
         </TabItem>
         <TabItem Header="{DynamicResource Setting.Preference}">
             <hc:PropertyGrid SelectedObject="{Binding PreferenceSetting}" />
@@ -36,5 +31,12 @@
         <TabItem Header="{DynamicResource Setting.System}">
             <hc:PropertyGrid SelectedObject="{Binding SystemSetting}" />
         </TabItem>
+    </TabControl>-->
+    <TabControl prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingTabRegion}">
+        <TabControl.ItemTemplate>
+            <DataTemplate>
+                <TextBlock Text="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabItem}, Path=Content.DataContext.Title}" />
+            </DataTemplate>
+        </TabControl.ItemTemplate>
     </TabControl>
 </UserControl>

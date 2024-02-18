@@ -1,7 +1,9 @@
 ﻿using Prism.Commands;
+using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Events;
 using Prometheus.Services.Interfaces;
 using System.Windows;
 
@@ -13,6 +15,15 @@ namespace Prometheus.ViewModels
         private string _port;
         private readonly IRegionManager _regionManager;
         private readonly IProcessService _processService;
+        private readonly IEventAggregator _eventAggregator;
+
+        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator)
+        {
+            _regionManager = regionManager;
+            _processService = processService;
+            _eventAggregator = eventAggregator;
+        }
+
         private string _title = "Prometheus";
         public string Title
         {
@@ -20,17 +31,16 @@ namespace Prometheus.ViewModels
             set { SetProperty(ref _title, value); }
         }
 
-        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService)
-        {
-            _regionManager = regionManager;
-            _processService = processService;
-        }
 
         private DelegateCommand _loadedCommand;
         public DelegateCommand LoadedCommand =>
             _loadedCommand ?? (_loadedCommand = new DelegateCommand(ExecuteLoadedCommand));
         void ExecuteLoadedCommand()
         {
+            _eventAggregator.GetEvent<TitleChangeEvent>().Subscribe(v =>
+            {
+                Title = "Prometheus--" + v;
+            });
             var argsMap = _processService.GetProcessCommandLines();
             _port = argsMap["--app-port"];
             _token = argsMap["--remoting-auth-token"];
@@ -46,6 +56,7 @@ namespace Prometheus.ViewModels
         void ExecuteHomeCommand()
         {
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
+
         }
 
         private DelegateCommand _careerCommand;

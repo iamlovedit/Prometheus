@@ -10,11 +10,13 @@ namespace Prometheus.Services.Interfaces
 
         event Action<OnWebsocketEventArgs> OnWebsocketEvent;
 
-        void TryConnect(ushort port, string token);
+        void Connect(ushort port, string token);
 
         void Subscribe(string uri, Action<OnWebsocketEventArgs> args);
 
         void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action);
+
+        bool IsConnected { get; }
     }
 
     public class OnWebsocketEventArgs : EventArgs

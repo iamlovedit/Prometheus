@@ -22,6 +22,8 @@ namespace Prometheus.Services
 
         private readonly Dictionary<string, List<Action<OnWebsocketEventArgs>>> _eventsMap = [];
 
+        public bool IsConnected => _connected;
+
         public void Subscribe(string uri, Action<OnWebsocketEventArgs> args)
         {
             if (_eventsMap.TryGetValue(uri, out List<Action<OnWebsocketEventArgs>> value))
@@ -34,7 +36,7 @@ namespace Prometheus.Services
             }
         }
 
-        public void TryConnect(ushort port, string token)
+        public void Connect(ushort port, string token)
         {
             try
             {
@@ -42,21 +44,27 @@ namespace Prometheus.Services
                 {
                     return;
                 }
-                _socketConnection = new WebSocket("wss://127.0.0.1:" + port.ToString() + "/", "wamp");
+
+                _socketConnection = new WebSocket($"wss://127.0.0.1:{port}/", "wamp");
                 _socketConnection.SetCredentials("riot", token, true);
                 _socketConnection.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
                 _socketConnection.SslConfiguration.ServerCertificateValidationCallback = (a, b, c, d) => true;
-                _socketConnection.OnMessage += HandleMessage;
-                _socketConnection.OnClose += HandleDisconnect;
+                _socketConnection.OnMessage += OnMessageHandler;
+                _socketConnection.OnClose += OnCloseHandler;
+                _socketConnection.OnOpen += OnOpenHandler;
                 _socketConnection.Connect();
-                _socketConnection.Send($"[5, \"OnJsonApiEvent\"]");
-                _connected = true;
-                OnConnected?.Invoke();
             }
             catch (Exception e)
             {
                 _connected = false;
             }
+        }
+
+        private void OnOpenHandler(object sender, EventArgs e)
+        {
+            _connected = true;
+            _socketConnection.Send($"[5, \"OnJsonApiEvent\"]");
+            OnConnected?.Invoke();
         }
 
         public void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action)
@@ -74,7 +82,9 @@ namespace Prometheus.Services
             }
         }
 
-        private void HandleDisconnect(object sender, CloseEventArgs args)
+
+
+        private void OnCloseHandler(object sender, CloseEventArgs args)
         {
             _connected = false;
             _socketConnection?.Close();
@@ -82,7 +92,7 @@ namespace Prometheus.Services
             OnDisconnected?.Invoke();
         }
 
-        private void HandleMessage(object sender, MessageEventArgs args)
+        private void OnMessageHandler(object sender, MessageEventArgs args)
         {
             if (!args.IsText)
             {
@@ -93,7 +103,12 @@ namespace Prometheus.Services
             {
                 return;
             }
-            if ((long)payload[0] != 8 || !((string)payload[1]).Equals("OnJsonApiEvent"))
+            /*
+             [8,"OnJsonApiEvent",{"data":[],"eventType":"Update","uri":"/lol-ranked/v1/notifications"}]
+             */
+            ;
+            if (payload[0].ToObject<byte>() != 8
+                || payload[1].ToObject<string>() != "OnJsonApiEvent")
             {
                 return;
             }

@@ -1,20 +1,30 @@
 ﻿using Prism.Ioc;
-using Prism.Modularity;
+using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Setting.Views;
 
 namespace Prometheus.Modules.Setting
 {
-    public class SettingModule : IModule
+    public class SettingModule : ModuleBase
     {
-        public void OnInitialized(IContainerProvider containerProvider)
+        public SettingModule(IRegionManager regionManager) : base(regionManager)
         {
-
         }
 
-        public void RegisterTypes(IContainerRegistry containerRegistry)
+        public override void OnInitialized(IContainerProvider containerProvider)
+        {
+            RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingGenericView);
+            RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingSystemView);
+            RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingPreferenceView);
+        }
+
+        public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<SettingView>(RegionNames.SettingView);
+            containerRegistry.RegisterForNavigation<GenericView>(RegionNames.SettingGenericView);
+            containerRegistry.RegisterForNavigation<SystemView>(RegionNames.SettingSystemView);
+            containerRegistry.RegisterForNavigation<PreferenceView>(RegionNames.SettingPreferenceView);
         }
     }
 }
