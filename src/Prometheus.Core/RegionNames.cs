@@ -17,5 +17,13 @@
         public const string UtilityView = "UtilityView";
 
         public const string SearchView = "SearchView";
+
+        public const string SettingTabRegion = "SettingTabRegion";
+
+        public const string SettingGenericView = "SettingGenericView";
+
+        public const string SettingPreferenceView = "SettingPreferenceView";
+
+        public const string SettingSystemView = "SettingSystemView";
     }
 }
