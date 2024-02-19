@@ -1,14 +1,15 @@
-﻿using Prism.Mvvm;
+﻿using Prism.Events;
+using Prism.Mvvm;
 using Prism.Regions;
-using Prometheus.Core;
 
 namespace Prometheus.Modules.Home.ViewModels
 {
     public class HomeViewModel : BindableBase, INavigationAware
     {
-        public HomeViewModel()
+        private readonly IEventAggregator _eventAggregator;
+        public HomeViewModel(IEventAggregator eventAggregator)
         {
-
+            _eventAggregator = eventAggregator;
         }
 
         private string _clientStatus;
@@ -20,10 +21,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
         public void OnNavigatedTo(NavigationContext navigationContext)
         {
-            if (navigationContext.Parameters.TryGetValue<string>(ParameterNames.Client_Status, out var status))
-            {
-                ClientStatus = status;
-            }
+
         }
 
         public bool IsNavigationTarget(NavigationContext navigationContext)

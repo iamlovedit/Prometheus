@@ -16,13 +16,25 @@ namespace Prometheus.ViewModels
         private readonly IRegionManager _regionManager;
         private readonly IProcessService _processService;
         private readonly IEventAggregator _eventAggregator;
+        private readonly IClientListener _clientListener;
 
-        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator)
+        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator, IClientListener clientListener)
         {
             _regionManager = regionManager;
             _processService = processService;
             _eventAggregator = eventAggregator;
+            _clientListener = clientListener;
+            _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(_clientListener.Close);
+            _clientListener.OnConnected += () =>
+            {
+                eventAggregator.GetEvent<ConnectLCUEvent>().Publish();
+            };
+            _clientListener.OnDisconnected += () =>
+            {
+                eventAggregator.GetEvent<DisConnectLCUEvent>().Publish();
+            };
         }
+
 
         private string _title = "Prometheus";
         public string Title
@@ -35,19 +47,21 @@ namespace Prometheus.ViewModels
         private DelegateCommand _loadedCommand;
         public DelegateCommand LoadedCommand =>
             _loadedCommand ?? (_loadedCommand = new DelegateCommand(ExecuteLoadedCommand));
-        void ExecuteLoadedCommand()
+        async void ExecuteLoadedCommand()
         {
             _eventAggregator.GetEvent<TitleChangeEvent>().Subscribe(v =>
             {
                 Title = "Prometheus--" + v;
             });
             var argsMap = _processService.GetProcessCommandLines();
-            _port = argsMap["--app-port"];
-            _token = argsMap["--remoting-auth-token"];
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView, new NavigationParameters()
+            if (argsMap.TryGetValue("--app-port", out var port) && argsMap.TryGetValue("--remoting-auth-token", out var token))
             {
-                {ParameterNames.Client_Status, Application.Current.FindResource("HomePage.ClientConnected").ToString()}
-            });
+                _port = port;
+                _token = token;
+                _clientListener.Initialize(port, token);
+                await _clientListener.ConnectAsync();
+            }
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
         }
 
         private DelegateCommand _homeCommand;

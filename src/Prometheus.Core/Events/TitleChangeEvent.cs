@@ -6,4 +6,19 @@ namespace Prometheus.Core.Events
     {
 
     }
+
+    public class WindowClosingEvent : PubSubEvent
+    {
+
+    }
+
+    public class ConnectLCUEvent : PubSubEvent
+    {
+
+    }
+
+    public class DisConnectLCUEvent: PubSubEvent
+    {
+
+    }
 }
