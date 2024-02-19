@@ -12,8 +12,10 @@
     <sys:String x:Key="Setting.Generic">Generic</sys:String>
     <sys:String x:Key="Setting.Preference">Preference</sys:String>
     <sys:String x:Key="Setting.System">System</sys:String>
-    <sys:String x:Key="Setting.Language">Language</sys:String>
     <sys:String x:Key="Setting.Personalization">Personalization</sys:String>
-    <sys:String x:Key="HomePage.ClientConnected">LOL Client Connected</sys:String>
+    <sys:String x:Key="Setting.Appearance">Appearance</sys:String>
+    <sys:String x:Key="Setting.Language">Language</sys:String>
+    <sys:String x:Key="HomePage.LCUConnected">LOL Client Connected</sys:String>
+    <sys:String x:Key="HomePage.LCUDisconnected">LOL Client Disconnected</sys:String>
     <sys:String x:Key="HomePage.Developing">Developing</sys:String>
 </ResourceDictionary>

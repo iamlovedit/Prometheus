@@ -14,6 +14,8 @@
     <sys:String x:Key="Setting.System">系统</sys:String>
     <sys:String x:Key="Setting.Language">语言</sys:String>
     <sys:String x:Key="Setting.Personalization">个性化</sys:String>
-    <sys:String x:Key="HomePage.ClientConnected">英雄联盟客户端已链接</sys:String>
+    <sys:String x:Key="Setting.Appearance">外观</sys:String>
+    <sys:String x:Key="HomePage.LCUConnected">英雄联盟客户端已链接</sys:String>
+    <sys:String x:Key="HomePage.LCUDisconnected">英雄联盟客户端已断开</sys:String>
     <sys:String x:Key="HomePage.Developing">主页功能开发中</sys:String>
 </ResourceDictionary>
