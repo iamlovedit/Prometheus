@@ -1,16 +1,20 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Prometheus.Services.Interfaces;
 using System;
 using System.Collections.Generic;
-using System.Security.Authentication;
-using WebSocketSharp.NetCore;
+using System.Net;
+using System.Net.WebSockets;
+using System.Reactive.Linq;
+using System.Threading.Tasks;
+using Websocket.Client;
 
 namespace Prometheus.Services
 {
     public class ClientListener : IClientListener
     {
-        private WebSocket _socketConnection;
+        private WebsocketClient _client;
+
+        private bool _loopAlive;
 
         private bool _connected;
 
@@ -21,6 +25,8 @@ namespace Prometheus.Services
         public event Action<OnWebsocketEventArgs> OnWebsocketEvent;
 
         private readonly Dictionary<string, List<Action<OnWebsocketEventArgs>>> _eventsMap = [];
+
+        private bool _initialized;
 
         public bool IsConnected => _connected;
 
@@ -36,35 +42,108 @@ namespace Prometheus.Services
             }
         }
 
-        public void Connect(ushort port, string token)
+        public void Initialize(string port, string token)
+        {
+            if (_initialized)
+            {
+                return;
+            }
+
+            _client = new WebsocketClient(new Uri($"wss://127.0.0.1:{port}/"), () =>
+            {
+                var clientSocket = new ClientWebSocket
+                {
+                    Options =
+                        {
+                            KeepAliveInterval = TimeSpan.FromSeconds(5),
+                            Credentials = new NetworkCredential("riot", token),
+                            RemoteCertificateValidationCallback =
+                            (sender, cert, chain, sslPolicyErrors) => true,
+                        }
+                };
+
+                clientSocket.Options.AddSubProtocol("wamp");
+                clientSocket.Options.SetRequestHeader("Connection", "keep-alive");
+
+                return clientSocket;
+            });
+
+            _client.DisconnectionHappened.Subscribe(async _ =>
+            {
+                await Reconnect();
+            });
+
+            _client.ReconnectionHappened.Subscribe(async _ =>
+            {
+                await Reconnect();
+            });
+            _client.ErrorReconnectTimeout = TimeSpan.FromSeconds(3);
+            _client.ReconnectTimeout = TimeSpan.FromSeconds(3);
+            _client.MessageReceived.
+                Where(rm => !string.IsNullOrEmpty(rm.Text) && rm.Text.StartsWith('[')).
+                Subscribe(OnMessageHandler);
+
+            _initialized = true;
+        }
+
+        private async Task Reconnect()
         {
             try
             {
-                if (_connected)
+                if (!_client.IsRunning)
+                {
+                    OnDisconnected?.Invoke();
+                }
+                await _client.Start();
+                await _client.SendInstant("[5, \"OnJsonApiEvent\"]");
+                SendMessage();
+                if (_client.IsRunning)
+                {
+                    OnConnected?.Invoke();
+                }
+            }
+            catch (Exception e)
+            {
+            }
+
+        }
+
+        private void SendMessage()
+        {
+            if (_loopAlive)
+            {
+                return;
+            }
+            _loopAlive = true;
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await _client.SendInstant("[5, \"OnJsonApiEvent\"]");
+                    await Task.Delay(2000);
+                }
+            });
+        }
+
+        public async Task ConnectAsync()
+        {
+            try
+            {
+                if (_connected || !_initialized)
                 {
                     return;
                 }
-
-                _socketConnection = new WebSocket($"wss://127.0.0.1:{port}/", "wamp");
-                _socketConnection.SetCredentials("riot", token, true);
-                _socketConnection.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-                _socketConnection.SslConfiguration.ServerCertificateValidationCallback = (a, b, c, d) => true;
-                _socketConnection.OnMessage += OnMessageHandler;
-                _socketConnection.OnClose += OnCloseHandler;
-                _socketConnection.OnOpen += OnOpenHandler;
-                _socketConnection.Connect();
+                await _client.Start();
+                await _client.SendInstant("[5, \"OnJsonApiEvent\"]");
+                if (_client.IsRunning)
+                {
+                    OnConnected?.Invoke();
+                }
             }
             catch (Exception e)
             {
                 _connected = false;
             }
-        }
-
-        private void OnOpenHandler(object sender, EventArgs e)
-        {
-            _connected = true;
-            _socketConnection.Send($"[5, \"OnJsonApiEvent\"]");
-            OnConnected?.Invoke();
         }
 
         public void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action)
@@ -82,23 +161,9 @@ namespace Prometheus.Services
             }
         }
 
-
-
-        private void OnCloseHandler(object sender, CloseEventArgs args)
+        private void OnMessageHandler(ResponseMessage responseMessage)
         {
-            _connected = false;
-            _socketConnection?.Close();
-            _socketConnection = null;
-            OnDisconnected?.Invoke();
-        }
-
-        private void OnMessageHandler(object sender, MessageEventArgs args)
-        {
-            if (!args.IsText)
-            {
-                return;
-            }
-            var payload = JsonConvert.DeserializeObject<JArray>(args.Data);
+            var payload = JArray.Parse(responseMessage.Text);
             if (payload.Count != 3)
             {
                 return;
@@ -107,30 +172,24 @@ namespace Prometheus.Services
              [8,"OnJsonApiEvent",{"data":[],"eventType":"Update","uri":"/lol-ranked/v1/notifications"}]
              */
             ;
-            if (payload[0].ToObject<byte>() != 8
-                || payload[1].ToObject<string>() != "OnJsonApiEvent")
+            if (payload[0].ToObject<byte>() != 8 || payload[1].ToObject<string>() != "OnJsonApiEvent")
             {
                 return;
             }
-            var @event = (dynamic)payload[2];
-            OnWebsocketEvent?.Invoke(new OnWebsocketEventArgs
-            {
-                Path = @event["uri"],
-                Type = @event["eventType"],
-                Data = @event["eventType"] == "Delete" ? null : @event["data"]
-            });
-            if (_eventsMap.TryGetValue((string)@event["uri"], out var events))
+            var eventArgs = payload[2].ToObject<OnWebsocketEventArgs>();
+            OnWebsocketEvent?.Invoke(eventArgs);
+            if (_eventsMap.TryGetValue(eventArgs.Uri, out var events))
             {
                 foreach (var item in events)
                 {
-                    item.Invoke(new OnWebsocketEventArgs
-                    {
-                        Path = @event["uri"],
-                        Type = @event["eventType"],
-                        Data = @event["eventType"] == "Delete" ? null : @event["data"]
-                    });
+                    item.Invoke(eventArgs);
                 }
             }
+        }
+
+        public void Close()
+        {
+            _client?.Dispose();
         }
     }
 }

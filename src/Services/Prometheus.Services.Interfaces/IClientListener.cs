@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces
 {
@@ -10,24 +12,28 @@ namespace Prometheus.Services.Interfaces
 
         event Action<OnWebsocketEventArgs> OnWebsocketEvent;
 
-        void Connect(ushort port, string token);
+        Task ConnectAsync();
+
+        void Close();
 
         void Subscribe(string uri, Action<OnWebsocketEventArgs> args);
 
         void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action);
 
         bool IsConnected { get; }
+
+        void Initialize(string port, string token);
     }
 
     public class OnWebsocketEventArgs : EventArgs
     {
-        // URI    
-        public string Path { get; set; }
-
-        // Update create delete     
-        public string Type { get; set; }
-
-        // data :D
+        [JsonProperty("data")]
         public dynamic Data { get; set; }
+
+        [JsonProperty("eventType")]
+        public string EventType { get; set; }
+
+        [JsonProperty("uri")]
+        public string Uri { get; set; }
     }
 }
