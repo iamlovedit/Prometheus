@@ -12,10 +12,5 @@ namespace Prometheus.Modules.Setting.ViewModels
             _regionManager = regionManager;
         }
 
-        public PreferenceSetting PreferenceSetting { get; set; }
-
-        public GenericSetting GenericSetting { get; set; }
-
-        public SystemSetting SystemSetting { get; set; }
     }
 }
