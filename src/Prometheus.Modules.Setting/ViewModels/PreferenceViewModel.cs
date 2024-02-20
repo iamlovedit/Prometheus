@@ -22,6 +22,7 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         private readonly string[] _themeUS = ["Light", "Dark", "System"];
 
+
         private readonly IEventAggregator _eventAggregator;
         private readonly IResourceService _resourceService;
         public PreferenceViewModel(IEventAggregator eventAggregator, IResourceService resourceService)
@@ -37,6 +38,7 @@ namespace Prometheus.Modules.Setting.ViewModels
             {
                 _selectedLanguage = "English";
             }
+            //TODO:get setting from local storage;
             SwitchLanguage("en-US", _languageMap[_selectedLanguage]);
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(() =>
             {
@@ -60,8 +62,8 @@ namespace Prometheus.Modules.Setting.ViewModels
             }
             try
             {
-                var sourceUri = new Uri($"pack://application:,,,/Prometheus.Core;component/Resources/Languages/{source}.xaml");
-                var targetUri = new Uri($"pack://application:,,,/Prometheus.Core;component/Resources/Languages/{target}.xaml");
+                var sourceUri = new Uri(_resourceService.GetLanguageResourceUri(source));
+                var targetUri = new Uri(_resourceService.GetLanguageResourceUri(target));
                 Application.Current.Resources.MergedDictionaries.Remove(new ResourceDictionary() { Source = sourceUri });
                 Application.Current.Resources.MergedDictionaries.Add(new ResourceDictionary() { Source = targetUri });
             }

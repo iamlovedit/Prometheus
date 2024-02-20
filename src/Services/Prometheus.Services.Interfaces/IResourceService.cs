@@ -3,5 +3,7 @@
     public interface IResourceService
     {
         T FindResource<T>(string resourceKey);
+
+        string GetLanguageResourceUri(string language);
     }
 }
