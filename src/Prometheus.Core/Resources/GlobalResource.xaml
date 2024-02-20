@@ -5,4 +5,8 @@
         <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/SkinDefault.xaml" />
         <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/Theme.xaml" />
     </ResourceDictionary.MergedDictionaries>
+
+    <FontFamily x:Key="Iconfont">
+        pack://application:,,,/Prometheus.Core;component/Resources/#iconfont
+    </FontFamily>
 </ResourceDictionary>
