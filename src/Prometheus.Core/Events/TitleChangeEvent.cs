@@ -12,12 +12,7 @@ namespace Prometheus.Core.Events
 
     }
 
-    public class ConnectLCUEvent : PubSubEvent
-    {
-
-    }
-
-    public class DisConnectLCUEvent: PubSubEvent
+    public class ConnectLCUEvent : PubSubEvent<bool>
     {
 
     }

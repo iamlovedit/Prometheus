@@ -1,17 +1,35 @@
 ﻿using Prism.Events;
-using Prism.Mvvm;
 using Prism.Regions;
+using Prometheus.Core.Events;
+using Prometheus.Core.Mvvm;
+using System.Windows;
 
 namespace Prometheus.Modules.Home.ViewModels
 {
-    public class HomeViewModel : BindableBase, INavigationAware
+    public class HomeViewModel : RegionViewModelBase
     {
         private readonly IEventAggregator _eventAggregator;
-        public HomeViewModel(IEventAggregator eventAggregator)
+
+
+        public HomeViewModel(IRegionManager regionManager, IEventAggregator eventAggregator) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
-        }
+            _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(isConnected =>
+            {
+                if (isConnected) 
+                {
+                    ClientStatus = Application.Current.FindResource("HomePage.LCUConnected").ToString();
+                    IsConnected = true;
+                }
+                else
+                {
+                    ClientStatus = Application.Current.FindResource("HomePage.LCUDisconnected").ToString();
+                    IsConnected = false;
+                }
+            });
 
+
+        }
         private string _clientStatus;
         public string ClientStatus
         {
@@ -19,19 +37,11 @@ namespace Prometheus.Modules.Home.ViewModels
             set { SetProperty(ref _clientStatus, value); }
         }
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        private bool _isConnected;
+        public bool IsConnected
         {
-
-        }
-
-        public bool IsNavigationTarget(NavigationContext navigationContext)
-        {
-            return true;
-        }
-
-        public void OnNavigatedFrom(NavigationContext navigationContext)
-        {
-
+            get { return _isConnected; }
+            set { SetProperty(ref _isConnected, value); }
         }
     }
 }

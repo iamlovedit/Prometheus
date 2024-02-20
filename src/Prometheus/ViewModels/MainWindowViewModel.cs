@@ -5,7 +5,6 @@ using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Services.Interfaces;
-using System.Windows;
 
 namespace Prometheus.ViewModels
 {
@@ -27,11 +26,11 @@ namespace Prometheus.ViewModels
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(_clientListener.Close);
             _clientListener.OnConnected += () =>
             {
-                eventAggregator.GetEvent<ConnectLCUEvent>().Publish();
+                eventAggregator.GetEvent<ConnectLCUEvent>().Publish(true);
             };
             _clientListener.OnDisconnected += () =>
             {
-                eventAggregator.GetEvent<DisConnectLCUEvent>().Publish();
+                eventAggregator.GetEvent<ConnectLCUEvent>().Publish(false);
             };
         }
 

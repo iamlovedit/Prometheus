@@ -15,8 +15,8 @@ namespace Prometheus.Modules.Setting
         public override void OnInitialized(IContainerProvider containerProvider)
         {
             RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingGenericView);
-            RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingSystemView);
             RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingPreferenceView);
+            RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingSystemView);
         }
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
