@@ -23,10 +23,14 @@ namespace Prometheus.Services
         public Dictionary<string, string> GetProcessCommandLines()
         {
             var process = GetClientProcess();
+            if (process is null)
+            {
+                return default;
+            }
             var commandLine = GetCommandLine(process);
             if (string.IsNullOrEmpty(commandLine))
             {
-                throw new ClientNotFoundException();
+                return default;
             }
             var arguments = CommandLineToArgs(commandLine);
             var argumentsDict = new Dictionary<string, string>();
@@ -49,7 +53,7 @@ namespace Prometheus.Services
 
         private Process GetClientProcess()
         {
-            return Process.GetProcesses().FirstOrDefault(p => p.ProcessName == "LeagueClientUx") ?? throw new ClientNotFoundException();
+            return Process.GetProcesses().FirstOrDefault(p => p.ProcessName == "LeagueClientUx");
         }
 
         [Obsolete]

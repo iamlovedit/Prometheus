@@ -52,14 +52,17 @@ namespace Prometheus.ViewModels
                 Title = "Prometheus--" + v;
             });
             var argsMap = _processService.GetProcessCommandLines();
-            if (argsMap.TryGetValue("--app-port", out var port) && argsMap.TryGetValue("--remoting-auth-token", out var token))
+            if (argsMap != null)
             {
-                _port = port;
-                _token = token;
-                _clientListener.Initialize(port, token);
-                await _clientListener.ConnectAsync();
+                if (argsMap.TryGetValue("--app-port", out var port) && argsMap.TryGetValue("--remoting-auth-token", out var token))
+                {
+                    _port = port;
+                    _token = token;
+                    _clientListener.Initialize(port, token);
+                    await _clientListener.ConnectAsync();
+                }
             }
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
+            _homeCommand?.Execute();
         }
 
         private DelegateCommand _homeCommand;
