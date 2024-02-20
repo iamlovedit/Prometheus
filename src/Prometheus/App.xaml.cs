@@ -30,6 +30,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IProcessService, ProcessService>();
             containerRegistry.RegisterSingleton<IHttpService, HttpService>();
             containerRegistry.RegisterSingleton<IClientListener, ClientListener>();
+            containerRegistry.RegisterSingleton<IResourceService, ResourceService>();
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)

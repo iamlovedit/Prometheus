@@ -14,6 +14,7 @@
     Height="650"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    Icon="../Resources/Prometheus_16.ico"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <i:Interaction.Triggers>
@@ -21,16 +22,17 @@
             <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    <Grid Margin="12">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition
-                Width="120"
-                MinWidth="120"
-                MaxWidth="200" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition />
-        </Grid.ColumnDefinitions>
+    <Border Background="{DynamicResource MainContentForegroundDrawingBrush}">
         <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition
+                    Width="200"
+                    MinWidth="200"
+                    MaxWidth="200" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <!--<Grid>
             <Grid.Resources>
                 <Style BasedOn="{StaticResource ButtonPrimary}" TargetType="{x:Type Button}">
                     <Setter Property="Width" Value="100" />
@@ -71,14 +73,63 @@
                     Content="{DynamicResource Menu.Setting}"
                     ToolTip="{DynamicResource Menu.Setting}" />
             </hc:UniformSpacingPanel>
-        </Grid>
+        </Grid>-->
+            <hc:SideMenu Margin="12" BorderThickness="1">
+                <hc:SideMenu.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="{StaticResource Iconfont}" />
+                        <Setter Property="FontSize" Value="20" />
+                    </Style>
+                </hc:SideMenu.Resources>
 
-        <GridSplitter
-            Grid.Column="1"
-            Width="4"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Stretch"
-            ShowsPreview="True" />
-        <ContentControl Grid.Column="2" prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
-    </Grid>
+                <hc:SideMenuItem Command="{Binding HomeCommand}" Header="{DynamicResource Menu.Home}">
+                    <hc:SideMenuItem.Icon>
+                        <TextBlock Text="&#xe609;" />
+                    </hc:SideMenuItem.Icon>
+                </hc:SideMenuItem>
+
+                <hc:SideMenuItem Command="{Binding CareerCommand}" Header="{DynamicResource Menu.Career}">
+                    <hc:SideMenuItem.Icon>
+                        <TextBlock Text="&#xe604;" />
+                    </hc:SideMenuItem.Icon>
+                </hc:SideMenuItem>
+                <hc:SideMenuItem Command="{Binding InventoryCommand}" Header="{DynamicResource Menu.Inventory}">
+                    <hc:SideMenuItem.Icon>
+                        <TextBlock Text="&#xe607;" />
+                    </hc:SideMenuItem.Icon>
+                </hc:SideMenuItem>
+
+                <hc:SideMenuItem Command="{Binding SearchCommand}" Header="{DynamicResource Menu.Search}">
+                    <hc:SideMenuItem.Icon>
+                        <TextBlock Text="&#xe60c;" />
+                    </hc:SideMenuItem.Icon>
+                </hc:SideMenuItem>
+
+                <hc:SideMenuItem Command="{Binding MatchCommand}" Header="{DynamicResource Menu.Match}">
+                    <hc:SideMenuItem.Icon>
+                        <TextBlock Text="&#xe635;" />
+                    </hc:SideMenuItem.Icon>
+                </hc:SideMenuItem>
+
+                <hc:SideMenuItem
+                    VerticalAlignment="Bottom"
+                    Command="{Binding SettingCommand}"
+                    Header="{DynamicResource Menu.Setting}">
+                    <hc:SideMenuItem.Icon>
+                        <TextBlock Text="&#xe60a;" />
+                    </hc:SideMenuItem.Icon>
+                </hc:SideMenuItem>
+            </hc:SideMenu>
+            <GridSplitter
+                Grid.Column="1"
+                Width="4"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Stretch"
+                ShowsPreview="True" />
+            <ContentControl
+                Grid.Column="2"
+                Margin="12"
+                prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
+        </Grid>
+    </Border>
 </hc:Window>

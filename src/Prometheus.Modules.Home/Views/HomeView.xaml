@@ -14,9 +14,7 @@
     mc:Ignorable="d">
     <UserControl.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/Prometheus.Core;component/Resources/GlobalResource.xaml" />
-            </ResourceDictionary.MergedDictionaries>
+            <hc:Boolean2VisibilityReConverter x:Key="Boolean2VisibilityReConverter" />
         </ResourceDictionary>
     </UserControl.Resources>
     <hc:UniformSpacingPanel
@@ -30,6 +28,12 @@
             FontWeight="Bold"
             Text="{Binding ClientStatus}" />
         <TextBlock Text="{DynamicResource HomePage.Developing}" />
-        <hc:LoadingCircle />
+        <hc:UniformSpacingPanel
+            Orientation="Vertical"
+            VerticalSpacing="24"
+            Visibility="{Binding IsConnected, Converter={StaticResource Boolean2VisibilityReConverter}}">
+            <hc:LoadingCircle />
+            <TextBlock Text="{DynamicResource HomePage.Connecting}" />
+        </hc:UniformSpacingPanel>
     </hc:UniformSpacingPanel>
 </UserControl>

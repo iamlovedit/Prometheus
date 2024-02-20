@@ -13,25 +13,6 @@
     d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <UserControl.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="pack://application:,,,/Prometheus.Core;component/Resources/GlobalResource.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </UserControl.Resources>
-    <!--<TabControl>
-        <TabItem Header="{DynamicResource Setting.Generic}">
-        <hc:PropertyGrid SelectedObject="{Binding DemoModel}" />
-        </TabItem>
-        <TabItem Header="{DynamicResource Setting.Preference}">
-            <hc:PropertyGrid SelectedObject="{Binding PreferenceSetting}" />
-
-        </TabItem>
-        <TabItem Header="{DynamicResource Setting.System}">
-            <hc:PropertyGrid SelectedObject="{Binding SystemSetting}" />
-        </TabItem>
-    </TabControl>-->
     <TabControl prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingTabRegion}">
         <TabControl.ItemTemplate>
             <DataTemplate>

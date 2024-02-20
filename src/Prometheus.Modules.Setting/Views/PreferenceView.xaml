@@ -13,21 +13,36 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <Grid Margin="12">
-        <hc:UniformSpacingPanel Orientation="Vertical" VerticalSpacing="20">
-            <Expander Header="{DynamicResource Setting.Appearance}" IsExpanded="True">
-                <!--<DockPanel LastChildFill="True">
-                    <TextBlock Text="{DynamicResource Setting.Language}" />
-                    <ComboBox DockPanel.Dock="Right" />
-                </DockPanel>-->
-                <hc:EnumPropertyEditor>
-                    
-                </hc:EnumPropertyEditor>
-            </Expander>
-            <Expander Header="{DynamicResource Setting.Appearance}" IsExpanded="True">
-                <DockPanel LastChildFill="True">
-                    <TextBlock Text="{DynamicResource Setting.Language}" />
-                    <ComboBox DockPanel.Dock="Right" />
-                </DockPanel>
+        <hc:UniformSpacingPanel Orientation="Vertical" VerticalSpacing="24">
+            <Expander
+                BorderThickness="1"
+                Header="{DynamicResource Setting.Appearance}"
+                IsExpanded="True">
+                <Grid Margin="8,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="100" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition Height="12" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock VerticalAlignment="Center" Text="{DynamicResource Setting.Language}" />
+                    <ComboBox
+                        Grid.Column="1"
+                        ItemsSource="{Binding Languages}"
+                        SelectedItem="{Binding SelectedLanguage}" />
+                    <TextBlock
+                        Grid.Row="2"
+                        VerticalAlignment="Center"
+                        Text="{DynamicResource Setting.Theme}" />
+                    <ComboBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        ItemsSource="{Binding Themes}"
+                        SelectedItem="{Binding SelectedTheme}" />
+                </Grid>
             </Expander>
         </hc:UniformSpacingPanel>
 

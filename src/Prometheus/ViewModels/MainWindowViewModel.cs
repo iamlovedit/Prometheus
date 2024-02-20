@@ -42,7 +42,6 @@ namespace Prometheus.ViewModels
             set { SetProperty(ref _title, value); }
         }
 
-
         private DelegateCommand _loadedCommand;
         public DelegateCommand LoadedCommand =>
             _loadedCommand ?? (_loadedCommand = new DelegateCommand(ExecuteLoadedCommand));
