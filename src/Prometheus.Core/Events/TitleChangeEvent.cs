@@ -16,4 +16,13 @@ namespace Prometheus.Core.Events
     {
 
     }
+
+    public class LanguageSwitchedEvent:PubSubEvent
+    {
+
+    }
+    public class ThemeSwitchedEvent : PubSubEvent
+    {
+
+    }
 }
