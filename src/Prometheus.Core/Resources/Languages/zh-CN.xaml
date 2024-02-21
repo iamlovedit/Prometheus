@@ -13,9 +13,13 @@
     <sys:String x:Key="Setting.Preference">偏好</sys:String>
     <sys:String x:Key="Setting.System">系统</sys:String>
     <sys:String x:Key="Setting.Language">语言</sys:String>
+    <sys:String x:Key="Setting.Language.CH">简体中文</sys:String>
+    <sys:String x:Key="Setting.Language.EN">English</sys:String>
     <sys:String x:Key="Setting.Personalization">个性化</sys:String>
     <sys:String x:Key="Setting.Appearance">外观</sys:String>
     <sys:String x:Key="Setting.Theme">主题</sys:String>
+    <sys:String x:Key="Setting.Theme.Light">明亮</sys:String>
+    <sys:String x:Key="Setting.Theme.Dark">暗黑</sys:String>
     <sys:String x:Key="HomePage.LCUConnected">英雄联盟客户端已链接</sys:String>
     <sys:String x:Key="HomePage.LCUDisconnected">英雄联盟客户端已断开</sys:String>
     <sys:String x:Key="HomePage.Connecting">英雄联盟客户端连接中</sys:String>

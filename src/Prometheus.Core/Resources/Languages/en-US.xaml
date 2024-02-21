@@ -15,7 +15,11 @@
     <sys:String x:Key="Setting.Personalization">Personalization</sys:String>
     <sys:String x:Key="Setting.Appearance">Appearance</sys:String>
     <sys:String x:Key="Setting.Language">Language</sys:String>
+    <sys:String x:Key="Setting.Language.CH">简体中文</sys:String>
+    <sys:String x:Key="Setting.Language.EN">English</sys:String>
     <sys:String x:Key="Setting.Theme">Theme</sys:String>
+    <sys:String x:Key="Setting.Theme.Light">Light</sys:String>
+    <sys:String x:Key="Setting.Theme.Dark">Dark</sys:String>
     <sys:String x:Key="HomePage.LCUConnected">LOL Client Connected</sys:String>
     <sys:String x:Key="HomePage.LCUDisconnected">LOL Client Disconnected</sys:String>
     <sys:String x:Key="HomePage.Developing">Developing</sys:String>
