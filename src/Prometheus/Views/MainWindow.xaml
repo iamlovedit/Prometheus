@@ -32,48 +32,6 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <!--<Grid>
-            <Grid.Resources>
-                <Style BasedOn="{StaticResource ButtonPrimary}" TargetType="{x:Type Button}">
-                    <Setter Property="Width" Value="100" />
-                </Style>
-            </Grid.Resources>
-            <hc:UniformSpacingPanel
-                ItemHorizontalAlignment="Left"
-                Orientation="Vertical"
-                VerticalSpacing="12">
-                <Button
-                    Command="{Binding HomeCommand}"
-                    Content="{DynamicResource Menu.Home}"
-                    ToolTip="{DynamicResource Menu.Home}" />
-                <Button
-                    Command="{Binding InventoryCommand}"
-                    Content="{DynamicResource Menu.Inventory}"
-                    ToolTip="{DynamicResource Menu.Inventory}" />
-                <Button
-                    Command="{Binding CareerCommand}"
-                    Content="{DynamicResource Menu.Career}"
-                    ToolTip="{DynamicResource Menu.Career}" />
-                <Button
-                    Command="{Binding SearchCommand}"
-                    Content="{DynamicResource Menu.Search}"
-                    ToolTip="{DynamicResource Menu.Search}" />
-                <Button
-                    Command="{Binding MatchCommand}"
-                    Content="{DynamicResource Menu.Match}"
-                    ToolTip="{DynamicResource Menu.Match}" />
-            </hc:UniformSpacingPanel>
-            <hc:UniformSpacingPanel
-                VerticalAlignment="Bottom"
-                ItemHorizontalAlignment="Left"
-                Orientation="Vertical"
-                VerticalSpacing="12">
-                <Button
-                    Command="{Binding SettingCommand}"
-                    Content="{DynamicResource Menu.Setting}"
-                    ToolTip="{DynamicResource Menu.Setting}" />
-            </hc:UniformSpacingPanel>
-        </Grid>-->
             <hc:SideMenu Margin="12" BorderThickness="1">
                 <hc:SideMenu.Resources>
                     <Style TargetType="TextBlock">
@@ -120,12 +78,6 @@
                     </hc:SideMenuItem.Icon>
                 </hc:SideMenuItem>
             </hc:SideMenu>
-            <GridSplitter
-                Grid.Column="1"
-                Width="4"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Stretch"
-                ShowsPreview="True" />
             <ContentControl
                 Grid.Column="2"
                 Margin="12"

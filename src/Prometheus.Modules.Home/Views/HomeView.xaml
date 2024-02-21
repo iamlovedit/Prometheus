@@ -12,11 +12,6 @@
     d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <UserControl.Resources>
-        <ResourceDictionary>
-            <hc:Boolean2VisibilityReConverter x:Key="Boolean2VisibilityReConverter" />
-        </ResourceDictionary>
-    </UserControl.Resources>
     <hc:UniformSpacingPanel
         VerticalAlignment="Center"
         ItemHorizontalAlignment="Center"

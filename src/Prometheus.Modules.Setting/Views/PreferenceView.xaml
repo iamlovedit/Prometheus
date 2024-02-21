@@ -29,10 +29,10 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
                     <TextBlock VerticalAlignment="Center" Text="{DynamicResource Setting.Language}" />
-                    <ComboBox
-                        Grid.Column="1"
-                        ItemsSource="{Binding Languages}"
-                        SelectedItem="{Binding SelectedLanguage}" />
+                    <ComboBox Grid.Column="1" SelectedIndex="{Binding SelectedLanguageIndex}">
+                        <ComboBoxItem Content="{DynamicResource Setting.Language.CH}" />
+                        <ComboBoxItem Content="{DynamicResource Setting.Language.EN}" />
+                    </ComboBox>
                     <TextBlock
                         Grid.Row="2"
                         VerticalAlignment="Center"
@@ -40,8 +40,10 @@
                     <ComboBox
                         Grid.Row="2"
                         Grid.Column="1"
-                        ItemsSource="{Binding Themes}"
-                        SelectedItem="{Binding SelectedTheme}" />
+                        SelectedIndex="{Binding SelectedThemeIndex}">
+                        <ComboBoxItem Content="{DynamicResource Setting.Theme.Light}" />
+                        <ComboBoxItem Content="{DynamicResource Setting.Theme.Dark}" />
+                    </ComboBox>
                 </Grid>
             </Expander>
         </hc:UniformSpacingPanel>

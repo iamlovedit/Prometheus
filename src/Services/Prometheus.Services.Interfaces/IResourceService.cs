@@ -8,8 +8,8 @@ namespace Prometheus.Services.Interfaces
 
         string GetLanguageResourceUri(string language);
 
-        void AddResourceDictionary(Uri resourceUri);
+        void SwitchTheme(int themeIndex);
 
-        void RemoveResourceDictionary(Uri resourceUri);
+        void SwitchLanguage(int languageIndex);
     }
 }
