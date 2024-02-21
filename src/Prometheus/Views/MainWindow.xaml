@@ -29,57 +29,69 @@
                     Width="200"
                     MinWidth="200"
                     MaxWidth="200" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <hc:SideMenu Margin="12" BorderThickness="1">
-                <hc:SideMenu.Resources>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="FontFamily" Value="{StaticResource Iconfont}" />
-                        <Setter Property="FontSize" Value="20" />
-                    </Style>
-                </hc:SideMenu.Resources>
+            <Grid Margin="12" Background="{DynamicResource RegionBrush}">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="auto" />
+                </Grid.RowDefinitions>
+                <hc:SideMenu>
+                    <hc:SideMenu.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontFamily" Value="{StaticResource Iconfont}" />
+                            <Setter Property="FontSize" Value="20" />
+                        </Style>
+                    </hc:SideMenu.Resources>
 
-                <hc:SideMenuItem Command="{Binding HomeCommand}" Header="{DynamicResource Menu.Home}">
-                    <hc:SideMenuItem.Icon>
-                        <TextBlock Text="&#xe609;" />
-                    </hc:SideMenuItem.Icon>
-                </hc:SideMenuItem>
+                    <hc:SideMenuItem Command="{Binding HomeCommand}" Header="{DynamicResource Menu.Home}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe609;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
 
-                <hc:SideMenuItem Command="{Binding CareerCommand}" Header="{DynamicResource Menu.Career}">
-                    <hc:SideMenuItem.Icon>
-                        <TextBlock Text="&#xe604;" />
-                    </hc:SideMenuItem.Icon>
-                </hc:SideMenuItem>
-                <hc:SideMenuItem Command="{Binding InventoryCommand}" Header="{DynamicResource Menu.Inventory}">
-                    <hc:SideMenuItem.Icon>
-                        <TextBlock Text="&#xe607;" />
-                    </hc:SideMenuItem.Icon>
-                </hc:SideMenuItem>
+                    <hc:SideMenuItem Command="{Binding CareerCommand}" Header="{DynamicResource Menu.Career}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe604;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
+                    <hc:SideMenuItem Command="{Binding InventoryCommand}" Header="{DynamicResource Menu.Inventory}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe607;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
 
-                <hc:SideMenuItem Command="{Binding SearchCommand}" Header="{DynamicResource Menu.Search}">
-                    <hc:SideMenuItem.Icon>
-                        <TextBlock Text="&#xe60c;" />
-                    </hc:SideMenuItem.Icon>
-                </hc:SideMenuItem>
+                    <hc:SideMenuItem Command="{Binding SearchCommand}" Header="{DynamicResource Menu.Search}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe60c;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
 
-                <hc:SideMenuItem Command="{Binding MatchCommand}" Header="{DynamicResource Menu.Match}">
-                    <hc:SideMenuItem.Icon>
-                        <TextBlock Text="&#xe635;" />
-                    </hc:SideMenuItem.Icon>
-                </hc:SideMenuItem>
+                    <hc:SideMenuItem Command="{Binding MatchCommand}" Header="{DynamicResource Menu.Match}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe635;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
 
-                <hc:SideMenuItem
-                    VerticalAlignment="Bottom"
-                    Command="{Binding SettingCommand}"
-                    Header="{DynamicResource Menu.Setting}">
-                    <hc:SideMenuItem.Icon>
-                        <TextBlock Text="&#xe60a;" />
-                    </hc:SideMenuItem.Icon>
-                </hc:SideMenuItem>
-            </hc:SideMenu>
+                    <hc:SideMenuItem Command="{Binding UtilityCommand}" Header="{DynamicResource Menu.Utility}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe6ad;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
+
+                    <hc:SideMenuItem
+                        VerticalAlignment="Bottom"
+                        Command="{Binding SettingCommand}"
+                        Header="{DynamicResource Menu.Setting}">
+                        <hc:SideMenuItem.Icon>
+                            <TextBlock Text="&#xe60a;" />
+                        </hc:SideMenuItem.Icon>
+                    </hc:SideMenuItem>
+                </hc:SideMenu>
+
+            </Grid>
             <ContentControl
-                Grid.Column="2"
+                Grid.Column="1"
                 Margin="12"
                 prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
         </Grid>
