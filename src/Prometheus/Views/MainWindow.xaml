@@ -75,7 +75,7 @@
 
                     <hc:SideMenuItem Command="{Binding UtilityCommand}" Header="{DynamicResource Menu.Utility}">
                         <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe6ad;" />
+                            <TextBlock Text="&#xe627;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
