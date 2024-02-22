@@ -24,3 +24,4 @@ namespace Prometheus.Services.Client
             await _httpService.PostAsync($"{_processUrl}quit", null);
         }
     }
+}
