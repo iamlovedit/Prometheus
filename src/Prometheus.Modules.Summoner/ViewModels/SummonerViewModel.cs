@@ -4,8 +4,8 @@ using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Mvvm;
-using Prometheus.Modules.Summoner.Models;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Services.Interfaces.Models;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {

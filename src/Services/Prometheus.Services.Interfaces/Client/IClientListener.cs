@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using Prometheus.Services.Interfaces.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -23,17 +23,5 @@ namespace Prometheus.Services.Interfaces.Client
         bool IsConnected { get; }
 
         void Initialize(string port, string token);
-    }
-
-    public class OnWebsocketEventArgs : EventArgs
-    {
-        [JsonProperty("data")]
-        public dynamic Data { get; set; }
-
-        [JsonProperty("eventType")]
-        public string EventType { get; set; }
-
-        [JsonProperty("uri")]
-        public string Uri { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Prometheus.Modules.Summoner.Models
+﻿namespace Prometheus.Services.Interfaces.Models
 {
     public class SummonerAccount
     {

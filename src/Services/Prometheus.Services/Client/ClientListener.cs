@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Services.Interfaces.Models;
 using System;
 using System.Collections.Generic;
 using System.Net;
