@@ -10,16 +10,21 @@ using Prometheus.Modules.Utility;
 using Prometheus.Services;
 using Prometheus.Services.Interfaces;
 using Prometheus.Views;
+using Serilog;
 using System.Windows;
 
 namespace Prometheus
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
+
     public partial class App
     {
-
+        public App()
+        {
+            Log.Logger = new LoggerConfiguration().WriteTo.File("log-.txt",
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
         protected override Window CreateShell()
         {
             return Container.Resolve<MainWindow>();
