@@ -5,6 +5,7 @@ using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Services.Interfaces;
+using Prometheus.Services.Interfaces.Client;
 using System;
 
 namespace Prometheus.ViewModels

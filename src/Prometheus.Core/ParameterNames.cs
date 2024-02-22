@@ -7,5 +7,7 @@
         public const string Client_Token = "Client_Token";
 
         public const string Client_Status = "Client_Status";
+
+        public const string LocalResourceDirectory = "LocalResourceDirectory";
     }
 }

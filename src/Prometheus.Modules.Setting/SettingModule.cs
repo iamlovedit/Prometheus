@@ -4,7 +4,7 @@ using Prometheus.Core;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Setting.Properties;
 using Prometheus.Modules.Setting.Views;
-using Prometheus.Services.Interfaces;
+using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Globalization;
 

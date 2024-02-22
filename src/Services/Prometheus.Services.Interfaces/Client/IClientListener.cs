@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Prometheus.Services.Interfaces
+namespace Prometheus.Services.Interfaces.Client
 {
     public interface IClientListener
     {

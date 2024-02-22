@@ -1,5 +1,6 @@
 ﻿using Prism.Ioc;
 using Prism.Modularity;
+using Prometheus.Core;
 using Prometheus.Modules.Home;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
@@ -12,16 +13,21 @@ using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Views;
+using Serilog;
+using System;
+using System.IO;
 using System.Windows;
 
 namespace Prometheus
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App
     {
-
+        public App()
+        {
+            Log.Logger = new LoggerConfiguration().WriteTo.File("log-.txt",
+                rollingInterval: RollingInterval.Day,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}").CreateLogger();
+        }
         protected override Window CreateShell()
         {
             return Container.Resolve<MainWindow>();
@@ -35,6 +41,14 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IResourceService, ResourceService>();
             containerRegistry.RegisterSingleton<IClientService, ClientService>();
             containerRegistry.RegisterSingleton<IGameService, GameService>();
+
+            var directory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            directory = Path.Combine(directory, "Prometheus", "Resource");
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+            containerRegistry.RegisterInstance(directory, ParameterNames.LocalResourceDirectory);
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)

@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
-using Prometheus.Services.Interfaces;
+using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
 using System.Net;
@@ -8,7 +8,7 @@ using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Websocket.Client;
 
-namespace Prometheus.Services
+namespace Prometheus.Services.Client
 {
     public class ClientListener : IClientListener
     {
