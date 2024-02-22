@@ -10,10 +10,10 @@ namespace Prometheus.Services.Interfaces
 
         Task<string> GetAsync(string url, IEnumerable<string> queryParameters = null);
 
-        Task<string> PostAsync(string url, object body, IEnumerable<string> queryParameters);
+        Task<string> PostAsync(string url, object body, IEnumerable<string> queryParameters = null);
 
         Task<byte[]> GetByteArrayResponseAsync(HttpMethod httpMethod, string url, IEnumerable<string> queryParameters = null);
 
-        Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters);
+        Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters = null);
     }
 }
