@@ -2,7 +2,7 @@
 using Prism.Regions;
 using Prometheus.Core.Events;
 using Prometheus.Core.Mvvm;
-using Prometheus.Services.Interfaces;
+using Prometheus.Services.Interfaces.Client;
 
 namespace Prometheus.Modules.Home.ViewModels
 {

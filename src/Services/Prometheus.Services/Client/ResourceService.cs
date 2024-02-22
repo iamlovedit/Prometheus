@@ -1,8 +1,8 @@
-﻿using Prometheus.Services.Interfaces;
+﻿using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Windows;
 
-namespace Prometheus.Services
+namespace Prometheus.Services.Client
 {
     public class ResourceService : IResourceService
     {

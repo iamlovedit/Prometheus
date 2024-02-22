@@ -1,16 +1,28 @@
-﻿using Prism.Commands;
-using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Prism.Regions;
+using Prometheus.Core.Mvvm;
+using Prometheus.Services.Interfaces.Client;
 
 namespace Prometheus.Modules.Utility.ViewModels
 {
-    public class UtilityViewModel : BindableBase
+    public class UtilityViewModel : RegionViewModelBase
     {
-        public UtilityViewModel()
+        private readonly IClientService _clientService;
+        public UtilityViewModel(IRegionManager regionManager, IClientService clientService) : base(regionManager)
         {
+            _clientService = clientService;
+            Initialize();
+        }
 
+        private string _installtionPath;
+        public string InstalltionPath
+        {
+            get { return _installtionPath; }
+            set { SetProperty(ref _installtionPath, value); }
+        }
+
+        private async void Initialize()
+        {
+            InstalltionPath = await _clientService.GetInstallLocation();
         }
     }
 }

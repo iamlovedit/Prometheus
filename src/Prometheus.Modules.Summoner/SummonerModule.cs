@@ -2,8 +2,8 @@
 using Prism.Modularity;
 using Prometheus.Core;
 using Prometheus.Modules.Summoner.Views;
-using Prometheus.Services;
-using Prometheus.Services.Interfaces;
+using Prometheus.Services.Client;
+using Prometheus.Services.Interfaces.Client;
 
 namespace Prometheus.Modules.Summoner
 {

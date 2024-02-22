@@ -1,7 +1,7 @@
 ﻿using Prism.Events;
 using Prism.Mvvm;
 using Prometheus.Core.Events;
-using Prometheus.Services.Interfaces;
+using Prometheus.Services.Interfaces.Client;
 
 namespace Prometheus.Modules.Setting.ViewModels
 {

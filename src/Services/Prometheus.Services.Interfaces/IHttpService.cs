@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces
 {
@@ -6,6 +8,12 @@ namespace Prometheus.Services.Interfaces
     {
         void Initialize(int port, string token);
 
-        Task<string> GetAsync();
+        Task<string> GetAsync(string url, IEnumerable<string> queryParameters = null);
+
+        Task<string> PostAsync(string url, object body, IEnumerable<string> queryParameters = null);
+
+        Task<byte[]> GetByteArrayResponseAsync(HttpMethod httpMethod, string url, IEnumerable<string> queryParameters = null);
+
+        Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters = null);
     }
 }
