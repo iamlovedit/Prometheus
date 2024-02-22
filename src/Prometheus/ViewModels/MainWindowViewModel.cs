@@ -5,6 +5,7 @@ using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Services.Interfaces;
+using System;
 
 namespace Prometheus.ViewModels
 {
@@ -16,13 +17,16 @@ namespace Prometheus.ViewModels
         private readonly IProcessService _processService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IClientListener _clientListener;
+        private readonly IHttpService _httpService;
 
-        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator, IClientListener clientListener)
+        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator,
+            IClientListener clientListener, IHttpService httpService)
         {
             _regionManager = regionManager;
             _processService = processService;
             _eventAggregator = eventAggregator;
             _clientListener = clientListener;
+            _httpService = httpService;
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(_clientListener.Close);
             _clientListener.OnConnected += () =>
             {
@@ -59,6 +63,7 @@ namespace Prometheus.ViewModels
                     _port = port;
                     _token = token;
                     _clientListener.Initialize(port, token);
+                    _httpService.Initialize(Convert.ToInt32(port), token);
                     await _clientListener.ConnectAsync();
                 }
             }

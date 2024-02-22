@@ -8,7 +8,9 @@ using Prometheus.Modules.Setting;
 using Prometheus.Modules.Summoner;
 using Prometheus.Modules.Utility;
 using Prometheus.Services;
+using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
+using Prometheus.Services.Interfaces.Client;
 using Prometheus.Views;
 using System.Windows;
 
@@ -31,6 +33,8 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IHttpService, HttpService>();
             containerRegistry.RegisterSingleton<IClientListener, ClientListener>();
             containerRegistry.RegisterSingleton<IResourceService, ResourceService>();
+            containerRegistry.RegisterSingleton<IClientService, ClientService>();
+            containerRegistry.RegisterSingleton<IGameService, GameService>();
         }
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
