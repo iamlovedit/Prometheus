@@ -1,13 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using Prometheus.Services.Interfaces.Models;
+using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
 {
     public interface ISummonerService
     {
-        Task<string> GetCurrentSummoner();
+        Task<SummonerAccount> GetCurrentSummoner();
 
-        Task<string> SearchSummonerByName(string nickname);
+        Task<SummonerAccount> SearchSummonerByName(string nickname);
 
-        Task<string> SearchSummonerByPuuid(string id);
+        Task<SummonerAccount> SearchSummonerByPuuid(string id);
     }
 }

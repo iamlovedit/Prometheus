@@ -1,6 +1,6 @@
 ﻿using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using System.Collections.Generic;
+using Prometheus.Services.Interfaces.Models;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Client
@@ -13,22 +13,22 @@ namespace Prometheus.Services.Client
             _httpService = httpService;
         }
 
-        public async Task<string> GetCurrentSummoner()
+        public async Task<SummonerAccount> GetCurrentSummoner()
         {
-            return await _httpService.GetAsync("lol-summoner/v1/current-summoner");
+            return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/current-summoner");
         }
 
-        public async Task<string> SearchSummonerByName(string nickname)
+        public async Task<SummonerAccount> SearchSummonerByName(string nickname)
         {
-            return await _httpService.GetAsync("lol-summoner/v1/summoners",
+            return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/summoners",
             [
                $"name={nickname}"
             ]);
         }
 
-        public async Task<string> SearchSummonerByPuuid(string puuid)
+        public async Task<SummonerAccount> SearchSummonerByPuuid(string puuid)
         {
-            return await _httpService.GetAsync($"lol-summoner/v2/summoners/puuid/{puuid}");
+            return await _httpService.GetAsync<SummonerAccount>($"lol-summoner/v2/summoners/puuid/{puuid}");
         }
     }
 }

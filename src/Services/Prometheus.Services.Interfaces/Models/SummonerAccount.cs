@@ -10,7 +10,7 @@
 
         public string InternalName { get; set; }
 
-        public string NameChangeFlag { get; set; }
+        public bool NameChangeFlag { get; set; }
 
         public int PercentCompleteForNextLevel { get; set; }
 
@@ -28,7 +28,7 @@
 
         public string TagLine { get; set; }
 
-        public string Unnamed { get; set; }
+        public bool Unnamed { get; set; }
 
         public int XpSinceLastLevel { get; set; }
 
