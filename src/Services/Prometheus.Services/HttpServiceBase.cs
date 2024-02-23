@@ -22,7 +22,7 @@ namespace Prometheus.Services
 
         protected virtual string BuildRelativeUrl(string url, IEnumerable<string> queryParameters)
         {
-            return queryParameters == null ? url : BuildQueryStringFromParameters(queryParameters);
+            return queryParameters == null ? url : url + BuildQueryStringFromParameters(queryParameters);
         }
 
         public virtual void Initialize(int port, string token)
