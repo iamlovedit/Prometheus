@@ -1,9 +1,15 @@
 ﻿using Prism.Commands;
 using Prism.Events;
+using Prism.Modularity;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
+using Prometheus.Modules.Inventory;
+using Prometheus.Modules.Match;
+using Prometheus.Modules.Search;
+using Prometheus.Modules.Summoner;
+using Prometheus.Modules.Utility;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using System;
@@ -19,15 +25,18 @@ namespace Prometheus.ViewModels
         private readonly IEventAggregator _eventAggregator;
         private readonly IClientListener _clientListener;
         private readonly IHttpService _httpService;
-
+        private readonly IModuleManager _moduleManager;
         public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator,
-            IClientListener clientListener, IHttpService httpService)
+            IClientListener clientListener, IHttpService httpService, IModuleManager moduleManager)
         {
             _regionManager = regionManager;
             _processService = processService;
             _eventAggregator = eventAggregator;
             _clientListener = clientListener;
             _httpService = httpService;
+            _moduleManager = moduleManager;
+            _moduleManager.LoadModuleCompleted += LoadModuleCompleted;
+
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(_clientListener.Close);
             _clientListener.OnConnected += () =>
             {
@@ -39,6 +48,10 @@ namespace Prometheus.ViewModels
             };
         }
 
+        private void LoadModuleCompleted(object sender, LoadModuleCompletedEventArgs e)
+        {
+
+        }
 
         private string _title = "Prometheus";
         public string Title
@@ -68,7 +81,6 @@ namespace Prometheus.ViewModels
                     await _clientListener.ConnectAsync();
                 }
             }
-            _homeCommand?.Execute();
         }
 
         private DelegateCommand _homeCommand;
@@ -77,7 +89,6 @@ namespace Prometheus.ViewModels
         void ExecuteHomeCommand()
         {
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
-
         }
 
         private DelegateCommand _careerCommand;
@@ -85,6 +96,7 @@ namespace Prometheus.ViewModels
             _careerCommand ?? (_careerCommand = new DelegateCommand(ExecuteCareerCommand));
         void ExecuteCareerCommand()
         {
+            LoadModule<SummonerModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.CareerView);
         }
 
@@ -93,6 +105,7 @@ namespace Prometheus.ViewModels
             _inventoryComamnd ?? (_inventoryComamnd = new DelegateCommand(ExecuteInventoryCommand));
         void ExecuteInventoryCommand()
         {
+            LoadModule<InventoryModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.InventoryView);
         }
 
@@ -101,6 +114,7 @@ namespace Prometheus.ViewModels
             _searchCommand ?? (_searchCommand = new DelegateCommand(ExecuteSearchCommand));
         void ExecuteSearchCommand()
         {
+            LoadModule<SearchModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.SearchView);
         }
 
@@ -109,6 +123,7 @@ namespace Prometheus.ViewModels
             _utilityCommand ?? (_utilityCommand = new DelegateCommand(ExecuteUtilityCommand));
         void ExecuteUtilityCommand()
         {
+            LoadModule<UtilityModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.UtilityView);
         }
 
@@ -117,6 +132,7 @@ namespace Prometheus.ViewModels
             _matchCommand ?? (_matchCommand = new DelegateCommand(ExecuteMatchCommand));
         void ExecuteMatchCommand()
         {
+            LoadModule<MatchModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.MatchView);
         }
 
@@ -127,6 +143,15 @@ namespace Prometheus.ViewModels
         void ExecuteSettingCommand()
         {
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.SettingView);
+        }
+
+
+        private void LoadModule<T>() where T : IModule
+        {
+            if (!_moduleManager.IsModuleInitialized<T>())
+            {
+                _moduleManager.LoadModule<T>();
+            }
         }
     }
 }

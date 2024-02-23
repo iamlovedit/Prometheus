@@ -14,7 +14,7 @@ namespace Prometheus.Modules.Home
 
         public override void OnInitialized(IContainerProvider containerProvider)
         {
-
+            RegionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
         }
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)

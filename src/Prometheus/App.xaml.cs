@@ -53,13 +53,13 @@ namespace Prometheus
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
-            moduleCatalog.AddModule<SummonerModule>();
-            moduleCatalog.AddModule<MatchModule>();
+            moduleCatalog.AddModule<SummonerModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<MatchModule>(InitializationMode.OnDemand);
             moduleCatalog.AddModule<HomeModule>();
             moduleCatalog.AddModule<SettingModule>();
-            moduleCatalog.AddModule<InventoryModule>();
-            moduleCatalog.AddModule<SearchModule>();
-            moduleCatalog.AddModule<UtilityModule>();
+            moduleCatalog.AddModule<InventoryModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<SearchModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<UtilityModule>(InitializationMode.OnDemand);
         }
     }
 }
