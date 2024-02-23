@@ -23,4 +23,7 @@
     <sys:String x:Key="HomePage.LCUConnected">英雄联盟客户端已链接</sys:String>
     <sys:String x:Key="HomePage.LCUDisconnected">英雄联盟客户端已断开</sys:String>
     <sys:String x:Key="HomePage.Connecting">英雄联盟客户端连接中</sys:String>
+    <sys:String x:Key="Search.SearchNamePlaceHolder">搜索召唤师</sys:String>
+    <sys:String x:Key="Search.SearchNameTips">只能搜索同一大区的召唤师</sys:String>
+    <sys:String x:Key="Search.UserNotFound">用户不存在</sys:String>
 </ResourceDictionary>

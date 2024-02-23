@@ -24,4 +24,7 @@
     <sys:String x:Key="HomePage.LCUDisconnected">LOL Client Disconnected</sys:String>
     <sys:String x:Key="HomePage.Developing">Developing</sys:String>
     <sys:String x:Key="HomePage.Connecting">Connecting</sys:String>
+    <sys:String x:Key="Search.SearchNamePlaceHolder">Search summoner</sys:String>
+    <sys:String x:Key="Search.SearchNameTips">Only search for summoners in the same server</sys:String>
+    <sys:String x:Key="Search.UserNotFound">User not found</sys:String>
 </ResourceDictionary>
