@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using Prism.Events;
+﻿using Prism.Events;
 using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
@@ -12,11 +11,11 @@ namespace Prometheus.Modules.Summoner.ViewModels
     public class SummonerViewModel : RegionViewModelBase
     {
         private readonly ISummonerService _summonerService;
-
+        private readonly IEventAggregator _eventAggregator;
         public SummonerViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, ISummonerService summonerService) : base(regionManager)
         {
-            eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
-            eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
+            _eventAggregator = eventAggregator;
+            _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
             _summonerService = summonerService;
         }
 
@@ -36,8 +35,14 @@ namespace Prometheus.Modules.Summoner.ViewModels
 
         public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
-            var result = await _summonerService.GetCurrentSummoner();
-            var account = JsonConvert.DeserializeObject<SummonerAccount>(result);
+            Summoner = await _summonerService.GetCurrentSummoner();
+        }
+
+        private SummonerAccount _summoner;
+        public SummonerAccount Summoner
+        {
+            get { return _summoner; }
+            set { SetProperty(ref _summoner, value); }
         }
     }
 }
