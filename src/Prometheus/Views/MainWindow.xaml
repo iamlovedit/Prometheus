@@ -94,6 +94,10 @@
                 Grid.Column="1"
                 Margin="12"
                 prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
+            <hc:NotifyIcon
+                Icon="../Resources/Prometheus_16.ico"
+                Text="Prometheus"
+                Visibility="Visible" />
         </Grid>
     </Border>
 </hc:Window>

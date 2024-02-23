@@ -10,12 +10,12 @@ namespace Prometheus.Modules.Search
     {
         public void OnInitialized(IContainerProvider containerProvider)
         {
-
         }
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<SearchView>(RegionNames.SearchView);
+            containerRegistry.RegisterForNavigation<NotFoundView>(RegionNames.UserNotFoundView);
         }
     }
 }

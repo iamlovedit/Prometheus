@@ -2,6 +2,7 @@
     x:Class="Prometheus.Modules.Search.Views.SearchView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -13,10 +14,25 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     Background="{DynamicResource RegionBrush}"
     mc:Ignorable="d">
-    <hc:UniformSpacingPanel Orientation="Vertical" VerticalSpacing="20">
-        <hc:SearchBar
-            Margin="0,12,0,0"
-            hc:InfoElement.Placeholder=""
-            hc:InfoElement.ShowClearButton="True" />
-    </hc:UniformSpacingPanel>
+    <Grid Margin="0,12,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <hc:UniformSpacingPanel
+            ItemHorizontalAlignment="Center"
+            Orientation="Vertical"
+            VerticalSpacing="12">
+            <hc:SearchBar
+                Width="200"
+                hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
+                hc:InfoElement.ShowClearButton="True"
+                Command="{Binding SearchCommand}"
+                CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+                Style="{DynamicResource SearchBarPlus}" />
+            <TextBlock HorizontalAlignment="Center" Text="{DynamicResource Search.SearchNameTips}" />
+        </hc:UniformSpacingPanel>
+        <ContentControl Grid.Row="2" prism:RegionManager.RegionName="{x:Static core:RegionNames.SearchContent}" />
+    </Grid>
 </UserControl>

@@ -25,5 +25,9 @@
         public const string SettingPreferenceView = "SettingPreferenceView";
 
         public const string SettingSystemView = "SettingSystemView";
+
+        public const string SearchContent = "SearchContent";
+
+        public const string UserNotFoundView = "UserNotFoundView";
     }
 }

@@ -9,5 +9,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Prometheus.Core\Prometheus.Core.csproj" />
+    <ProjectReference Include="..\Services\Prometheus.Services.Interfaces\Prometheus.Services.Interfaces.csproj" />
   </ItemGroup>
 </Project>
