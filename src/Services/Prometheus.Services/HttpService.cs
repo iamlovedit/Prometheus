@@ -41,6 +41,11 @@ namespace Prometheus.Services
             return await responseMessage.Content.ReadFromJsonAsync<T>();
         }
 
+        public async Task PostAsync(string url, object body)
+        {
+            await _httpClient.PostAsJsonAsync(url, body);
+        }
+
         public async Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters)
         {
             var responseMessage = await SendHttpMessageAsync(httpMethod, url, body, queryParameters);

@@ -6,21 +6,20 @@ namespace Prometheus.Modules.Inventory.ViewModels
 {
     public class InventoryViewModel : RegionViewModelBase
     {
-        private readonly IClientService _clientService;
+        private readonly IGameResourceManager _gameResourceManager;
 
-        public InventoryViewModel(IRegionManager regionManager, IClientService clientService) : base(regionManager)
+        public InventoryViewModel(IRegionManager regionManager, IGameResourceManager gameResourceManager) : base(regionManager)
         {
-            _clientService = clientService;
+            _gameResourceManager = gameResourceManager;
             Initialize();
         }
 
         private async void Initialize()
         {
-            var items = await _clientService.GetItemsAsync();
-            var skins = await _clientService.GetSkinsAsync();
-            var queues = await _clientService.GetQueuesAsync();
-            var champions = await _clientService.GetChampionSummarysAsync();
-            var runes = await _clientService.GetPerksAsync();
+            var items = await _gameResourceManager.GetItemsAsync();
+            var skins = await _gameResourceManager.GetSkinsAsync();
+            var champions = await _gameResourceManager.GetChampionSummarysAsync();
+            var runes = await _gameResourceManager.GetPerksAsync();
         }
     }
 }

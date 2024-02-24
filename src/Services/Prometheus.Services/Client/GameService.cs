@@ -160,7 +160,7 @@ namespace Prometheus.Services.Client
 
         public async Task<string> SetSkinAsync(object body)
         {
-            return await _httpService.PostAsync(_setSkinBackground, body);
+            return await _httpService.PostAsync(_setSkinBackground, body, null);
         }
 
         public async Task<string> SetIconAsync(object body)
