@@ -41,6 +41,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IResourceService, ResourceService>();
             containerRegistry.RegisterSingleton<IClientService, ClientService>();
             containerRegistry.RegisterSingleton<IGameService, GameService>();
+            containerRegistry.RegisterSingleton<IGameResourceManager, GameResourceManager>();
 
             var directory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             directory = Path.Combine(directory, "Prometheus", "Resource");

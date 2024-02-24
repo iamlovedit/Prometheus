@@ -1,7 +1,6 @@
 ﻿using Prism.Regions;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
-
 namespace Prometheus.Modules.Inventory.ViewModels
 {
     public class InventoryViewModel : RegionViewModelBase
