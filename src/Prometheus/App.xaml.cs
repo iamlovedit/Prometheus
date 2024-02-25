@@ -42,6 +42,8 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IClientService, ClientService>();
             containerRegistry.RegisterSingleton<IGameService, GameService>();
             containerRegistry.RegisterSingleton<IGameResourceManager, GameResourceManager>();
+            containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
+            containerRegistry.RegisterSingleton<IMatchService, MatchService>();
 
             var directory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             directory = Path.Combine(directory, "Prometheus", "Resource");
@@ -54,13 +56,13 @@ namespace Prometheus
 
         protected override void ConfigureModuleCatalog(IModuleCatalog moduleCatalog)
         {
-            moduleCatalog.AddModule<SummonerModule>();
-            moduleCatalog.AddModule<MatchModule>();
             moduleCatalog.AddModule<HomeModule>();
             moduleCatalog.AddModule<SettingModule>();
-            moduleCatalog.AddModule<InventoryModule>();
-            moduleCatalog.AddModule<SearchModule>();
-            moduleCatalog.AddModule<UtilityModule>();
+            moduleCatalog.AddModule<SummonerModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<MatchModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<InventoryModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<SearchModule>(InitializationMode.OnDemand);
+            moduleCatalog.AddModule<UtilityModule>(InitializationMode.OnDemand);
         }
     }
 }

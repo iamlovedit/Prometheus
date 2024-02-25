@@ -98,7 +98,7 @@ namespace Prometheus.ViewModels
             _careerCommand ?? (_careerCommand = new DelegateCommand(ExecuteCareerCommand));
         void ExecuteCareerCommand()
         {
-            //LoadModule<SummonerModule>();
+            LoadModule<SummonerModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.CareerView);
         }
 
@@ -107,7 +107,7 @@ namespace Prometheus.ViewModels
             _inventoryComamnd ?? (_inventoryComamnd = new DelegateCommand(ExecuteInventoryCommand));
         void ExecuteInventoryCommand()
         {
-            //LoadModule<InventoryModule>();
+            LoadModule<InventoryModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.InventoryView);
         }
 
@@ -116,7 +116,7 @@ namespace Prometheus.ViewModels
             _searchCommand ?? (_searchCommand = new DelegateCommand(ExecuteSearchCommand));
         void ExecuteSearchCommand()
         {
-            //LoadModule<SearchModule>();
+            LoadModule<SearchModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.SearchView);
         }
 
@@ -125,7 +125,7 @@ namespace Prometheus.ViewModels
             _utilityCommand ?? (_utilityCommand = new DelegateCommand(ExecuteUtilityCommand));
         void ExecuteUtilityCommand()
         {
-            //LoadModule<UtilityModule>();
+            LoadModule<UtilityModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.UtilityView);
         }
 
@@ -134,7 +134,7 @@ namespace Prometheus.ViewModels
             _matchCommand ?? (_matchCommand = new DelegateCommand(ExecuteMatchCommand));
         void ExecuteMatchCommand()
         {
-            //LoadModule<MatchModule>();
+            LoadModule<MatchModule>();
             _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.MatchView);
         }
 
