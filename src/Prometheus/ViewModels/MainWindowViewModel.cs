@@ -22,20 +22,20 @@ namespace Prometheus.ViewModels
         private string _token;
         private string _port;
         private readonly IRegionManager _regionManager;
-        private readonly IProcessService _processService;
         private readonly IEventAggregator _eventAggregator;
         private readonly IClientListener _clientListener;
         private readonly IHttpService _httpService;
         private readonly IModuleManager _moduleManager;
-        public MainWindowViewModel(IRegionManager regionManager, IProcessService processService, IEventAggregator eventAggregator,
+        private readonly IClientService _clientService;
+        public MainWindowViewModel(IRegionManager regionManager, IClientService clientService, IEventAggregator eventAggregator,
             IClientListener clientListener, IHttpService httpService, IModuleManager moduleManager)
         {
             _regionManager = regionManager;
-            _processService = processService;
             _eventAggregator = eventAggregator;
             _clientListener = clientListener;
             _httpService = httpService;
             _moduleManager = moduleManager;
+            _clientService = clientService;
             _moduleManager.LoadModuleCompleted += LoadModuleCompleted;
 
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(_clientListener.Close);
@@ -70,7 +70,7 @@ namespace Prometheus.ViewModels
             {
                 Title = "Prometheus--" + v;
             });
-            var argsMap = _processService.GetProcessCommandLines();
+            var argsMap = _clientService.GetClientCommandLines();
             if (argsMap != null)
             {
                 if (argsMap.TryGetValue("--app-port", out var port) && argsMap.TryGetValue("--remoting-auth-token", out var token))

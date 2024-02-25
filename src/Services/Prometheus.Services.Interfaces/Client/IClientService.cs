@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
 {
@@ -15,5 +16,9 @@ namespace Prometheus.Services.Interfaces.Client
         Task FlashClient();
 
         Task MinimizeClient();
+
+        Dictionary<string, string> GetClientCommandLines();
+
+        int GetClientProcessId();
     }
 }
