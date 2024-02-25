@@ -2,9 +2,9 @@
 using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
+using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
-using Prometheus.Services.Interfaces.Models;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {

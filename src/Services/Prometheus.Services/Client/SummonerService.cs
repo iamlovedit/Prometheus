@@ -1,6 +1,6 @@
-﻿using Prometheus.Services.Interfaces;
+﻿using Prometheus.Core.Models;
+using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using Prometheus.Services.Interfaces.Models;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Client

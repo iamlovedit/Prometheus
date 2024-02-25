@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Prometheus.Services.Interfaces.Models
+namespace Prometheus.Core.Models
 {
     public class ChampionSummary
     {
