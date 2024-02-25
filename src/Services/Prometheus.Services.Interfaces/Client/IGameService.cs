@@ -12,11 +12,11 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task DeleteRunePage(long id);
 
-        Task SetAutoAcceptAsync();
+        Task AcceptGameFlowAsync();
 
         Task<string> GetGameSessionAsync();
 
-        Task SetAutoLockChampionAsync(int actionId, int championId, string type);
+        Task SelectChampionAsync(int actionId, int championId, string type);
 
         Task<string> GetMatchDetailAsync(long gameId);
 
@@ -40,7 +40,7 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetPickableChampionsAsync();
 
-        Task<string> GetChampRankAsync(string lane, int tier, int time);
+        Task<string> GetChampionRankAsync(string lane, int tier, int time);
 
         Task<string> SetSkinAsync(object body);
 

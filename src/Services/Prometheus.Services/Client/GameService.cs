@@ -118,12 +118,12 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(string.Format(_summonerSuperChampion, summonerId));
         }
 
-        public async Task SetAutoAcceptAsync()
+        public async Task AcceptGameFlowAsync()
         {
             await _httpService.PostAsync($"{_checkUrl}accept", null);
         }
 
-        public async Task SetAutoLockChampionAsync(int actionId, int championId, string type)
+        public async Task SelectChampionAsync(int actionId, int championId, string type)
         {
             var body = new
             {
@@ -145,7 +145,7 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(_pickableChampion);
         }
 
-        public async Task<string> GetChampRankAsync(string lane, int tier, int time)
+        public async Task<string> GetChampionRankAsync(string lane, int tier, int time)
         {
             return await _httpService.GetAsync(_champDataUrl,
             [
