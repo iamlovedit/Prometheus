@@ -22,6 +22,17 @@
             <ColumnDefinition />
             <ColumnDefinition Width="240" />
         </Grid.ColumnDefinitions>
-        <TextBlock Text="{Binding Summoner.DisplayName}" />
+        <Border>
+            <Border.Background>
+                <ImageBrush ImageSource="{Binding BackgroundSkin}" Stretch="UniformToFill" />
+            </Border.Background>
+            <Grid>
+                <TextBlock
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="{Binding Summoner.DisplayName}" />
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

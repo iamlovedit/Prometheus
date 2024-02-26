@@ -45,6 +45,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
                 if (!string.IsNullOrEmpty(jsonValue))
                 {
                     var skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
+                    BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
                 }
             }
         }
@@ -55,5 +56,13 @@ namespace Prometheus.Modules.Summoner.ViewModels
             get { return _summoner; }
             set { SetProperty(ref _summoner, value); }
         }
+
+        private string _backgroundSkin;
+        public string BackgroundSkin
+        {
+            get { return _backgroundSkin; }
+            set { SetProperty(ref _backgroundSkin, value); }
+        }
+
     }
 }
