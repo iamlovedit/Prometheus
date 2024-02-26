@@ -19,5 +19,7 @@
         public static string Spells = "Spells";
 
         public static string ChampoinIcon = "ChampoinIcon";
+
+        public static string ProfileIcon = "ProfileIcon";
     }
 }

@@ -51,7 +51,8 @@ namespace Prometheus
             {
                 Directory.CreateDirectory(directory);
             }
-            var subDirectories = new string[5] { ParameterNames.Equipments, ParameterNames.Perks, ParameterNames.Skins, ParameterNames.Spells, ParameterNames.ChampoinIcon };
+            var subDirectories = new string[6]
+            { ParameterNames.Equipments, ParameterNames.Perks, ParameterNames.Skins, ParameterNames.Spells, ParameterNames.ChampoinIcon, ParameterNames.ProfileIcon };
             foreach (var dirName in subDirectories)
             {
                 var subDir = Path.Combine(directory, dirName);

@@ -11,7 +11,6 @@ using Prometheus.Modules.Match;
 using Prometheus.Modules.Search;
 using Prometheus.Modules.Summoner;
 using Prometheus.Modules.Utility;
-using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
@@ -89,75 +88,10 @@ namespace Prometheus.ViewModels
                     Log.Information($"port: {port}，token： {token}");
                     _clientListener.Initialize(port, token);
                     _httpService.Initialize(Convert.ToInt32(port), token);
-                    InitializeResource();
                     await _clientListener.ConnectAsync();
                 }
             }
         }
-
-        private async Task InitializeResource()
-        {
-            Task.Run(async () =>
-              {
-                  var equipments = await _gameResourceManager.GetEquipmentsAsync();
-                  Task.Run(async () =>
-                  {
-                      var dir = _containerExtension.Resolve<string>(ParameterNames.Equipments);
-                      foreach (var equipment in equipments)
-                      {
-                          if (equipment.InStore)
-                          {
-                              DownloadFileAsync(equipment.IconPath, dir, $"{equipment.Id}.png");
-                          }
-                      }
-                  });
-                  var skinsMap = await _gameResourceManager.GetSkinsAsync();
-                  Task.Run(async () =>
-                  {
-                      var dir = _containerExtension.Resolve<string>(ParameterNames.Skins);
-                      foreach (var skinPair in skinsMap)
-                      {
-                          DownloadFileAsync(skinPair.Value.SplashPath, dir, $"{skinPair.Key}.jpg");
-                      }
-                  });
-                  var champions = await _gameResourceManager.GetChampionSummarysAsync();
-                  Task.Run(async () =>
-                  {
-                      var dir = _containerExtension.Resolve<string>(ParameterNames.ChampoinIcon);
-                      foreach (var champion in champions)
-                      {
-                          DownloadFileAsync(champion.SquarePortraitPath, dir, $"{champion.Id}.png");
-                      }
-                  });
-                  var perks = await _gameResourceManager.GetPerksAsync();
-                  Task.Run(async () =>
-                  {
-                      var dir = _containerExtension.Resolve<string>(ParameterNames.Perks);
-                      foreach (var perk in perks)
-                      {
-                          DownloadFileAsync(perk.IconPath, dir, $"{perk.Id}.png");
-                      }
-                  });
-
-                  var spells = await _gameResourceManager.GetSpellsAsync();
-                  Task.Run(async () =>
-                    {
-                        var dir = _containerExtension.Resolve<string>(ParameterNames.Spells);
-                        foreach (var spell in spells)
-                        {
-                            DownloadFileAsync(spell.IconPath, dir, $"{spell.Id}.png");
-                        }
-                    });
-              });
-        }
-        private async Task DownloadFileAsync(string url, string dir, string fileName)
-        {
-            var fileBuffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, url);
-            var filePath = Path.Combine(dir, fileName);
-            await File.WriteAllBytesAsync(filePath, fileBuffer);
-        }
-
-
         private DelegateCommand _homeCommand;
         public DelegateCommand HomeCommand =>
             _homeCommand ?? (_homeCommand = new DelegateCommand(ExecuteHomeCommand));
