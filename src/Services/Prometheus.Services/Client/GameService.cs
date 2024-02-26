@@ -1,6 +1,5 @@
 ﻿using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -118,17 +117,16 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(string.Format(_summonerSuperChampion, summonerId));
         }
 
-        public async Task AcceptGameFlowAsync()
+        public async Task AcceptMatchAsync()
         {
             await _httpService.PostAsync($"{_checkUrl}accept", null);
         }
 
-        public async Task SelectChampionAsync(int actionId, int championId, string type)
+        public async Task PickChampionAsync(int actionId, int championId)
         {
             var body = new
             {
-                completed = true,
-                type,
+                type = "pick",
                 championId
             };
             var url = string.Format(_gameActionUrl, actionId);
@@ -171,6 +169,47 @@ namespace Prometheus.Services.Client
         public async Task<string> GetChampionSkinById(int id)
         {
             return await _httpService.GetAsync(string.Format(_championskins, id));
+        }
+
+        public async Task CreatePracticeLobby(string name, string password)
+        {
+            var mutators = new
+            {
+                id = 1
+            };
+            var configuration = new
+            {
+                gameMode = "PRACTICETOOL",
+                gameMutator = "",
+                gameServerRegion = "",
+                mapId = 1,
+                mutators,
+                spectatorPolicy = "AllAllowed",
+                teamSize = 5
+            };
+            var customGameLobby = new
+            {
+                configuration,
+                lobbyName = name,
+                lobbyPassword = password
+            };
+            var body = new
+            {
+                customGameLobby,
+                isCustom = true
+            };
+            await _httpService.PostAsync("lol-lobby/v2/lobby", body);
+        }
+
+        public async Task BanChampionAsync(int actionId, int championId)
+        {
+            var body = new
+            {
+                type = "pick",
+                championId
+            };
+            var url = string.Format(_gameActionUrl, actionId);
+            await _httpService.SendAsync(HttpMethod.Patch, url, body);
         }
     }
 }
