@@ -16,7 +16,19 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<List<Spell>> GetSpellsAsync();
 
-        Task<string> GetProfileIconById(int id);
+        Task<List<ProfileIcon>> GetProfileIconsAsync();
+
+        Task<string> GetProfileIconByIdAsync(int id);
+
+        Task<string> GetChampoinIconByIdAsync(int championId);
+
+        Task<string> GetEquipmentIconByIdAsync(int equipmentId);
+
+        Task<string> GetSpellIconByIdAsync(int spellId);
+
+        Task<string> GetBackgroundSkinByIdAsync(int skinId);
+
+        Task<string> GetPerkByIdAsync(int perkId);
 
         Task<string> GetBackgroundSkinId();
 

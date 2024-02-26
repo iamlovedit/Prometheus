@@ -23,16 +23,16 @@ namespace Prometheus.Services.Client
         private const string _pickableChampion = "/lol-champ-select/v1/pickable-champions";
         private const string _benchSwapChampion = " /lol-champ-select/v1/session/bench/swap/{0}";
         private const string _champRestraintData = "https://lol.qq.com/act/lbp/common/guides/champDetail/champDetail_{0}.js?ts=2760378";
-        private const string _rune = "lol-perks/v1/pages";
+        private const string _perks = "lol-perks/v1/pages";
         private const string _currentRune = "lol-perks/v1/currentpage";
         private const string _championskins = "lol-game-data/assets/v1/champions/{0}.json";
         private const string _profileIcons = "lol-game-data/assets/v1/profile-icons.json";
         private const string _spells = "lol-game-data/assets/v1/summoner-spells.json";
         private const string _items = "lol-game-data/assets/v1/items.json";
-        private const string _setSkinBackground = "lol-summoner/v1/current-summoner/summoner-profile";
+        private const string _backgroundSkin = "lol-summoner/v1/current-summoner/summoner-profile";
         private const string _setIcon = "lol-summoner/v1/current-summoner/icon";
         private const string _matchHistory = "lol-match-history/v1/products/lol/{0}/matches";
-        private const string _getRuneItemsOnline = "https://www.wegame.com.cn/lol/resources/js/champion/recommend/{0}.js ";
+        private const string _recommendPerks = "https://www.wegame.com.cn/lol/resources/js/champion/recommend/{0}.js ";
 
 
 
@@ -45,17 +45,17 @@ namespace Prometheus.Services.Client
 
         public async Task CreateRunePage(object body)
         {
-            await _httpService.SendAsync(HttpMethod.Post, _rune, body);
+            await _httpService.SendAsync(HttpMethod.Post, _perks, body);
         }
 
         public async Task DeleteRunePage(long id)
         {
-            await _httpService.SendAsync(HttpMethod.Delete, $"{_rune}/{id}", null);
+            await _httpService.SendAsync(HttpMethod.Delete, $"{_perks}/{id}", null);
         }
 
         public async Task<string> GetAllRunePages()
         {
-            return await _httpService.GetAsync(_rune);
+            return await _httpService.GetAsync(_perks);
         }
 
         public Task<string> GetCurrentChampionInfoAsync()
@@ -135,7 +135,7 @@ namespace Prometheus.Services.Client
 
         public async Task<string> GetRuneItemsFromOnlineAsync(int championId)
         {
-            return await _httpService.GetAsync(string.Format(_getRuneItemsOnline, championId));
+            return await _httpService.GetAsync(string.Format(_recommendPerks, championId));
         }
 
         public async Task<string> GetPickableChampionsAsync()
@@ -158,7 +158,7 @@ namespace Prometheus.Services.Client
 
         public async Task<string> SetSkinAsync(object body)
         {
-            return await _httpService.PostAsync(_setSkinBackground, body, null);
+            return await _httpService.PostAsync(_backgroundSkin, body, null);
         }
 
         public async Task<string> SetIconAsync(object body)

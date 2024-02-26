@@ -18,5 +18,12 @@ namespace Prometheus.Core.Models
 
         public string IconPath { get; set; }
     }
+
+    public class ProfileIcon
+    {
+        public int Id { get; set; }
+
+        public string IconPath { get; set; }
+    }
 }
 
