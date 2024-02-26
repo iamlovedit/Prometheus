@@ -9,5 +9,15 @@
         public const string Client_Status = "Client_Status";
 
         public const string LocalResourceDirectory = "LocalResourceDirectory";
+
+        public static string Equipments = "Equipments";
+
+        public static string Perks = "Perks";
+
+        public static string Skins = "Skins";
+
+        public static string Spells = "Spells";
+
+        public static string ChampoinIcon = "ChampoinIcon";
     }
 }

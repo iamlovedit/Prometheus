@@ -16,6 +16,7 @@ using Prometheus.Views;
 using Serilog;
 using System;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 
 namespace Prometheus
@@ -44,11 +45,21 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
 
-            var directory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            directory = Path.Combine(directory, "Prometheus", "Resource");
+            var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            directory = Path.Combine(directory, "Resource");
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
+            }
+            var subDirectories = new string[5] { ParameterNames.Equipments, ParameterNames.Perks, ParameterNames.Skins, ParameterNames.Spells, ParameterNames.ChampoinIcon };
+            foreach (var dirName in subDirectories)
+            {
+                var subDir = Path.Combine(directory, dirName);
+                if (!Directory.Exists(subDir))
+                {
+                    Directory.CreateDirectory(subDir);
+                }
+                containerRegistry.RegisterInstance(subDir, dirName);
             }
             containerRegistry.RegisterInstance(directory, ParameterNames.LocalResourceDirectory);
         }
