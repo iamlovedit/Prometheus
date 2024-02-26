@@ -1,6 +1,7 @@
 ﻿using Prism.Regions;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
+using System.Threading.Tasks;
 namespace Prometheus.Modules.Inventory.ViewModels
 {
     public class InventoryViewModel : RegionViewModelBase
@@ -10,15 +11,12 @@ namespace Prometheus.Modules.Inventory.ViewModels
         public InventoryViewModel(IRegionManager regionManager, IGameResourceManager gameResourceManager) : base(regionManager)
         {
             _gameResourceManager = gameResourceManager;
-            Initialize();
+            
         }
 
-        private async void Initialize()
+        private async Task Initialize()
         {
-            var items = await _gameResourceManager.GetItemsAsync();
-            var skins = await _gameResourceManager.GetSkinsAsync();
-            var champions = await _gameResourceManager.GetChampionSummarysAsync();
-            var runes = await _gameResourceManager.GetPerksAsync();
+     
         }
     }
 }
