@@ -29,5 +29,7 @@
         public const string SearchContent = "SearchContent";
 
         public const string UserNotFoundView = "UserNotFoundView";
+
+        public const string SelectBackgroundDialog = "SelectBackgroundDialog";
     }
 }

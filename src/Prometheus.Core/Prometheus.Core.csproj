@@ -11,6 +11,29 @@
   </ItemGroup>
   <ItemGroup>
     <None Remove="Resources\iconfont.ttf" />
+    <None Remove="Resources\Images\Tiers\bronze.png" />
+    <None Remove="Resources\Images\Tiers\challenger.png" />
+    <None Remove="Resources\Images\Tiers\diamond.png" />
+    <None Remove="Resources\Images\Tiers\emerald.png" />
+    <None Remove="Resources\Images\Tiers\gold.png" />
+    <None Remove="Resources\Images\Tiers\grandmaster.png" />
+    <None Remove="Resources\Images\Tiers\iron.png" />
+    <None Remove="Resources\Images\Tiers\master.png" />
+    <None Remove="Resources\Images\Tiers\platinum.png" />
+    <None Remove="Resources\Images\Tiers\silver.png" />
+    <None Remove="Resources\Images\Tiers\unranked.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Images\Tiers\bronze.png" />
+    <Resource Include="Resources\Images\Tiers\challenger.png" />
+    <Resource Include="Resources\Images\Tiers\diamond.png" />
+    <Resource Include="Resources\Images\Tiers\emerald.png" />
+    <Resource Include="Resources\Images\Tiers\gold.png" />
+    <Resource Include="Resources\Images\Tiers\grandmaster.png" />
+    <Resource Include="Resources\Images\Tiers\iron.png" />
+    <Resource Include="Resources\Images\Tiers\master.png" />
+    <Resource Include="Resources\Images\Tiers\platinum.png" />
+    <Resource Include="Resources\Images\Tiers\silver.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -20,5 +43,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\iconfont.ttf" />
+    <Resource Include="Resources\Images\Tiers\unranked.png" />
   </ItemGroup>
 </Project>
