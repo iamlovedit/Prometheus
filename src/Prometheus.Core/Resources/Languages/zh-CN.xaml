@@ -26,4 +26,17 @@
     <sys:String x:Key="Search.SearchNamePlaceHolder">搜索召唤师</sys:String>
     <sys:String x:Key="Search.SearchNameTips">只能搜索同一大区的召唤师</sys:String>
     <sys:String x:Key="Search.UserNotFound">用户不存在</sys:String>
+    <sys:String x:Key="Career.Rank.Solo">单双排</sys:String>
+    <sys:String x:Key="Career.Rank.Flex">灵活组排</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Unranked">未定级</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Iron">黑铁</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Bronze">黄铜</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Silver">白银</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Gold">黄金</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Platinum">铂金</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Emerald">翡翠</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Diamond">钻石</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Master">大师</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Grandmaster">宗师</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Challenger">王者</sys:String>
 </ResourceDictionary>

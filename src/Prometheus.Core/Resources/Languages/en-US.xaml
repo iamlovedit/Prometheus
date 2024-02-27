@@ -27,4 +27,17 @@
     <sys:String x:Key="Search.SearchNamePlaceHolder">Search summoner</sys:String>
     <sys:String x:Key="Search.SearchNameTips">Only search for summoners in the same server</sys:String>
     <sys:String x:Key="Search.UserNotFound">User not found</sys:String>
+    <sys:String x:Key="Career.Rank.Solo">Solo</sys:String>
+    <sys:String x:Key="Career.Rank.Flex">Flex</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Unranked">Unranked</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Iron">Iron</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Bronze">Bronze</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Silver">Silver</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Gold">Gold</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Platinum">Platinum</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Emerald">Emerald</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Diamond">Diamond</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Master">Master</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Grandmaster">Grandmaster</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Challenger">Challenger</sys:String>
 </ResourceDictionary>
