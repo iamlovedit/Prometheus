@@ -40,4 +40,8 @@
     <sys:String x:Key="Career.Rank.Tier.Master">Master</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Grandmaster">Grandmaster</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Challenger">Challenger</sys:String>
+    <sys:String x:Key="Career.Match.Last20">Last 20 matches</sys:String>
+    <sys:String x:Key="Career.Match.Wins">Wins</sys:String>
+    <sys:String x:Key="Career.Match.Losses">Losses</sys:String>
+    <sys:String x:Key="Career.Match.KDA">KDA</sys:String>
 </ResourceDictionary>

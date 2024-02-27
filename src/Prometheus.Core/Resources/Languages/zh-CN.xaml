@@ -39,4 +39,8 @@
     <sys:String x:Key="Career.Rank.Tier.Master">大师</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Grandmaster">宗师</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Challenger">王者</sys:String>
+    <sys:String x:Key="Career.Match.Last20">最近20场比赛</sys:String>
+    <sys:String x:Key="Career.Match.Wins">胜利</sys:String>
+    <sys:String x:Key="Career.Match.Losses">失败</sys:String>
+    <sys:String x:Key="Career.Match.KDA">KDA</sys:String>
 </ResourceDictionary>
