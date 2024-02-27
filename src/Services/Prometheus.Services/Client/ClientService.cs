@@ -30,6 +30,10 @@ namespace Prometheus.Services.Client
         public async Task<string> GetInstallLocation()
         {
             var path = await _httpService.GetAsync("data-store/v1/install-dir");
+            if (string.IsNullOrEmpty(path))
+            {
+                return default;
+            }
             return ConvertPath(path);
         }
 

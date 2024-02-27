@@ -18,6 +18,11 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/current-summoner");
         }
 
+        public async Task<string> GetRankStatsByPuuid(string puuid)
+        {
+            return await _httpService.GetAsync($"lol-ranked/v1/ranked-stats/{puuid}");
+        }
+
         public async Task<SummonerAccount> SearchSummonerByName(string nickname)
         {
             return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/summoners",

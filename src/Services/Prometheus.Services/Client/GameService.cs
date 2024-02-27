@@ -17,7 +17,6 @@ namespace Prometheus.Services.Client
         private const string _matchDetails = "lol-match-history/v1/games/{0}";
         private const string _summonerSuperChampion = "lol-collections/v1/inventories/{0}/champion-mastery";
         private const string _champDataUrl = "https://x1-6833.native.qq.com/x1/6833/1061021&3af49f";
-        private const string _test = "/data-store/v1/install-settings/gameflow-patcher-lock";
         private const string _gameSessionData = "lol-gameflow/v1/session";
         private const string _currentChampion = "/lol-champ-select/v1/current-champion";
         private const string _pickableChampion = "/lol-champ-select/v1/pickable-champions";

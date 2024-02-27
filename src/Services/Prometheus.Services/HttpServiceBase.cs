@@ -13,6 +13,8 @@ namespace Prometheus.Services
     {
         protected HttpClient _httpClient;
 
+        protected bool _isInitialized;
+
         protected readonly string _jsonType = "application/json";
 
         protected virtual string BuildQueryStringFromParameters(IEnumerable<string> queryParameters)
@@ -44,10 +46,15 @@ namespace Prometheus.Services
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "LeagueOfLegendsClient/12.7.433.4138 (CEF 91)");
             _httpClient.DefaultRequestHeaders.Connection.Add("keep-alive");
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(tokenBytes));
+            _isInitialized = true;
         }
 
         protected virtual async Task<HttpResponseMessage> GetHttpMessageAsync(string url, IEnumerable<string> queryParameters)
         {
+            if (!_isInitialized)
+            {
+                return default;
+            }
             var relativeUrl = BuildRelativeUrl(url, queryParameters);
             var responseMessage = await _httpClient.GetAsync(relativeUrl);
             responseMessage.EnsureSuccessStatusCode();
@@ -56,6 +63,10 @@ namespace Prometheus.Services
 
         protected virtual async Task<HttpResponseMessage> PostHttpMessageAsync(string url, object body, IEnumerable<string> queryParameters)
         {
+            if (!_isInitialized)
+            {
+                return default;
+            }
             var relativeUrl = BuildRelativeUrl(url, queryParameters);
             var responseMessage = await _httpClient.PostAsJsonAsync(relativeUrl, body);
             responseMessage.EnsureSuccessStatusCode();
@@ -64,6 +75,10 @@ namespace Prometheus.Services
 
         protected virtual async Task<HttpResponseMessage> SendHttpMessageAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters)
         {
+            if (!_isInitialized)
+            {
+                return default;
+            }
             var relativeUrl = BuildRelativeUrl(url, queryParameters);
             var requestMessage = new HttpRequestMessage(httpMethod, relativeUrl)
             {

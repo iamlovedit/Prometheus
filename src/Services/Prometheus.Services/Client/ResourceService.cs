@@ -8,7 +8,7 @@ namespace Prometheus.Services.Client
     {
         private readonly string _languageUriFormat = "pack://application:,,,/Prometheus.Core;component/Resources/Languages/{0}.xaml";
         private readonly string _themeUriFormat = "pack://application:,,,/HandyControl;component/Themes/Skin{0}.xaml";
-
+        private readonly string _tierUriFormat = "pack://application:,,,/Prometheus.Core;component/Resources/Images/Tiers/{0}.png";
         public T FindResource<T>(string resourceKey)
         {
             return (T)Application.Current.FindResource(resourceKey);
@@ -58,6 +58,11 @@ namespace Prometheus.Services.Client
             {
 
             }
+        }
+
+        public string GetTierIconResourceUri(string tier)
+        {
+            return string.Format(_tierUriFormat, tier);
         }
     }
 }
