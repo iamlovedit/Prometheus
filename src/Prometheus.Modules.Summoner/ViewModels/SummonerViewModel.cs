@@ -10,6 +10,7 @@ using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {
@@ -20,8 +21,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
         private readonly IEventAggregator _eventAggregator;
         private readonly IDialogService _dialogService;
         private readonly IResourceService _resourceService;
-
-        private readonly Dictionary<Tier, string> _tierIconReosourceMap = new()
+        private readonly static Dictionary<Tier, string> _tierIconReosourceMap = new()
         {
             { Tier.UNRANKED,"Career.Rank.Tier.Unranked"},
             { Tier.IRON,"Career.Rank.Tier.Iron"},
@@ -35,14 +35,28 @@ namespace Prometheus.Modules.Summoner.ViewModels
             { Tier.CHALLENGER,"Career.Rank.Tier.Challenger"},
         };
 
+        private readonly static Dictionary<int, (string, string)> _mapsMap = new()
+        {
+            {-1,("特殊地图","Special map") },
+            {11,("召唤师峡谷","Summoner's Rift") },
+            {12,("嚎哭深渊","Howling Abyss") },
+            {21,("极限闪击","Nexus Blitz") },
+            {30,("斗魂竞技场","Arena") },
+        };
+
         public SummonerViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IContainerExtension containerExtension) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
             _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
+            _resourceService = containerExtension.Resolve<IResourceService>();
+            _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(() =>
+            {
+                FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
+                SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
+            });
             _summonerService = containerExtension.Resolve<ISummonerService>();
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
             _dialogService = containerExtension.Resolve<IDialogService>();
-            _resourceService = containerExtension.Resolve<IResourceService>();
         }
 
         private void OnConnectHandler(bool isConnected)
@@ -72,18 +86,70 @@ namespace Prometheus.Modules.Summoner.ViewModels
                 }
                 ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(Summoner.ProfileIconId);
 
-                var json = await _summonerService.GetRankStatsByPuuid(Summoner.Puuid);
-                if (!string.IsNullOrEmpty(json))
+                var rankJson = await _summonerService.GetRankStatsByPuuid(Summoner.Puuid);
+                if (!string.IsNullOrEmpty(rankJson))
                 {
-                    var jObject = JObject.Parse(json);
+                    var jObject = JObject.Parse(rankJson);
                     Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
                     Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
                     SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
+                    FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
+                    SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
+
+                }
+                var mathchesJosn = await _summonerService.GetRecentMatchesByPuuid(Summoner.Puuid);
+                if (!string.IsNullOrEmpty(mathchesJosn))
+                {
+                    var jObject = JObject.Parse(mathchesJosn);
+                    RecentMatches = jObject["games"]["games"].ToObject<List<Match>>();
+                    RecentMatches.ForEach(m =>
+                    {
+                       
+                    });
                 }
             }
         }
 
+        private byte _wins;
+        public byte Wins
+        {
+            get { return _wins; }
+            set
+            {
+                SetProperty(ref _wins, value);
+                Losses = (byte)(20 - value);
+            }
+        }
+
+        private byte _losses;
+        public byte Losses
+        {
+            get { return _losses; }
+            set { SetProperty(ref _losses, value); }
+        }
+
+        private List<Match> _recentMatches;
+        public List<Match> RecentMatches
+        {
+            get { return _recentMatches; }
+            set
+            {
+                SetProperty(ref _recentMatches, value);
+                Wins = (byte)value.Where(m => m.Participants[0].Stats.Win).Count();
+                var killed = value.Sum(m => m.Participants[0].Stats.Kills);
+                var deaths = value.Sum(m => m.Participants[0].Stats.Deaths);
+                var assists = value.Sum(m => m.Participants[0].Stats.Assists);
+                KDA = $"{killed}/{deaths}/{assists}";
+            }
+        }
+
+        private string _kda;
+        public string KDA
+        {
+            get { return _kda; }
+            set { SetProperty(ref _kda, value); }
+        }
 
         private Rank _flex;
         public Rank Flex
@@ -135,6 +201,19 @@ namespace Prometheus.Modules.Summoner.ViewModels
             set { SetProperty(ref _flexIcon, value); }
         }
 
+        private string _soloTier;
+        public string SoloTier
+        {
+            get { return _soloTier; }
+            set { SetProperty(ref _soloTier, value); }
+        }
+
+        private string _flexTier;
+        public string FlexTier
+        {
+            get { return _flexTier; }
+            set { SetProperty(ref _flexTier, value); }
+        }
 
 
         private DelegateCommand _modifyCommand;
