@@ -12,5 +12,7 @@ namespace Prometheus.Services.Interfaces.Client
         Task<SummonerAccount> SearchSummonerByPuuid(string id);
 
         Task<string> GetRankStatsByPuuid(string puuid);
+
+        Task<string> GetRecentMatchesByPuuid(string puuid);
     }
 }
