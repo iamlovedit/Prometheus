@@ -10,7 +10,6 @@
     d:DesignHeight="600"
     d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
-    Background="{DynamicResource RegionBrush}"
     mc:Ignorable="d">
     <Grid>
         <TextBlock Text="I am MatchView" />

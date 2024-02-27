@@ -13,7 +13,7 @@
     d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <TabControl prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingTabRegion}">
+    <TabControl prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingTabRegion}" Style="{DynamicResource TabControlInLine}">
         <TabControl.ItemTemplate>
             <DataTemplate>
                 <TextBlock Text="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabItem}, Path=Content.DataContext.Title}" />
