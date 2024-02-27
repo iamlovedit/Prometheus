@@ -15,6 +15,7 @@ namespace Prometheus.Modules.Summoner
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<SummonerView>(RegionNames.CareerView);
+            containerRegistry.RegisterDialog<SelectBackgroundDialog>(RegionNames.SelectBackgroundDialog);
         }
     }
 }

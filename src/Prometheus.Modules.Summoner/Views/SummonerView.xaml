@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:local="clr-namespace:Prometheus.Modules.Summoner.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Summoner.ViewModels"
@@ -15,23 +16,65 @@
     mc:Ignorable="d">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition />
+            <RowDefinition Height="300" />
             <RowDefinition />
         </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition Width="240" />
-        </Grid.ColumnDefinitions>
         <Border>
             <Border.Background>
                 <ImageBrush ImageSource="{Binding BackgroundSkin}" Stretch="UniformToFill" />
             </Border.Background>
-            <Grid>
-                <TextBlock
-                    FontSize="20"
-                    FontWeight="Bold"
+            <Grid Margin="24,16">
+                <Grid.Resources>
+                    <Style TargetType="{x:Type TextBlock}">
+                        <Setter Property="Foreground" Value="White" />
+                    </Style>
+                </Grid.Resources>
+                <hc:UniformSpacingPanel
+                    HorizontalSpacing="12"
+                    ItemVerticalAlignment="Center"
+                    Orientation="Horizontal">
+                    <StackPanel>
+                        <hc:Gravatar
+                            Width="92"
+                            Height="92"
+                            Style="{StaticResource GravatarCircleImg}">
+                            <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
+                        </hc:Gravatar>
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            HorizontalAlignment="Center"
+                            Text="{Binding Summoner.SummonerLevel}" />
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="24"
+                            FontWeight="Bold"
+                            Text="{Binding Summoner.DisplayName}" />
+                        <TextBlock Margin="0,8,0,0">
+                            <Run Text="#" />
+                            <Run Text="{Binding Summoner.TagLine}" />
+                        </TextBlock>
+                    </StackPanel>
+                </hc:UniformSpacingPanel>
+                <Button
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    hc:IconElement.Geometry="{StaticResource StarGeometry}"
+                    Command="{Binding ModifyCommand}"
                     Foreground="White"
-                    Text="{Binding Summoner.DisplayName}" />
+                    Style="{StaticResource ButtonIcon}"
+                    Visibility="Visible" />
+
+                <hc:UniformSpacingPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                    <local:TierControl
+                        Division="{Binding Solo.Division}"
+                        TierImage="{Binding SoloIcon}"
+                        TierType="{DynamicResource Career.Rank.Solo}" />
+                    <local:TierControl
+                        Division="{Binding Flex.Division}"
+                        TierImage="{Binding FlexIcon}"
+                        TierType="{DynamicResource Career.Rank.Flex}" />
+                </hc:UniformSpacingPanel>
             </Grid>
         </Border>
     </Grid>

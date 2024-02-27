@@ -1,11 +1,15 @@
 ﻿using Newtonsoft.Json.Linq;
+using Prism.Commands;
 using Prism.Events;
+using Prism.Ioc;
 using Prism.Regions;
+using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
+using System.Collections.Generic;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {
@@ -14,12 +18,31 @@ namespace Prometheus.Modules.Summoner.ViewModels
         private readonly ISummonerService _summonerService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IEventAggregator _eventAggregator;
-        public SummonerViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, ISummonerService summonerService, IGameResourceManager gameResourceManager) : base(regionManager)
+        private readonly IDialogService _dialogService;
+        private readonly IResourceService _resourceService;
+
+        private readonly Dictionary<Tier, string> _tierIconReosourceMap = new()
+        {
+            { Tier.UNRANKED,"Career.Rank.Tier.Unranked"},
+            { Tier.IRON,"Career.Rank.Tier.Iron"},
+            { Tier.BRONZE,"Career.Rank.Tier.Bronze"},
+            { Tier.GOLD,"Career.Rank.Tier.Gold"},
+            { Tier.PLATINUM,"Career.Rank.Tier.Platinum"},
+            { Tier.EMERALD,"Career.Rank.Tier.Emerald"},
+            { Tier.DIAMOND,"Career.Rank.Tier.Diamond"},
+            { Tier.MASTER,"Career.Rank.Tier.Master"},
+            { Tier.GRANDMASTER,"Career.Rank.Tier.Grandmaster"},
+            { Tier.CHALLENGER,"Career.Rank.Tier.Challenger"},
+        };
+
+        public SummonerViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IContainerExtension containerExtension) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
             _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
-            _summonerService = summonerService;
-            _gameResourceManager = gameResourceManager;
+            _summonerService = containerExtension.Resolve<ISummonerService>();
+            _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
+            _dialogService = containerExtension.Resolve<IDialogService>();
+            _resourceService = containerExtension.Resolve<IResourceService>();
         }
 
         private void OnConnectHandler(bool isConnected)
@@ -47,8 +70,35 @@ namespace Prometheus.Modules.Summoner.ViewModels
                     var skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
                     BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
                 }
+                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(Summoner.ProfileIconId);
+
+                var json = await _summonerService.GetRankStatsByPuuid(Summoner.Puuid);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var jObject = JObject.Parse(json);
+                    Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
+                    Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
+                    SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
+                    FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
+                }
             }
         }
+
+
+        private Rank _flex;
+        public Rank Flex
+        {
+            get { return _flex; }
+            set { SetProperty(ref _flex, value); }
+        }
+
+        private Rank _solo;
+        public Rank Solo
+        {
+            get { return _solo; }
+            set { SetProperty(ref _solo, value); }
+        }
+
 
         private SummonerAccount _summoner;
         public SummonerAccount Summoner
@@ -64,5 +114,41 @@ namespace Prometheus.Modules.Summoner.ViewModels
             set { SetProperty(ref _backgroundSkin, value); }
         }
 
+        private string _profileIcon;
+        public string ProfileIcon
+        {
+            get { return _profileIcon; }
+            set { SetProperty(ref _profileIcon, value); }
+        }
+
+        private string _soloIcon;
+        public string SoloIcon
+        {
+            get { return _soloIcon; }
+            set { SetProperty(ref _soloIcon, value); }
+        }
+
+        private string _flexIcon;
+        public string FlexIcon
+        {
+            get { return _flexIcon; }
+            set { SetProperty(ref _flexIcon, value); }
+        }
+
+
+
+        private DelegateCommand _modifyCommand;
+        public DelegateCommand ModifyCommand =>
+            _modifyCommand ?? (_modifyCommand = new DelegateCommand(ExecuteModifyCommand));
+        void ExecuteModifyCommand()
+        {
+            _dialogService.ShowDialog(RegionNames.SelectBackgroundDialog, async dialogResult =>
+            {
+                if (dialogResult.Result == ButtonResult.OK)
+                {
+                    await _gameResourceManager.SetBackgroundSkinId(0);
+                }
+            });
+        }
     }
 }

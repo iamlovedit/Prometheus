@@ -11,5 +11,7 @@ namespace Prometheus.Services.Interfaces.Client
         void SwitchTheme(int themeIndex);
 
         void SwitchLanguage(int languageIndex);
+
+        string GetTierIconResourceUri(string tier);
     }
 }

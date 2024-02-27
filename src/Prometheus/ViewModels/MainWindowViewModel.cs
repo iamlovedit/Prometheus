@@ -15,9 +15,6 @@ using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System;
-using System.IO;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Prometheus.ViewModels
 {
@@ -25,6 +22,7 @@ namespace Prometheus.ViewModels
     {
         private string _token;
         private string _port;
+        private bool _connected;
         private readonly IRegionManager _regionManager;
         private readonly IEventAggregator _eventAggregator;
         private readonly IContainerExtension _containerExtension;
@@ -85,9 +83,10 @@ namespace Prometheus.ViewModels
                 {
                     _port = port;
                     _token = token;
+                    _connected = true;
                     Log.Information($"port: {port}，token： {token}");
-                    _clientListener.Initialize(port, token);
                     _httpService.Initialize(Convert.ToInt32(port), token);
+                    _clientListener.Initialize(port, token);
                     await _clientListener.ConnectAsync();
                 }
             }
