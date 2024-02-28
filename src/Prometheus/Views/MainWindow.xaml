@@ -12,6 +12,8 @@
     Title="{Binding Title}"
     Width="1080"
     Height="720"
+    MinWidth="1080"
+    MinHeight="720"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Icon="../Resources/Prometheus_16.ico"
