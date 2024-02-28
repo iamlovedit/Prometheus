@@ -36,7 +36,7 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetSpells();
 
-        Task<string> GetMatchRecordsPage(int pageStart = 0, int pageEnd = 20, string id = null);
+        Task<string> GetMatchRecordsPage(string puuid, int pageStart, int pageEnd);
 
         Task<string> GetRuneItemsFromOnlineAsync(int championId);
 

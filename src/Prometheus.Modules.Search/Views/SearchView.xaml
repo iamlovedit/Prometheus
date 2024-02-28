@@ -19,19 +19,32 @@
             <RowDefinition Height="12" />
             <RowDefinition />
         </Grid.RowDefinitions>
-        <hc:UniformSpacingPanel
-            ItemHorizontalAlignment="Center"
-            Orientation="Vertical"
-            VerticalSpacing="12">
-            <hc:SearchBar
-                Width="200"
-                hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
-                hc:InfoElement.ShowClearButton="True"
-                Command="{Binding SearchCommand}"
-                CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
-                Style="{DynamicResource SearchBarPlus}" />
-            <TextBlock HorizontalAlignment="Center" Text="{DynamicResource Search.SearchNameTips}" />
-        </hc:UniformSpacingPanel>
-        <ContentControl Grid.Row="2" prism:RegionManager.RegionName="{x:Static core:RegionNames.SearchContent}" />
+        <Border
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="12">
+            <hc:UniformSpacingPanel
+                Margin="0,8"
+                ItemHorizontalAlignment="Center"
+                Orientation="Vertical"
+                VerticalSpacing="12">
+                <hc:SearchBar
+                    Width="200"
+                    hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
+                    hc:InfoElement.ShowClearButton="True"
+                    Command="{Binding SearchCommand}"
+                    CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+                    Style="{DynamicResource SearchBarPlus}" />
+                <TextBlock HorizontalAlignment="Center" Text="{DynamicResource Search.SearchNameTips}" />
+            </hc:UniformSpacingPanel>
+        </Border>
+
+        <Border
+            Grid.Row="2"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="12">
+            <ContentControl Grid.Row="2" prism:RegionManager.RegionName="{x:Static core:RegionNames.SearchContent}" />
+        </Border>
     </Grid>
 </UserControl>

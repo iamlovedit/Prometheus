@@ -1,5 +1,5 @@
 ﻿<UserControl
-    x:Class="Prometheus.Shard.Views.MatchHistoryView"
+    x:Class="Prometheus.Shared.Views.MatchHistoryView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -27,7 +27,7 @@
             <Button
                 Width="100"
                 HorizontalAlignment="Left"
-                hc:IconElement.Geometry="{StaticResource LeftGeometry}"
+                hc:IconElement.Geometry="{DynamicResource LeftGeometry}"
                 Content="{DynamicResource Career.Match.History}" />
             <ListBox
                 Grid.Row="1"
@@ -39,9 +39,34 @@
                         <Grid Margin="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
+                                <ColumnDefinition Width="4" />
                                 <ColumnDefinition />
                             </Grid.ColumnDefinitions>
-
+                            <hc:Gravatar
+                                Width="60"
+                                Height="60"
+                                Style="{DynamicResource GravatarCircle}">
+                                <Image Source="{Binding}" />
+                            </hc:Gravatar>
+                            <hc:UniformSpacingPanel
+                                Grid.Column="2"
+                                VerticalAlignment="Center"
+                                Orientation="Vertical">
+                                <TextBlock Text="{Binding GameMode}" />
+                                <TextBlock Text="{Binding Participants[0].Stats.KDA}" />
+                            </hc:UniformSpacingPanel>
+                            <TextBlock
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Foreground="ForestGreen"
+                                Text="{DynamicResource Career.Match.Victory}"
+                                Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                            <TextBlock
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Foreground="Red"
+                                Text="{DynamicResource Career.Match.Defeated}"
+                                Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -49,17 +74,23 @@
             <Grid Grid.Row="2">
                 <Button
                     HorizontalAlignment="Left"
-                    hc:IconElement.Geometry="{StaticResource LeftGeometry}"
-                    DockPanel.Dock="Left" />
+                    hc:IconElement.Geometry="{DynamicResource LeftGeometry}"
+                    DockPanel.Dock="Left"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
                 <TextBlock HorizontalAlignment="Center" />
                 <Button
                     HorizontalAlignment="Right"
-                    hc:IconElement.Geometry="{StaticResource RightGeometry}"
-                    DockPanel.Dock="Right" />
+                    hc:IconElement.Geometry="{DynamicResource RightGeometry}"
+                    DockPanel.Dock="Right"
+                    IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
             </Grid>
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions />
-            </Grid>
+        </Grid>
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="32" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <TextBlock Text="" />
         </Grid>
     </Grid>
 </UserControl>

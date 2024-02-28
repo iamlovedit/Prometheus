@@ -31,5 +31,9 @@
         public const string UserNotFoundView = "UserNotFoundView";
 
         public const string SelectBackgroundDialog = "SelectBackgroundDialog";
+
+        public const string MatchHistoryView = "MatchHistoryView";
+
+        public const string SummonerDetailView = "SummonerDetailView";
     }
 }

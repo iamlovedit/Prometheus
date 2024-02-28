@@ -2,6 +2,7 @@
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Prometheus.Services.Client
 {
@@ -32,7 +33,7 @@ namespace Prometheus.Services.Client
         {
             return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/summoners",
             [
-               $"name={nickname}"
+               $"name={HttpUtility.UrlEncode(nickname)}"
             ]);
         }
 

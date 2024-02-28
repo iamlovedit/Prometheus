@@ -21,5 +21,9 @@
         public static string ChampoinIcon = "ChampoinIcon";
 
         public static string ProfileIcon = "ProfileIcon";
+
+        public const string Summoner = "Summoner";
+
+        public const string CanEdit = "CanEdit";
     }
 }

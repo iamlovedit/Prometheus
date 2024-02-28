@@ -25,6 +25,17 @@ namespace Prometheus.Modules.Search.ViewModels
             try
             {
                 var summoner = await _summonerService.SearchSummonerByName(name);
+                if (summoner is null)
+                {
+                    RegionManager.RequestNavigate(RegionNames.SearchContent, RegionNames.UserNotFoundView);
+                    return;
+                }
+                var parameters = new NavigationParameters()
+                {
+                    {ParameterNames.Summoner,summoner},
+                    {ParameterNames.CanEdit,false }
+                };
+                RegionManager.RequestNavigate(RegionNames.SearchContent, RegionNames.SummonerDetailView, parameters);
             }
             catch (HttpRequestException)
             {

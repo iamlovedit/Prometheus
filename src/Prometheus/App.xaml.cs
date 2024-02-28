@@ -12,7 +12,7 @@ using Prometheus.Services;
 using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using Prometheus.Shard.Views;
+using Prometheus.Shared.Views;
 using Prometheus.Views;
 using Serilog;
 using System.IO;
@@ -45,6 +45,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
+            containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
 
             var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             directory = Path.Combine(directory, "Resource");

@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace Prometheus.Shard.Views
+namespace Prometheus.Shared.Views
 {
     /// <summary>
     /// Interaction logic for MatchHistoryView
