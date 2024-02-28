@@ -48,4 +48,5 @@
     <sys:String x:Key="Career.Match.Victory">Victory</sys:String>
     <sys:String x:Key="Career.Match.Damage">Damage</sys:String>
     <sys:String x:Key="Career.Match.Gold">Gold</sys:String>
+    <sys:String x:Key="Career.Match.History">History</sys:String>
 </ResourceDictionary>

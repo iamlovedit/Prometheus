@@ -47,4 +47,5 @@
     <sys:String x:Key="Career.Match.Victory">胜利</sys:String>
     <sys:String x:Key="Career.Match.Damage">伤害</sys:String>
     <sys:String x:Key="Career.Match.Gold">金币</sys:String>
+    <sys:String x:Key="Career.Match.History">历史战绩</sys:String>
 </ResourceDictionary>
