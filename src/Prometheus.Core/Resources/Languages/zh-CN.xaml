@@ -43,4 +43,8 @@
     <sys:String x:Key="Career.Match.Wins">胜利</sys:String>
     <sys:String x:Key="Career.Match.Losses">失败</sys:String>
     <sys:String x:Key="Career.Match.KDA">KDA</sys:String>
+    <sys:String x:Key="Career.Match.Defeated">失败</sys:String>
+    <sys:String x:Key="Career.Match.Victory">胜利</sys:String>
+    <sys:String x:Key="Career.Match.Damage">伤害</sys:String>
+    <sys:String x:Key="Career.Match.Gold">金币</sys:String>
 </ResourceDictionary>
