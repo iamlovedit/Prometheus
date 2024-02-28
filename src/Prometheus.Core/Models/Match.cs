@@ -13,9 +13,9 @@ namespace Prometheus.Core.Models
 
         public string GameMode { get; set; }
 
+        public string DisplayGameMode { get; set; }
+
         public int MapId { get; set; }
-
-
 
         public List<Participant> Participants { get; set; }
     }
@@ -88,5 +88,7 @@ namespace Prometheus.Core.Models
         public string Item6Icon { get; set; }
 
         public int GoldEarned { get; set; }
+
+        public int TotalDamageDealtToChampions { get; set; }
     }
 }

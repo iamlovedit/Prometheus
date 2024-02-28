@@ -178,7 +178,7 @@ namespace Prometheus.Services.Client
             return skinPath;
         }
 
-        public async Task<string> GetPerkByIdAsync(int perkId)
+        public async Task<string> GetPerkIconByIdAsync(int perkId)
         {
             var directory = GetDirectory(ParameterNames.Perks);
             var iconPath = Path.Combine(directory, $"{perkId}.png");

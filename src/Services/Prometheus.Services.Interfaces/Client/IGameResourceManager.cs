@@ -28,7 +28,7 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetBackgroundSkinByIdAsync(int skinId);
 
-        Task<string> GetPerkByIdAsync(int perkId);
+        Task<string> GetPerkIconByIdAsync(int perkId);
 
         Task<string> GetBackgroundSkinId();
 

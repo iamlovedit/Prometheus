@@ -16,7 +16,6 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="260" />
-            <RowDefinition Height="36" />
             <RowDefinition />
         </Grid.RowDefinitions>
         <Border CornerRadius="12">
@@ -63,7 +62,7 @@
                     Command="{Binding ModifyCommand}"
                     Foreground="White"
                     Style="{StaticResource ButtonIcon}"
-                    Visibility="Visible" />
+                    Visibility="Collapsed" />
 
                 <hc:UniformSpacingPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
                     <local:TierControl
@@ -102,39 +101,170 @@
                 </hc:UniformSpacingPanel>
             </Grid>
         </Border>
-        <ComboBox
-            Grid.Row="1"
-            Width="100"
-            Height="28"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Bottom"
-            Style="{DynamicResource ComboBoxBaseStyle}" />
         <ListBox
             Grid.Row="2"
             Margin="0,8,0,0"
             hc:BorderElement.CornerRadius="12"
-            BorderBrush="{DynamicResource InfoBrush}"
             BorderThickness="1"
             ItemsSource="{Binding RecentMatches}"
             Style="{DynamicResource StackPanelVerticalListBox}">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Border
-                        Height="96"
+                        MinHeight="80"
                         Margin="4"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
-                        <Grid>
+                        <Grid Margin="8,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition />
-                                <ColumnDefinition />
+                                <ColumnDefinition Width="200" />
+                                <ColumnDefinition Width="auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Grid
+                                    Width="60"
+                                    Height="60"
+                                    VerticalAlignment="Center">
+                                    <hc:Gravatar
+                                        Width="60"
+                                        Height="60"
+                                        Style="{StaticResource GravatarCircleImg}">
+                                        <Image Source="{Binding Participants[0].ChampionIcon}" />
+                                    </hc:Gravatar>
+                                    <Border
+                                        x:Name="circularBorder"
+                                        Width="{Binding Path=ActualHeight, ElementName=circularBorder}"
+                                        Height="18"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Background="{DynamicResource InfoBrush}"
+                                        CornerRadius="{Binding Path=ActualHeight, ElementName=circularBorder}">
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Foreground="{DynamicResource PrimaryTextBrush}"
+                                            Text="{Binding Participants[0].Stats.ChampLevel}" />
+                                    </Border>
+                                </Grid>
+
+                                <hc:UniformSpacingPanel
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    ItemHorizontalAlignment="Left"
+                                    Orientation="Vertical"
+                                    VerticalSpacing="4">
+                                    <TextBlock
+                                        Foreground="ForestGreen"
+                                        Text="{DynamicResource Career.Match.Victory}"
+                                        Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                    <TextBlock
+                                        Foreground="OrangeRed"
+                                        Text="{DynamicResource Career.Match.Defeated}"
+                                        Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
+                                    <TextBlock Foreground="{DynamicResource PrimaryTextBrush}" Text="{Binding GameMode}" />
+                                    <TextBlock Foreground="{DynamicResource PrimaryTextBrush}" Text="{Binding GameCreationDate}" />
+                                </hc:UniformSpacingPanel>
+                            </Grid>
+                            <hc:UniformSpacingPanel
+                                Grid.Column="1"
+                                Margin="12"
                                 VerticalAlignment="Center"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Text="{Binding Participants[0].Stats.KDA}" />
+                                HorizontalSpacing="8"
+                                Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="{DynamicResource Career.Match.KDA}" />
+                                    <Run Text=":" />
+                                    <Run Text="{Binding Participants[0].Stats.KDA, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="{DynamicResource Career.Match.Gold}" />
+                                    <Run Text=":" />
+                                    <Run Text="{Binding Participants[0].Stats.GoldEarned, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}">
+                                    <Run Text="{DynamicResource Career.Match.Damage}" />
+                                    <Run Text=":" />
+                                    <Run Text="{Binding Participants[0].Stats.TotalDamageDealtToChampions, Mode=OneWay}" />
+                                </TextBlock>
+                            </hc:UniformSpacingPanel>
+                            <Grid
+                                Grid.Column="2"
+                                Margin="12"
+                                HorizontalAlignment="Right">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <hc:UniformSpacingPanel
+                                    HorizontalSpacing="2"
+                                    ItemVerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.PerkIcon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Spell1Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Spell2Icon}"
+                                        Stretch="UniformToFill" />
+                                </hc:UniformSpacingPanel>
+                                <hc:UniformSpacingPanel
+                                    Grid.Column="1"
+                                    Margin="8"
+                                    HorizontalSpacing="2"
+                                    ItemVerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item0Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item1Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item2Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item3Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item4Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item5Icon}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Width="28"
+                                        Height="28"
+                                        Source="{Binding Participants[0].Stats.Item6Icon}"
+                                        Stretch="UniformToFill" />
+                                </hc:UniformSpacingPanel>
+                            </Grid>
                         </Grid>
                     </Border>
                 </DataTemplate>

@@ -103,9 +103,20 @@ namespace Prometheus.Modules.Summoner.ViewModels
                 {
                     var jObject = JObject.Parse(mathchesJosn);
                     RecentMatches = jObject["games"]["games"].ToObject<List<Match>>();
-                    RecentMatches.ForEach(m =>
+                    RecentMatches.ForEach(async m =>
                     {
-                       
+
+                        m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
+                        m.Participants[0].Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell1Id);
+                        m.Participants[0].Spell2Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell2Id);
+                        m.Participants[0].Stats.PerkIcon = await _gameResourceManager.GetPerkIconByIdAsync(m.Participants[0].Stats.Perk0);
+                        m.Participants[0].Stats.Item0Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item0);
+                        m.Participants[0].Stats.Item1Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item1);
+                        m.Participants[0].Stats.Item2Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item2);
+                        m.Participants[0].Stats.Item3Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item3);
+                        m.Participants[0].Stats.Item4Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item4);
+                        m.Participants[0].Stats.Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item5);
+                        m.Participants[0].Stats.Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item6);
                     });
                 }
             }
