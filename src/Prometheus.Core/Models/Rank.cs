@@ -1,4 +1,8 @@
-﻿namespace Prometheus.Core.Models
+﻿using Newtonsoft.Json.Converters;
+using Newtonsoft.Json;
+using System;
+
+namespace Prometheus.Core.Models
 {
     public class Rank
     {
@@ -32,6 +36,7 @@
         RANKED_TFT_TURBO,
     }
 
+    [JsonConverter(typeof(TierEnumConverter))]
     public enum Tier
     {
         UNRANKED,
@@ -45,6 +50,18 @@
         MASTER,
         GRANDMASTER,
         CHALLENGER
+    }
+
+    public class TierEnumConverter : StringEnumConverter
+    {
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            if (string.IsNullOrEmpty(reader.Value.ToString()))
+            {
+                return Tier.UNRANKED;
+            }
+            return base.ReadJson(reader, objectType, existingValue, serializer);
+        }
     }
 }
 
