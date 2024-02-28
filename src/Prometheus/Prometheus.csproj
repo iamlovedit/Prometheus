@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Prometheus.Modules.Setting\Prometheus.Modules.Setting.csproj" />
     <ProjectReference Include="..\Prometheus.Modules.Summoner\Prometheus.Modules.Summoner.csproj" />
     <ProjectReference Include="..\Prometheus.Modules.Utility\Prometheus.Modules.Utility.csproj" />
+    <ProjectReference Include="..\Prometheus.Shared\Prometheus.Shared.csproj" />
     <ProjectReference Include="..\Services\Prometheus.Services.Interfaces\Prometheus.Services.Interfaces.csproj" />
     <ProjectReference Include="..\Services\Prometheus.Services\Prometheus.Services.csproj" />
   </ItemGroup>
