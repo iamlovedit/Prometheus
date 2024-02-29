@@ -13,6 +13,8 @@ namespace Prometheus.Core.Models
         public string SquarePortraitPath { get; set; }
 
         public List<string> Roles { get; set; }
+
+        public string IconUri { get; set; }
     }
 }
 
