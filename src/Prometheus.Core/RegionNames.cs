@@ -28,6 +28,8 @@
 
         public const string SearchContent = "SearchContent";
 
+        public const string SummonerContent = "SummonerContent";
+
         public const string UserNotFoundView = "UserNotFoundView";
 
         public const string SelectBackgroundDialog = "SelectBackgroundDialog";

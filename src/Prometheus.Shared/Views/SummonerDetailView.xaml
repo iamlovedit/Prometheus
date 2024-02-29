@@ -27,6 +27,9 @@
                     <Style TargetType="{x:Type TextBlock}">
                         <Setter Property="Foreground" Value="White" />
                     </Style>
+                    <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
+                        <Setter Property="Foreground" Value="White" />
+                    </Style>
                 </Grid.Resources>
                 <hc:UniformSpacingPanel
                     HorizontalSpacing="12"
@@ -45,24 +48,33 @@
                             Text="{Binding Summoner.SummonerLevel}" />
                     </StackPanel>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock
-                            FontSize="24"
-                            FontWeight="Bold"
-                            Text="{Binding Summoner.DisplayName}" />
+                        <TextBlock FontSize="24" FontWeight="Bold">
+                            <Run Text="{Binding Summoner.DisplayName}" />
+                            <Button
+                                VerticalAlignment="Center"
+                                hc:IconElement.Geometry="{DynamicResource CopyGeometry}"
+                                Command="{Binding CopyCommand}"
+                                ToolTip="{DynamicResource Career.Copy}" />
+                        </TextBlock>
                         <TextBlock Margin="0,8,0,0">
                             <Run Text="#" />
                             <Run Text="{Binding Summoner.TagLine}" />
                         </TextBlock>
                     </StackPanel>
+
                 </hc:UniformSpacingPanel>
+                <Button
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    hc:IconElement.Geometry="{StaticResource LookGeometry}"
+                    ToolTip="{DynamicResource Career.Private}"
+                    Visibility="{Binding IsPublic, Converter={StaticResource Boolean2VisibilityReConverter}}" />
                 <Button
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    hc:IconElement.Geometry="{StaticResource StarGeometry}"
+                    hc:IconElement.Geometry="{StaticResource EditGeometry}"
                     Command="{Binding ModifyCommand}"
-                    Foreground="White"
-                    Style="{StaticResource ButtonIcon}"
-                    Visibility="Collapsed" />
+                    Visibility="{Binding CanModify, Converter={StaticResource Boolean2VisibilityConverter}}" />
 
                 <hc:UniformSpacingPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
                     <local:TierControl
@@ -107,6 +119,7 @@
             hc:BorderElement.CornerRadius="12"
             BorderThickness="1"
             ItemsSource="{Binding RecentMatches}"
+            SelectedItem="{Binding SelectedSummoner}"
             Style="{DynamicResource StackPanelVerticalListBox}">
             <ListBox.ItemTemplate>
                 <DataTemplate>

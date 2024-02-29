@@ -12,6 +12,7 @@ using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 
 namespace Prometheus.Shared.ViewModels
 {
@@ -68,47 +69,45 @@ namespace Prometheus.Shared.ViewModels
             if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
             {
                 Summoner = summoner;
-                if (Summoner != null)
+                IsPublic = summoner.Privacy == "PUBLIC";
+                var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
+                if (!string.IsNullOrEmpty(jsonValue))
                 {
-                    var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
-                    if (!string.IsNullOrEmpty(jsonValue))
-                    {
-                        var skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
-                        BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
-                    }
-                    ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(Summoner.ProfileIconId);
+                    var skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
+                    BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
+                }
+                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(Summoner.ProfileIconId);
 
-                    var rankJson = await _summonerService.GetRankStatsByPuuid(Summoner.Puuid);
-                    if (!string.IsNullOrEmpty(rankJson))
+                var rankJson = await _summonerService.GetRankStatsByPuuid(Summoner.Puuid);
+                if (!string.IsNullOrEmpty(rankJson))
+                {
+                    var jObject = JObject.Parse(rankJson);
+                    Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
+                    Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
+                    SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
+                    FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
+                    FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
+                    SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
+                }
+                var mathchesJosn = await _summonerService.GetRecentMatchesByPuuid(Summoner.Puuid);
+                if (!string.IsNullOrEmpty(mathchesJosn))
+                {
+                    var jObject = JObject.Parse(mathchesJosn);
+                    RecentMatches = jObject["games"]["games"].ToObject<List<Match>>();
+                    RecentMatches.ForEach(async m =>
                     {
-                        var jObject = JObject.Parse(rankJson);
-                        Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
-                        Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
-                        SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
-                        FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
-                        FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
-                        SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
-                    }
-                    var mathchesJosn = await _summonerService.GetRecentMatchesByPuuid(Summoner.Puuid);
-                    if (!string.IsNullOrEmpty(mathchesJosn))
-                    {
-                        var jObject = JObject.Parse(mathchesJosn);
-                        RecentMatches = jObject["games"]["games"].ToObject<List<Match>>();
-                        RecentMatches.ForEach(async m =>
-                        {
-                            m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
-                            m.Participants[0].Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell1Id);
-                            m.Participants[0].Spell2Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell2Id);
-                            m.Participants[0].Stats.PerkIcon = await _gameResourceManager.GetPerkIconByIdAsync(m.Participants[0].Stats.Perk0);
-                            m.Participants[0].Stats.Item0Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item0);
-                            m.Participants[0].Stats.Item1Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item1);
-                            m.Participants[0].Stats.Item2Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item2);
-                            m.Participants[0].Stats.Item3Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item3);
-                            m.Participants[0].Stats.Item4Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item4);
-                            m.Participants[0].Stats.Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item5);
-                            m.Participants[0].Stats.Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item6);
-                        });
-                    }
+                        m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
+                        m.Participants[0].Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell1Id);
+                        m.Participants[0].Spell2Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell2Id);
+                        m.Participants[0].Stats.PerkIcon = await _gameResourceManager.GetPerkIconByIdAsync(m.Participants[0].Stats.Perk0);
+                        m.Participants[0].Stats.Item0Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item0);
+                        m.Participants[0].Stats.Item1Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item1);
+                        m.Participants[0].Stats.Item2Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item2);
+                        m.Participants[0].Stats.Item3Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item3);
+                        m.Participants[0].Stats.Item4Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item4);
+                        m.Participants[0].Stats.Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item5);
+                        m.Participants[0].Stats.Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item6);
+                    });
                 }
             }
 
@@ -172,12 +171,14 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _solo, value); }
         }
 
-
         private SummonerAccount _summoner;
         public SummonerAccount Summoner
         {
             get { return _summoner; }
-            set { SetProperty(ref _summoner, value); }
+            set
+            {
+                SetProperty(ref _summoner, value);
+            }
         }
 
         private string _backgroundSkin;
@@ -229,6 +230,22 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _canModify, value); }
         }
 
+
+        private bool _isPublic = true;
+        public bool IsPublic
+        {
+            get { return _isPublic; }
+            set { SetProperty(ref _isPublic, value); }
+        }
+
+        private SummonerAccount _selectedSummoner;
+        public SummonerAccount SelectedSummoner
+        {
+            get { return _selectedSummoner; }
+            set { SetProperty(ref _selectedSummoner, value); }
+        }
+
+
         private DelegateCommand _modifyCommand;
         public DelegateCommand ModifyCommand =>
             _modifyCommand ?? (_modifyCommand = new DelegateCommand(ExecuteModifyCommand));
@@ -241,6 +258,14 @@ namespace Prometheus.Shared.ViewModels
                     await _gameResourceManager.SetBackgroundSkinId(0);
                 }
             });
+        }
+
+        private DelegateCommand _copyCommand;
+        public DelegateCommand CopyCommand =>
+            _copyCommand ?? (_copyCommand = new DelegateCommand(ExecuteCopyCommand));
+        void ExecuteCopyCommand()
+        {
+            Clipboard.SetText(_summoner.DisplayName + '#' + _summoner.TagLine);
         }
     }
 }

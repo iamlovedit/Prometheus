@@ -24,6 +24,10 @@ namespace Prometheus.Modules.Search.ViewModels
         {
             try
             {
+                if (string.IsNullOrEmpty(name))
+                {
+                    return;
+                }
                 var summoner = await _summonerService.SearchSummonerByName(name);
                 if (summoner is null)
                 {

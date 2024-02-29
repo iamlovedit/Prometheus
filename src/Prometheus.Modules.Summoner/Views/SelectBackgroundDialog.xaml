@@ -6,9 +6,41 @@
     xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:view="clr-namespace:Prometheus.Shared.Views;assembly=Prometheus.Shared"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Summoner.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:SelectBackgroundDialogViewModel}"
+    d:DesignHeight="600"
+    d:DesignWidth="800"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <Grid />
+    <prism:Dialog.WindowStyle>
+        <Style BasedOn="{StaticResource WindowWin10}" TargetType="view:DialogWindow">
+            <Setter Property="prism:Dialog.WindowStartupLocation" Value="CenterOwner" />
+            <Setter Property="ShowInTaskbar" Value="False" />
+            <Setter Property="Width" Value="800" />
+            <Setter Property="Height" Value="600" />
+            <Setter Property="MinWidth" Value="800" />
+            <Setter Property="MinHeight" Value="600" />
+            <Setter Property="ResizeMode" Value="CanResize" />
+        </Style>
+    </prism:Dialog.WindowStyle>
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+        <hc:UniformSpacingPanel
+            Grid.Row="1"
+            HorizontalAlignment="Center"
+            HorizontalSpacing="12"
+            ItemHorizontalAlignment="Center"
+            ItemVerticalAlignment="Center"
+            Orientation="Horizontal">
+            <Button
+                Width="80"
+                Content="{DynamicResource Generic.Comfirm}"
+                Style="{DynamicResource ButtonPrimary}" />
+            <ToggleButton Content="{DynamicResource Career.Background.Sync}" Style="{DynamicResource ToggleButtonSwitch}" />
+        </hc:UniformSpacingPanel>
+    </Grid>
 </UserControl>
