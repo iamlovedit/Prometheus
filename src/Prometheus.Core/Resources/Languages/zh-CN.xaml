@@ -52,4 +52,6 @@
     <sys:String x:Key="Career.Private">召唤师将生涯隐藏</sys:String>
     <sys:String x:Key="Generic.Comfirm">确认</sys:String>
     <sys:String x:Key="Career.Background.Sync">同步到游戏</sys:String>
+    <sys:String x:Key="Career.Dialog.Title">生涯背景</sys:String>
+    <sys:String x:Key="Career.Dialog.SearchPlaceholder">搜索英雄</sys:String>
 </ResourceDictionary>
