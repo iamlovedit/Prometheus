@@ -25,5 +25,7 @@
         public const string Summoner = "Summoner";
 
         public const string CanEdit = "CanEdit";
+
+        public const string SelectedSkinUri = "SelectedSkinUri";
     }
 }

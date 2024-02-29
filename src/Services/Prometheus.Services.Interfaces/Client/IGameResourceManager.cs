@@ -34,5 +34,6 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task SetBackgroundSkinId(int id);
 
+        Task<List<SkinBasic>> GetSkinsByChampionIdAsync(int championId);
     }
 }

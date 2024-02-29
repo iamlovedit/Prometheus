@@ -3,6 +3,7 @@ using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -209,6 +210,35 @@ namespace Prometheus.Services.Client
         {
             var buffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, url);
             await File.WriteAllBytesAsync(filePath, buffer);
+        }
+
+        public async Task<List<SkinBasic>> GetSkinsByChampionIdAsync(int championId)
+        {
+            if (_skinMap is null)
+            {
+                _skinMap = await GetSkinsAsync();
+            }
+            var maxId = championId + 999;
+            var skins = new List<SkinBasic>();
+            foreach (var key in _skinMap.Keys)
+            {
+                if (int.TryParse(key, out var keyInt))
+                {
+                    if (keyInt >= championId && keyInt <= maxId)
+                    {
+                        if (_skinMap.TryGetValue(key, out var skin))
+                        {
+                            skins.Add(new SkinBasic()
+                            {
+                                Id = skin.Id,
+                                Name = skin.Name,
+                                Uri = await GetBackgroundSkinByIdAsync(skin.Id)
+                            });
+                        }
+                    }
+                }
+            }
+            return skins;
         }
     }
 }

@@ -251,11 +251,14 @@ namespace Prometheus.Shared.ViewModels
             _modifyCommand ?? (_modifyCommand = new DelegateCommand(ExecuteModifyCommand));
         void ExecuteModifyCommand()
         {
-            _dialogService.ShowDialog(RegionNames.SelectBackgroundDialog, async dialogResult =>
+            _dialogService.ShowDialog(RegionNames.SelectBackgroundDialog, dialogResult =>
             {
                 if (dialogResult.Result == ButtonResult.OK)
                 {
-                    await _gameResourceManager.SetBackgroundSkinId(0);
+                    if (dialogResult.Parameters.TryGetValue<string>(ParameterNames.SelectedSkinUri, out var uri))
+                    {
+                        BackgroundSkin = uri;
+                    }
                 }
             });
         }

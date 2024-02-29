@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:view="clr-namespace:Prometheus.Shared.Views;assembly=Prometheus.Shared"
@@ -12,25 +13,135 @@
     d:DesignHeight="600"
     d:DesignWidth="800"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    Background="{DynamicResource BorderBrush}"
     mc:Ignorable="d">
     <prism:Dialog.WindowStyle>
         <Style BasedOn="{StaticResource WindowWin10}" TargetType="view:DialogWindow">
             <Setter Property="prism:Dialog.WindowStartupLocation" Value="CenterOwner" />
             <Setter Property="ShowInTaskbar" Value="False" />
-            <Setter Property="Width" Value="800" />
-            <Setter Property="Height" Value="600" />
+            <Setter Property="Width" Value="1080" />
+            <Setter Property="Height" Value="720" />
             <Setter Property="MinWidth" Value="800" />
             <Setter Property="MinHeight" Value="600" />
+            <Setter Property="Title" Value="{DynamicResource Career.Dialog.Title}" />
             <Setter Property="ResizeMode" Value="CanResize" />
         </Style>
     </prism:Dialog.WindowStyle>
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition />
+            <RowDefinition Height="8" />
             <RowDefinition Height="auto" />
         </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="168" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="36" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <hc:SearchBar
+                    Height="28"
+                    hc:BorderElement.CornerRadius="8"
+                    hc:InfoElement.Placeholder="{DynamicResource Career.Dialog.SearchPlaceholder}"
+                    hc:InfoElement.ShowClearButton="True"
+                    Command="{Binding SearchCommand}"
+                    CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+                    Style="{DynamicResource SearchBarPlus}"
+                    Text="{Binding Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <ListBox
+                    Grid.Row="1"
+                    hc:BorderElement.CornerRadius="12"
+                    ItemsSource="{Binding Champions}"
+                    SelectedItem="{Binding SelectedChampion}"
+                    Style="{DynamicResource ListBoxBaseStyle}"
+                    VirtualizingPanel.IsVirtualizing="True">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <prism:InvokeCommandAction Command="{Binding SelectionChangedCommand}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Height="60">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <hc:Gravatar
+                                    Width="50"
+                                    Height="50"
+                                    Style="{DynamicResource GravatarCircleImg}">
+                                    <Image Source="{Binding IconUri}" />
+                                </hc:Gravatar>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="4,0,0,0"
+                                    VerticalAlignment="Center">
+                                    <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        VerticalAlignment="Center"
+                                        Text="{Binding Alias}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+            <ListBox
+                Grid.Column="1"
+                Margin="12,0,0,0"
+                hc:BorderElement.CornerRadius="12"
+                ItemsSource="{Binding Skins}"
+                SelectedItem="{Binding SelectedSkin}"
+                Style="{DynamicResource ListBoxBaseStyle}"
+                VirtualizingPanel.IsVirtualizing="True">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Height="220" Margin="4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+                            <Border
+                                Margin="0,4,0,0"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Image
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Source="{Binding Uri}"
+                                    Stretch="UniformToFill" />
+                            </Border>
+                            <TextBlock
+                                Grid.Row="1"
+                                Margin="0,8,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Text="{Binding Name}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <hc:UniformSpacingPanel
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            ChildWrapping="Wrap"
+                            ItemHorizontalAlignment="Center"
+                            ItemWidth="200"
+                            Spacing="16" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListBox>
+        </Grid>
         <hc:UniformSpacingPanel
-            Grid.Row="1"
+            Grid.Row="2"
             HorizontalAlignment="Center"
             HorizontalSpacing="12"
             ItemHorizontalAlignment="Center"
@@ -38,9 +149,13 @@
             Orientation="Horizontal">
             <Button
                 Width="80"
+                Command="{Binding ComfirmCommand}"
                 Content="{DynamicResource Generic.Comfirm}"
                 Style="{DynamicResource ButtonPrimary}" />
-            <ToggleButton Content="{DynamicResource Career.Background.Sync}" Style="{DynamicResource ToggleButtonSwitch}" />
+            <ToggleButton
+                Content="{DynamicResource Career.Background.Sync}"
+                IsChecked="{Binding IsSync}"
+                Style="{DynamicResource ToggleButtonSwitch}" />
         </hc:UniformSpacingPanel>
     </Grid>
 </UserControl>
