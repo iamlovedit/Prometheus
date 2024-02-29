@@ -25,7 +25,7 @@
     <sys:String x:Key="HomePage.Developing">Developing</sys:String>
     <sys:String x:Key="HomePage.Connecting">Connecting</sys:String>
     <sys:String x:Key="Search.SearchNamePlaceHolder">Search summoner</sys:String>
-    <sys:String x:Key="Search.SearchNameTips">Only search for summoners in the same server</sys:String>
+    <sys:String x:Key="Search.SearchNameTips">Only search for summoners in the same server eg: Yasuo#89757</sys:String>
     <sys:String x:Key="Search.UserNotFound">User not found</sys:String>
     <sys:String x:Key="Career.Rank.Solo">Solo</sys:String>
     <sys:String x:Key="Career.Rank.Flex">Flex</sys:String>
@@ -49,4 +49,8 @@
     <sys:String x:Key="Career.Match.Damage">Damage</sys:String>
     <sys:String x:Key="Career.Match.Gold">Gold</sys:String>
     <sys:String x:Key="Career.Match.History">History</sys:String>
+    <sys:String x:Key="Career.Copy">Copy summoner name</sys:String>
+    <sys:String x:Key="Career.Private">The summoner hides his career</sys:String>
+    <sys:String x:Key="Generic.Comfirm">Comfirm</sys:String>
+    <sys:String x:Key="Career.Background.Sync">Sync to client</sys:String>
 </ResourceDictionary>

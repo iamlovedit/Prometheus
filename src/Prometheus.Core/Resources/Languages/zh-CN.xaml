@@ -24,7 +24,7 @@
     <sys:String x:Key="HomePage.LCUDisconnected">英雄联盟客户端已断开</sys:String>
     <sys:String x:Key="HomePage.Connecting">英雄联盟客户端连接中</sys:String>
     <sys:String x:Key="Search.SearchNamePlaceHolder">搜索召唤师</sys:String>
-    <sys:String x:Key="Search.SearchNameTips">只能搜索同一大区的召唤师</sys:String>
+    <sys:String x:Key="Search.SearchNameTips">只能搜索同一大区的召唤师 比如: 王慕霸#89757</sys:String>
     <sys:String x:Key="Search.UserNotFound">用户不存在</sys:String>
     <sys:String x:Key="Career.Rank.Solo">单双排</sys:String>
     <sys:String x:Key="Career.Rank.Flex">灵活组排</sys:String>
@@ -48,4 +48,8 @@
     <sys:String x:Key="Career.Match.Damage">伤害</sys:String>
     <sys:String x:Key="Career.Match.Gold">金币</sys:String>
     <sys:String x:Key="Career.Match.History">历史战绩</sys:String>
+    <sys:String x:Key="Career.Copy">复制召唤师名称</sys:String>
+    <sys:String x:Key="Career.Private">召唤师将生涯隐藏</sys:String>
+    <sys:String x:Key="Generic.Comfirm">确认</sys:String>
+    <sys:String x:Key="Career.Background.Sync">同步到游戏</sys:String>
 </ResourceDictionary>
