@@ -46,6 +46,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
+            containerRegistry.RegisterDialogWindow<DialogWindow>();
 
             var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             directory = Path.Combine(directory, "Resource");
