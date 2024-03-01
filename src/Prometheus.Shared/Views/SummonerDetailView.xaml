@@ -4,9 +4,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:Prometheus.Shared.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:view="clr-namespace:Prometheus.Shared.Views"
     xmlns:viewmodels="clr-namespace:Prometheus.Shared.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:SummonerDetailViewModel}"
     d:DesignHeight="600"
@@ -119,13 +121,20 @@
             hc:BorderElement.CornerRadius="12"
             BorderThickness="1"
             ItemsSource="{Binding RecentMatches}"
-            SelectedItem="{Binding SelectedSummoner}"
+            SelectedItem="{Binding SelectedMatch}"
             Style="{DynamicResource StackPanelVerticalListBox}">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="SelectionChanged">
+                    <prism:InvokeCommandAction Command="{Binding MatchChangedCommand}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Border
                         MinHeight="80"
                         Margin="4"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="1"
                         CornerRadius="8">
@@ -165,7 +174,6 @@
                                             Text="{Binding Participants[0].Stats.ChampLevel}" />
                                     </Border>
                                 </Grid>
-
                                 <hc:UniformSpacingPanel
                                     Grid.Column="1"
                                     Margin="8,0,0,0"
@@ -185,28 +193,12 @@
                                     <TextBlock Foreground="{DynamicResource PrimaryTextBrush}" Text="{Binding GameCreationDate}" />
                                 </hc:UniformSpacingPanel>
                             </Grid>
-                            <hc:UniformSpacingPanel
+                            <view:RecordInfoBar
                                 Grid.Column="1"
                                 Margin="12"
-                                VerticalAlignment="Center"
-                                HorizontalSpacing="8"
-                                Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}">
-                                    <Run Text="{DynamicResource Career.Match.KDA}" />
-                                    <Run Text=":" />
-                                    <Run Text="{Binding Participants[0].Stats.KDA, Mode=OneWay}" />
-                                </TextBlock>
-                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}">
-                                    <Run Text="{DynamicResource Career.Match.Gold}" />
-                                    <Run Text=":" />
-                                    <Run Text="{Binding Participants[0].Stats.GoldEarned, Mode=OneWay}" />
-                                </TextBlock>
-                                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}">
-                                    <Run Text="{DynamicResource Career.Match.Damage}" />
-                                    <Run Text=":" />
-                                    <Run Text="{Binding Participants[0].Stats.TotalDamageDealtToChampions, Mode=OneWay}" />
-                                </TextBlock>
-                            </hc:UniformSpacingPanel>
+                                Damage="{Binding Participants[0].Stats.TotalDamageDealtToChampions, Mode=OneWay}"
+                                Gold="{Binding Participants[0].Stats.GoldEarned, Mode=OneWay}"
+                                KDA="{Binding Participants[0].Stats.KDA, Mode=OneWay}" />
                             <Grid
                                 Grid.Column="2"
                                 Margin="12"
@@ -215,73 +207,28 @@
                                     <ColumnDefinition Width="auto" />
                                     <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
-                                <hc:UniformSpacingPanel
-                                    HorizontalSpacing="2"
-                                    ItemVerticalAlignment="Center"
-                                    Orientation="Horizontal">
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.PerkIcon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Spell1Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Spell2Icon}"
-                                        Stretch="UniformToFill" />
-                                </hc:UniformSpacingPanel>
-                                <hc:UniformSpacingPanel
+                                <view:SpellBar
+                                    PerkIcon="{Binding Participants[0].Stats.PerkIcon}"
+                                    Spell1Icon="{Binding Participants[0].Spell1Icon}"
+                                    Spell2Icon="{Binding Participants[0].Spell2Icon}" />
+                                <view:EquipmentBar
                                     Grid.Column="1"
-                                    Margin="8"
-                                    HorizontalSpacing="2"
-                                    ItemVerticalAlignment="Center"
-                                    Orientation="Horizontal">
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item0Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item1Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item2Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item3Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item4Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item5Icon}"
-                                        Stretch="UniformToFill" />
-                                    <Image
-                                        Width="28"
-                                        Height="28"
-                                        Source="{Binding Participants[0].Stats.Item6Icon}"
-                                        Stretch="UniformToFill" />
-                                </hc:UniformSpacingPanel>
+                                    Margin="8,0,0,0"
+                                    Item0Icon="{Binding Participants[0].Stats.Item0Icon}"
+                                    Item1Icon="{Binding Participants[0].Stats.Item1Icon}"
+                                    Item2Icon="{Binding Participants[0].Stats.Item2Icon}"
+                                    Item3Icon="{Binding Participants[0].Stats.Item3Icon}"
+                                    Item4Icon="{Binding Participants[0].Stats.Item4Icon}"
+                                    Item5Icon="{Binding Participants[0].Stats.Item5Icon}"
+                                    Item6Icon="{Binding Participants[0].Stats.Item6Icon}" />
                             </Grid>
                         </Grid>
                     </Border>
                 </DataTemplate>
             </ListBox.ItemTemplate>
+            <ListBox.ItemContainerStyle>
+                <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}" />
+            </ListBox.ItemContainerStyle>
         </ListBox>
     </Grid>
 </UserControl>

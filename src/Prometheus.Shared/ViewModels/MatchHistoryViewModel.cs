@@ -1,5 +1,7 @@
-﻿using Prism.Ioc;
+﻿using Prism.Commands;
+using Prism.Ioc;
 using Prism.Regions;
+using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
@@ -9,6 +11,8 @@ namespace Prometheus.Shared.ViewModels
 {
     public class MatchHistoryViewModel : RegionViewModelBase
     {
+        private bool _canEdit;
+        private Match _sourceMatch;
         private readonly IGameService _gameService;
         public MatchHistoryViewModel(IRegionManager regionManager, IContainerExtension containerExtension) : base(regionManager)
         {
@@ -30,10 +34,24 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _isLoading, value); }
         }
 
-
-        public override void OnNavigatedTo(NavigationContext navigationContext)
+        private DelegateCommand _backCommand;
+        public DelegateCommand BackCommand =>
+            _backCommand ?? (_backCommand = new DelegateCommand(ExecuteBackCommand));
+        void ExecuteBackCommand()
         {
+            RegionManager.Regions[_canEdit ? RegionNames.SummonerContent : RegionNames.SearchContent].NavigationService.Journal.GoBack();
+        }
 
+        public override async void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            if (navigationContext.Parameters.TryGetValue(ParameterNames.CanEdit, out _canEdit))
+            {
+
+            }
+            if (navigationContext.Parameters.TryGetValue<Match>(ParameterNames.SelectedMatch, out var match))
+            {
+                var matchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
+            }
         }
     }
 }

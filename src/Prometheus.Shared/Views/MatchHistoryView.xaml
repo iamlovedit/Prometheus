@@ -28,7 +28,8 @@
                 Width="100"
                 HorizontalAlignment="Left"
                 hc:IconElement.Geometry="{DynamicResource LeftGeometry}"
-                Content="{DynamicResource Career.Match.History}" />
+                Command="{Binding BackCommand}"
+                Content="{DynamicResource Generic.Back}" />
             <ListBox
                 Grid.Row="1"
                 Margin="0,12"

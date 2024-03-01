@@ -18,6 +18,7 @@ namespace Prometheus.Shared.ViewModels
 {
     public class SummonerDetailViewModel : RegionViewModelBase
     {
+        private bool _isInit;
         private readonly ISummonerService _summonerService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IEventAggregator _eventAggregator;
@@ -66,6 +67,7 @@ namespace Prometheus.Shared.ViewModels
 
         public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
+            _isInit = true;
             if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
             {
                 Summoner = summoner;
@@ -242,7 +244,35 @@ namespace Prometheus.Shared.ViewModels
         public SummonerAccount SelectedSummoner
         {
             get { return _selectedSummoner; }
-            set { SetProperty(ref _selectedSummoner, value); }
+            set
+            {
+                SetProperty(ref _selectedSummoner, value);
+            }
+        }
+
+        private Match _selectedMatch;
+        public Match SelectedMatch
+        {
+            get { return _selectedMatch; }
+            set { SetProperty(ref _selectedMatch, value); }
+        }
+
+        private DelegateCommand _matchChangedCommand;
+        public DelegateCommand MatchChangedCommand =>
+            _matchChangedCommand ?? (_matchChangedCommand = new DelegateCommand(ExecuteMatchChangedCommand));
+        void ExecuteMatchChangedCommand()
+        {
+            if (_isInit)
+            {
+                _isInit = false;
+                return;
+            }
+            var parameters = new NavigationParameters()
+            {
+                {ParameterNames.CanEdit,CanModify },
+                {ParameterNames.SelectedMatch,SelectedMatch},
+            };
+            RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SearchContent, RegionNames.MatchHistoryView, parameters);
         }
 
 
@@ -268,7 +298,7 @@ namespace Prometheus.Shared.ViewModels
             _copyCommand ?? (_copyCommand = new DelegateCommand(ExecuteCopyCommand));
         void ExecuteCopyCommand()
         {
-            Clipboard.SetText(_summoner.DisplayName + '#' + _summoner.TagLine);
+            Clipboard.SetText(_summoner.FullName);
         }
     }
 }
