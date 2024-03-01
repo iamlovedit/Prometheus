@@ -1,18 +1,23 @@
 ﻿using Prism.Ioc;
-using Prism.Modularity;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Search.Views;
 
 namespace Prometheus.Modules.Search
 {
-    public class SearchModule : IModule
+    public class SearchModule : ModuleBase
     {
-        public void OnInitialized(IContainerProvider containerProvider)
+        public SearchModule(IRegionManager regionManager) : base(regionManager)
         {
         }
 
-        public void RegisterTypes(IContainerRegistry containerRegistry)
+        public override void OnInitialized(IContainerProvider containerProvider)
+        {
+
+        }
+
+        public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterForNavigation<SearchView>(RegionNames.SearchView);
             containerRegistry.RegisterForNavigation<NotFoundView>(RegionNames.UserNotFoundView);
