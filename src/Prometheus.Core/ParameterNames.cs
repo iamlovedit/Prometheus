@@ -27,5 +27,7 @@
         public const string CanEdit = "CanEdit";
 
         public const string SelectedSkinUri = "SelectedSkinUri";
+
+        public const string SelectedMatch = "SelectedMatch";
     }
 }
