@@ -33,5 +33,7 @@
         public int XpSinceLastLevel { get; set; }
 
         public int XpUntilNextLevel { get; set; }
+
+        public string FullName => $"{GameName}#{TagLine}";
     }
 }
