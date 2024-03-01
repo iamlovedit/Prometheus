@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using Prometheus.Core.Models;
+using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
 {
@@ -20,7 +21,7 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task BanChampionAsync(int actionId, int championId);
 
-        Task<string> GetMatchDetailAsync(long gameId);
+        Task<MatchDetail> GetMatchDetailAsync(long gameId);
 
         Task<string> GetSummonerSuperChampionDataAsync(long summonerId);
 

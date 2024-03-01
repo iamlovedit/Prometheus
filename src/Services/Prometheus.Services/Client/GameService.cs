@@ -1,4 +1,5 @@
-﻿using Prometheus.Services.Interfaces;
+﻿using Prometheus.Core.Models;
+using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -72,9 +73,9 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(_currentRune);
         }
 
-        public async Task<string> GetMatchDetailAsync(long gameId)
+        public async Task<MatchDetail> GetMatchDetailAsync(long gameId)
         {
-            return await _httpService.GetAsync(string.Format(_matchDetails, gameId), null);
+            return await _httpService.GetAsync<MatchDetail>(string.Format(_matchDetails, gameId), null);
         }
 
         public async Task<string> GetGameSessionAsync()
