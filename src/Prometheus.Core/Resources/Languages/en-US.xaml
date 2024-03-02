@@ -56,4 +56,7 @@
     <sys:String x:Key="Career.Background.Sync">Sync to client</sys:String>
     <sys:String x:Key="Career.Dialog.Title">Backgound</sys:String>
     <sys:String x:Key="Career.Dialog.SearchPlaceholder">Search champion</sys:String>
+    <sys:String x:Key="Inventory.Skins">Skins</sys:String>
+    <sys:String x:Key="Inventory.ProfileIcons">Profile icons</sys:String>
+    <sys:String x:Key="Utility.Game">Game</sys:String>
 </ResourceDictionary>
