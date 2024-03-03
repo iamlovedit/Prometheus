@@ -1,6 +1,7 @@
 ﻿using Prism.Ioc;
 using Prism.Modularity;
 using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Modules.Home;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
@@ -15,6 +16,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.Views;
 using Prometheus.Views;
 using Serilog;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Windows;
@@ -47,6 +49,8 @@ namespace Prometheus
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
             containerRegistry.RegisterDialogWindow<DialogWindow>();
+            containerRegistry.RegisterInstance<Dictionary<int, List<SkinBasic>>>([], ParameterNames.SkinsCache);
+
 
             var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             directory = Path.Combine(directory, "Resource");

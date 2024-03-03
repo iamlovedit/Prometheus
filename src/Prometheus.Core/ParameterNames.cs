@@ -29,5 +29,7 @@
         public const string SelectedSkinUri = "SelectedSkinUri";
 
         public const string SelectedMatch = "SelectedMatch";
+
+        public const string SkinsCache = "SkinsCache";
     }
 }
