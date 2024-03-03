@@ -56,6 +56,9 @@
     <sys:String x:Key="Career.Dialog.Title">生涯背景</sys:String>
     <sys:String x:Key="Career.Dialog.SearchPlaceholder">搜索英雄</sys:String>
     <sys:String x:Key="Inventory.Skins">英雄皮肤</sys:String>
+    <sys:String x:Key="Inventory.Skins.Download">下载</sys:String>
     <sys:String x:Key="Inventory.ProfileIcons">召唤师头像</sys:String>
     <sys:String x:Key="Utility.Game">游戏玩法</sys:String>
+    <sys:String x:Key="Utility.Profile">个人资料</sys:String>
+    <sys:String x:Key="Utility.Tier">段位设置</sys:String>
 </ResourceDictionary>

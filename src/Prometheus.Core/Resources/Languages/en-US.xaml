@@ -57,6 +57,9 @@
     <sys:String x:Key="Career.Dialog.Title">Backgound</sys:String>
     <sys:String x:Key="Career.Dialog.SearchPlaceholder">Search champion</sys:String>
     <sys:String x:Key="Inventory.Skins">Skins</sys:String>
+    <sys:String x:Key="Inventory.Skins.Download">Download</sys:String>
     <sys:String x:Key="Inventory.ProfileIcons">Profile icons</sys:String>
     <sys:String x:Key="Utility.Game">Game</sys:String>
+    <sys:String x:Key="Utility.Profile">Profile</sys:String>
+    <sys:String x:Key="Utility.Tier">Tier</sys:String>
 </ResourceDictionary>
