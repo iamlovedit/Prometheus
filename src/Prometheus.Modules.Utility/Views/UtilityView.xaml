@@ -12,11 +12,10 @@
     d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition />
-            <RowDefinition />
-        </Grid.RowDefinitions>
-        <TextBlock Text="{Binding InstalltionPath}" />
-    </Grid>
+    <TabControl Style="{DynamicResource TabControlInLine}">
+        <TabItem Header="{DynamicResource Utility.Game}">
+            <hc:UniformSpacingPanel Orientation="Vertical" VerticalSpacing="12" />
+        </TabItem>
+        <TabItem Header="{DynamicResource Utility.Profile}" />
+    </TabControl>
 </UserControl>

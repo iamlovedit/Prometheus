@@ -1,4 +1,5 @@
 ﻿using Prism.Commands;
+using Prism.Ioc;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using Prometheus.Core;
@@ -6,7 +7,6 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows.Data;
@@ -15,12 +15,12 @@ namespace Prometheus.Modules.Summoner.ViewModels
 {
     public class SelectBackgroundDialogViewModel : BindableBase, IDialogAware
     {
-        private static readonly Dictionary<int, List<SkinBasic>> _skinsCache = [];
-
+        private readonly Dictionary<int, List<SkinBasic>> _skinsCache;
         private readonly IGameResourceManager _gameResourceManager;
-        public SelectBackgroundDialogViewModel(IGameResourceManager gameResourceManager)
+        public SelectBackgroundDialogViewModel(IGameResourceManager gameResourceManager, IContainerExtension containerExtension)
         {
             _gameResourceManager = gameResourceManager;
+            _skinsCache = containerExtension.Resolve<Dictionary<int, List<SkinBasic>>>(ParameterNames.SkinsCache);
         }
 
         public string Title { get; }
@@ -60,15 +60,6 @@ namespace Prometheus.Modules.Summoner.ViewModels
             get { return _champions; }
             set { SetProperty(ref _champions, value); }
         }
-
-
-
-        //private ObservableCollection<ChampionSummary> _champions = new();
-        //public ObservableCollection<ChampionSummary> Champions
-        //{
-        //    get { return _champoins; }
-        //    set { SetProperty(ref _champoins, value); }
-        //}
 
         private ChampionSummary _selectedChampion;
         public ChampionSummary SelectedChampion

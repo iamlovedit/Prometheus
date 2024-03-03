@@ -45,6 +45,7 @@
                 </Grid.RowDefinitions>
                 <hc:SearchBar
                     Height="28"
+                    VerticalAlignment="Top"
                     hc:BorderElement.CornerRadius="8"
                     hc:InfoElement.Placeholder="{DynamicResource Career.Dialog.SearchPlaceholder}"
                     hc:InfoElement.ShowClearButton="True"

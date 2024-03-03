@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Inventory.ViewModels"
@@ -13,7 +14,164 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <TabControl Style="{DynamicResource TabControlInLine}">
-        <TabItem Header="{DynamicResource Inventory.Skins}" />
-        <TabItem Header="{DynamicResource Inventory.ProfileIcons}" />
+        <TabItem Header="{DynamicResource Inventory.Skins}">
+            <Grid Margin="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="36" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <hc:SearchBar
+                        Height="28"
+                        VerticalAlignment="Top"
+                        hc:BorderElement.CornerRadius="8"
+                        hc:InfoElement.ShowClearButton="True"
+                        Command="{Binding SearchCommand}"
+                        Style="{DynamicResource SearchBarPlus}"
+                        Text="{Binding Keyword, UpdateSourceTrigger=PropertyChanged}" />
+                    <ListBox
+                        Grid.Row="1"
+                        hc:BorderElement.CornerRadius="8"
+                        ItemsSource="{Binding Champions}"
+                        SelectedItem="{Binding SelectedChampion}"
+                        Style="{DynamicResource ListBoxBaseStyle}"
+                        VirtualizingPanel.IsContainerVirtualizable="True"
+                        VirtualizingPanel.IsVirtualizing="True">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="SelectionChanged">
+                                <prism:InvokeCommandAction Command="{Binding SelectionChangedCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Height="60">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <hc:Gravatar
+                                        Width="50"
+                                        Height="50"
+                                        Style="{DynamicResource GravatarCircleImg}">
+                                        <Image Source="{Binding IconUri}" />
+                                    </hc:Gravatar>
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Margin="4,0,0,0"
+                                        VerticalAlignment="Center">
+                                        <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                                        <TextBlock
+                                            Margin="0,4,0,0"
+                                            VerticalAlignment="Center"
+                                            Text="{Binding Alias}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+                <ListBox
+                    Grid.Column=" 1"
+                    Margin="12,0,0,0"
+                    hc:BorderElement.CornerRadius="8"
+                    ItemsSource="{Binding Skins}"
+                    Style="{DynamicResource ListBoxBaseStyle}"
+                    VirtualizingPanel.IsContainerVirtualizable="True"
+                    VirtualizingPanel.IsVirtualizing="True">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid
+                                Height="400"
+                                MinHeight="400"
+                                Margin="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition Height="auto" />
+                                </Grid.RowDefinitions>
+                                <Border
+                                    Margin="0,4,0,0"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                    <Grid>
+                                        <Image
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Source="{Binding Uri}"
+                                            Stretch="UniformToFill" />
+                                        <Button
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Bottom"
+                                            hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
+                                            Command="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBox}, Path=DataContext.DownloadCommand}"
+                                            CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBoxItem}, Path=DataContext}"
+                                            ToolTip="{DynamicResource Inventory.Skins.Download}">
+                                            <Button.Style>
+                                                <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                                <TextBlock
+                                    Grid.Row="1"
+                                    Margin="0,8,0,0"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    Text="{Binding Name}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </TabItem>
+        <TabItem Header="{DynamicResource Inventory.ProfileIcons}" Visibility="Collapsed">
+            <Grid>
+                <hc:LoadingCircle Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <ListBox
+                    Margin="12"
+                    hc:BorderElement.CornerRadius="8"
+                    ItemsSource="{Binding ProfileIcons}"
+                    Style="{DynamicResource ListBoxBaseStyle}"
+                    VirtualizingPanel.CacheLength="2,2"
+                    VirtualizingPanel.CacheLengthUnit="Page"
+                    VirtualizingPanel.IsContainerVirtualizable="True"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+                    Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <hc:Gravatar
+                                Width="120"
+                                Height="120"
+                                Style="{DynamicResource GravatarCircleImg}">
+                                <Image Source="{Binding IconPath}" Stretch="UniformToFill" />
+                            </hc:Gravatar>
+
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <hc:UniformSpacingPanel
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                ChildWrapping="Wrap"
+                                ItemHorizontalAlignment="Center"
+                                Spacing="16" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListBox>
+            </Grid>
+        </TabItem>
     </TabControl>
 </UserControl>

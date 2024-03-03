@@ -110,6 +110,7 @@ namespace Prometheus.Shared.ViewModels
                         m.Participants[0].Stats.Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item5);
                         m.Participants[0].Stats.Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item6);
                     });
+                    IsLoading = false;
                 }
             }
 
@@ -136,6 +137,14 @@ namespace Prometheus.Shared.ViewModels
             get { return _losses; }
             set { SetProperty(ref _losses, value); }
         }
+
+        private bool _isLoading = true;
+        public bool IsLoading
+        {
+            get { return _isLoading; }
+            set { SetProperty(ref _isLoading, value); }
+        }
+
 
         private List<Match> _recentMatches;
         public List<Match> RecentMatches

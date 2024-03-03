@@ -3,6 +3,8 @@ using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using Serilog;
+using Serilog.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -52,8 +54,17 @@ namespace Prometheus.Services.Client
             var iconPath = Path.Combine(directory, $"{id}.jpg");
             if (!File.Exists(iconPath))
             {
-                var buffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, $"lol-game-data/assets/v1/profile-icons/{id}.jpg");
-                await File.WriteAllBytesAsync(iconPath, buffer);
+                try
+                {
+                    var buffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, $"lol-game-data/assets/v1/profile-icons/{id}.jpg");
+                    await File.WriteAllBytesAsync(iconPath, buffer);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e.Message);
+                    return default;
+                }
+
             }
             return iconPath;
         }
