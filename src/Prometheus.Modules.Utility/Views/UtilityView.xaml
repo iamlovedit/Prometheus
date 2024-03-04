@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:local="clr-namespace:Prometheus.Modules.Utility.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Utility.ViewModels"
@@ -12,10 +13,182 @@
     d:DesignWidth="400"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
+    <UserControl.Resources>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style TargetType="{x:Type Border}">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        </Style>
+        <local:DivisionConverter x:Key="DivisionConverter" />
+        <local:ReDivisionConverter x:Key="ReDivisionConverter" />
+        <local:TierShowConverter x:Key="TierShowConverter" />
+    </UserControl.Resources>
     <TabControl Style="{DynamicResource TabControlInLine}">
         <TabItem Header="{DynamicResource Utility.Game}">
-            <hc:UniformSpacingPanel Orientation="Vertical" VerticalSpacing="12" />
+            <hc:UniformSpacingPanel
+                Margin="12"
+                Orientation="Vertical"
+                VerticalSpacing="12">
+                <Border>
+                    <Grid Margin="12,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="36" />
+                            <RowDefinition Height="36" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{DynamicResource Utility.AutoAccept}" />
+                        <ToggleButton
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            IsChecked="{Binding AutoAccept}"
+                            Style="{DynamicResource ToggleButtonSwitch}" />
+                        <TextBlock Grid.Row="1" Text="{DynamicResource Utility.AutoReconnect}" />
+                        <ToggleButton
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            IsChecked="{Binding AutoReconnect}"
+                            Style="{DynamicResource ToggleButtonSwitch}" />
+                    </Grid>
+                </Border>
+
+                <Expander Header="{DynamicResource Utility.SelectChampion}" IsExpanded="True">
+                    <Border Margin="0,8">
+                        <hc:UniformSpacingPanel
+                            Margin="8,8,12,8"
+                            HorizontalAlignment="Right"
+                            HorizontalSpacing="12"
+                            Orientation="Horizontal">
+                            <ComboBox
+                                Width="180"
+                                hc:InfoElement.ShowClearButton="True"
+                                IsEditable="True"
+                                Style="{DynamicResource ComboBoxExtend}" />
+                            <Button
+                                Width="80"
+                                Command="{Binding ConfigChampionCommand}"
+                                Content="{DynamicResource Generic.Comfirm}"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </hc:UniformSpacingPanel>
+                    </Border>
+                </Expander>
+                <Expander Header="{DynamicResource Utility.CreateLobby}" IsExpanded="True">
+                    <Border Margin="0,8">
+                        <hc:UniformSpacingPanel
+                            Margin="8"
+                            Orientation="Vertical"
+                            VerticalSpacing="8">
+                            <TextBox
+                                Width="400"
+                                hc:InfoElement.Necessary="True"
+                                hc:InfoElement.TitleWidth="120"
+                                hc:TitleElement.Title="{DynamicResource Utility.CreateLobby.Name}"
+                                hc:TitleElement.TitlePlacement="Left"
+                                Style="{DynamicResource TextBoxExtend}"
+                                Text="{Binding LobbyName}" />
+                            <TextBox
+                                Width="400"
+                                hc:InfoElement.TitleWidth="120"
+                                hc:TitleElement.Title="{DynamicResource Utility.CreateLobby.Password}"
+                                hc:TitleElement.TitlePlacement="Left"
+                                Style="{DynamicResource TextBoxExtend}"
+                                Text="{Binding LobbyPassword}" />
+                            <Button
+                                Width="80"
+                                Command="{Binding CreateLobbyCommand}"
+                                Content="{DynamicResource Generic.Comfirm}"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </hc:UniformSpacingPanel>
+                    </Border>
+
+                </Expander>
+            </hc:UniformSpacingPanel>
         </TabItem>
-        <TabItem Header="{DynamicResource Utility.Profile}" />
+        <TabItem Header="{DynamicResource Utility.Profile}">
+            <hc:UniformSpacingPanel
+                Margin="12"
+                Orientation="Vertical"
+                VerticalSpacing="12">
+                <Border>
+                    <DockPanel Margin="12,8" LastChildFill="True">
+                        <TextBlock Text="{DynamicResource Chat.Status.Tips}" />
+                        <hc:ComboBox
+                            Width="200"
+                            HorizontalAlignment="Right"
+                            SelectedIndex="{Binding SelectedStatusIndex}"
+                            Style="{DynamicResource ComboBoxExtend}">
+                            <ComboBoxItem Content="{DynamicResource Chat.Status.Chat}" />
+                            <ComboBoxItem Content="{DynamicResource Chat.Status.Away}" />
+                            <ComboBoxItem Content="{DynamicResource Chat.Status.Offline}" />
+                        </hc:ComboBox>
+                    </DockPanel>
+                </Border>
+
+                <Expander Header="{DynamicResource Chat.Tier.TierShow}" IsExpanded="True">
+                    <Border Margin="0,8,0,0">
+                        <hc:UniformSpacingPanel
+                            Margin="8,12,12,12"
+                            Orientation="Vertical"
+                            VerticalSpacing="8">
+                            <DockPanel LastChildFill="True">
+                                <TextBlock Text="{DynamicResource Match.Rank.Mode}" />
+                                <ComboBox
+                                    Width="200"
+                                    HorizontalAlignment="Right"
+                                    SelectedIndex="{Binding SelectedModeIndex, Mode=OneWayToSource}">
+                                    <ComboBoxItem Content="{DynamicResource Match.Rank.TFT}" />
+                                    <ComboBoxItem Content="{DynamicResource Match.Rank.Solo}" />
+                                    <ComboBoxItem Content="{DynamicResource Match.Rank.Flex}" />
+                                </ComboBox>
+                            </DockPanel>
+                            <DockPanel LastChildFill="True">
+                                <TextBlock Text="{DynamicResource Match.Rank.Tier}" />
+                                <ComboBox
+                                    Width="200"
+                                    HorizontalAlignment="Right"
+                                    SelectedIndex="{Binding SelectedTierIndex, Mode=OneWayToSource}">
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Unranked}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Iron}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Bronze}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Silver}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Gold}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Platinum}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Emerald}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Diamond}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Master}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Grandmaster}" />
+                                    <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Challenger}" />
+                                </ComboBox>
+                            </DockPanel>
+                            <DockPanel LastChildFill="True" Visibility="{Binding SelectedTierIndex, Converter={StaticResource TierShowConverter}}">
+                                <TextBlock VerticalAlignment="Center" Text="{DynamicResource Match.Rank.Division}" />
+                                <Grid Width="200" HorizontalAlignment="Right">
+                                    <ComboBox SelectedIndex="0" Visibility="{Binding SelectedTierIndex, Converter={StaticResource ReDivisionConverter}}">
+                                        <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.NA}" />
+                                    </ComboBox>
+                                    <ComboBox SelectedIndex="{Binding SelectedDivisionIndex, Mode=OneWayToSource}" Visibility="{Binding SelectedTierIndex, Converter={StaticResource DivisionConverter}}">
+                                        <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.I}" />
+                                        <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.II}" />
+                                        <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.III}" />
+                                        <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.IV}" />
+                                    </ComboBox>
+                                </Grid>
+                            </DockPanel>
+                            <Button
+                                Width="80"
+                                Command="{Binding TierComfirmCommand}"
+                                Content="{DynamicResource Generic.Comfirm}"
+                                Style="{DynamicResource ButtonPrimary}" />
+                        </hc:UniformSpacingPanel>
+                    </Border>
+                </Expander>
+            </hc:UniformSpacingPanel>
+        </TabItem>
     </TabControl>
 </UserControl>
