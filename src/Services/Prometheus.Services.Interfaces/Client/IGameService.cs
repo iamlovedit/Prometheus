@@ -52,5 +52,9 @@ namespace Prometheus.Services.Interfaces.Client
         Task<string> GetChampionSkinById(int id);
 
         Task CreatePracticeLobby(string name, string password);
+
+        Task<string> SetChatTier(QueueType queueType, Tier tier, Division division);
+
+        Task ReconnectGame();
     }
 }

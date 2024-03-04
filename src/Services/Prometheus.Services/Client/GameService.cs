@@ -11,17 +11,12 @@ namespace Prometheus.Services.Client
         private const string _checkUrl = "lol-matchmaking/v1/ready-check/";
         private const string _gameSessionUrl = "lol-champ-select/v1/session";
         private const string _gameActionUrl = "lol-champ-select/v1/session/actions/{0}";
-        private const string _conversationChat = "lol-chat/v1/conversations";
-        private const string _conversationChatMessages = "/lol-chat/v1/conversations/{0}/messages";
-        private const string _sendGameChat = "lol-simple-dialog-messages/v1/messages";
-        private const string _SendMessage = "lol-chat/v1/conversations/{0}/messages";
         private const string _matchDetails = "lol-match-history/v1/games/{0}";
         private const string _summonerSuperChampion = "lol-collections/v1/inventories/{0}/champion-mastery";
         private const string _champDataUrl = "https://x1-6833.native.qq.com/x1/6833/1061021&3af49f";
         private const string _gameSessionData = "lol-gameflow/v1/session";
         private const string _currentChampion = "/lol-champ-select/v1/current-champion";
         private const string _pickableChampion = "/lol-champ-select/v1/pickable-champions";
-        private const string _benchSwapChampion = " /lol-champ-select/v1/session/bench/swap/{0}";
         private const string _champRestraintData = "https://lol.qq.com/act/lbp/common/guides/champDetail/champDetail_{0}.js?ts=2760378";
         private const string _perks = "lol-perks/v1/pages";
         private const string _currentRune = "lol-perks/v1/currentpage";
@@ -31,11 +26,7 @@ namespace Prometheus.Services.Client
         private const string _items = "lol-game-data/assets/v1/items.json";
         private const string _backgroundSkin = "lol-summoner/v1/current-summoner/summoner-profile";
         private const string _setIcon = "lol-summoner/v1/current-summoner/icon";
-        private const string _matchHistory = "lol-match-history/v1/products/lol/{0}/matches";
         private const string _recommendPerks = "https://www.wegame.com.cn/lol/resources/js/champion/recommend/{0}.js ";
-
-
-
 
         private readonly IHttpService _httpService;
         public GameService(IHttpService httpService)
@@ -210,6 +201,27 @@ namespace Prometheus.Services.Client
             };
             var url = string.Format(_gameActionUrl, actionId);
             await _httpService.SendAsync(HttpMethod.Patch, url, body);
+        }
+
+        public async Task<string> SetChatTier(QueueType queueType, Tier tier, Division division)
+        {
+            var lol = new
+            {
+                rankedLeagueQueue = queueType,
+                rankedLeagueTier = tier,
+                rankedLeagueDivision = division,
+            };
+
+            var body = new
+            {
+                lol
+            };
+            return await _httpService.SendAsync(HttpMethod.Put, "lol-chat/v1/me", body);
+        }
+
+        public async Task ReconnectGame()
+        {
+            await _httpService.PostAsync("lol-gameflow/v1/reconnect", null);
         }
     }
 }
