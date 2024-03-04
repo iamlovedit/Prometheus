@@ -53,6 +53,7 @@
     <sys:String x:Key="Career.Private">The summoner hides his career</sys:String>
     <sys:String x:Key="Generic.Comfirm">Comfirm</sys:String>
     <sys:String x:Key="Generic.Back">Back</sys:String>
+    <sys:String x:Key="Generic.PageCount">Page count</sys:String>
     <sys:String x:Key="Career.Background.Sync">Sync to client</sys:String>
     <sys:String x:Key="Career.Dialog.Title">Backgound</sys:String>
     <sys:String x:Key="Career.Dialog.SearchPlaceholder">Search champion</sys:String>
