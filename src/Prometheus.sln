@@ -33,7 +33,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Setting"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Modules.Search", "Prometheus.Modules.Search\Prometheus.Modules.Search.csproj", "{33E10705-0DDD-437B-B1C6-AB409B587172}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Shared", "Prometheus.Shared\Prometheus.Shared.csproj", "{0D7DB30E-6847-4095-9E9B-7464057D6829}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Prometheus.Shared", "Prometheus.Shared\Prometheus.Shared.csproj", "{0D7DB30E-6847-4095-9E9B-7464057D6829}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prometheus.Updater", "Prometheus.Updater\Prometheus.Updater.csproj", "{7DAB49C5-991C-498E-849F-E528C30677C6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -93,6 +95,10 @@ Global
 		{0D7DB30E-6847-4095-9E9B-7464057D6829}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D7DB30E-6847-4095-9E9B-7464057D6829}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D7DB30E-6847-4095-9E9B-7464057D6829}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DAB49C5-991C-498E-849F-E528C30677C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DAB49C5-991C-498E-849F-E528C30677C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DAB49C5-991C-498E-849F-E528C30677C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DAB49C5-991C-498E-849F-E528C30677C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
