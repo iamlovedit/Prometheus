@@ -135,11 +135,14 @@
                 </ListBox>
             </Grid>
         </TabItem>
-        <TabItem Header="{DynamicResource Inventory.ProfileIcons}" Visibility="Collapsed">
-            <Grid>
+        <TabItem Header="{DynamicResource Inventory.ProfileIcons}" Visibility="Visible">
+            <Grid Margin="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition Height="auto" />
+                </Grid.RowDefinitions>
                 <hc:LoadingCircle Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
                 <ListBox
-                    Margin="12"
                     hc:BorderElement.CornerRadius="8"
                     ItemsSource="{Binding ProfileIcons}"
                     Style="{DynamicResource ListBoxBaseStyle}"
@@ -151,13 +154,32 @@
                     Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <hc:Gravatar
-                                Width="120"
-                                Height="120"
-                                Style="{DynamicResource GravatarCircleImg}">
-                                <Image Source="{Binding IconPath}" Stretch="UniformToFill" />
-                            </hc:Gravatar>
-
+                            <Grid>
+                                <hc:Gravatar
+                                    Width="120"
+                                    Height="120"
+                                    Style="{DynamicResource GravatarCircleImg}">
+                                    <Image Source="{Binding IconPath}" Stretch="UniformToFill" />
+                                </hc:Gravatar>
+                                <Button
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
+                                    Command="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBox}, Path=DataContext.DownloadIconCommand}"
+                                    CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBoxItem}, Path=DataContext}"
+                                    ToolTip="{DynamicResource Inventory.Skins.Download}">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                     <ListBox.ItemsPanel>
@@ -171,6 +193,27 @@
                         </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                 </ListBox>
+                <hc:UniformSpacingPanel
+                    Grid.Row="1"
+                    Margin="0,8,0,0"
+                    HorizontalSpacing="12"
+                    Orientation="Horizontal">
+                    <hc:Pagination
+                        DataCountPerPage="{Binding SelectdCount}"
+                        MaxPageCount="{Binding PageCount}"
+                        PageIndex="{Binding PageIndex}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="PageUpdated">
+                                <prism:InvokeCommandAction Command="{Binding PageChangedCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                    </hc:Pagination>
+                    <hc:ComboBox
+                        hc:TitleElement.Title="{DynamicResource Generic.PageCount}"
+                        hc:TitleElement.TitlePlacement="Left"
+                        ItemsSource="{Binding PageCounts}"
+                        SelectedItem="{Binding SelectdCount}" />
+                </hc:UniformSpacingPanel>
             </Grid>
         </TabItem>
     </TabControl>

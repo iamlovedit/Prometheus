@@ -25,9 +25,8 @@
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
             <Button
-                Width="100"
                 HorizontalAlignment="Left"
-                hc:IconElement.Geometry="{DynamicResource LeftGeometry}"
+                hc:IconElement.Geometry="{DynamicResource BackGeometry}"
                 Command="{Binding BackCommand}"
                 Content="{DynamicResource Generic.Back}" />
             <ListBox
@@ -75,13 +74,13 @@
             <Grid Grid.Row="2">
                 <Button
                     HorizontalAlignment="Left"
-                    hc:IconElement.Geometry="{DynamicResource LeftGeometry}"
+                    hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
                     DockPanel.Dock="Left"
                     IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
                 <TextBlock HorizontalAlignment="Center" />
                 <Button
                     HorizontalAlignment="Right"
-                    hc:IconElement.Geometry="{DynamicResource RightGeometry}"
+                    hc:IconElement.Geometry="{DynamicResource NextGeometry}"
                     DockPanel.Dock="Right"
                     IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
             </Grid>
