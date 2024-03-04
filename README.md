@@ -11,6 +11,16 @@
 
 ![Skin](./doc/images/CareerSkin.png)
 
+## 游戏资源
+
+### 游戏皮肤
+
+![Skins](./doc/images/Inventory_skins.png)
+
+### 召唤师头像
+
+![Icons](./doc/images/Inventory_icons.png)
+
 ## 战绩查询
 
 ![Search](./doc/images/Search.png)
