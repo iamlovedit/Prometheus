@@ -36,6 +36,14 @@ namespace Prometheus.Core.Models
         RANKED_TFT_TURBO,
     }
 
+    public enum Division
+    {
+        I,
+        II,
+        III,
+        IV
+    }
+
     [JsonConverter(typeof(TierEnumConverter))]
     public enum Tier
     {
