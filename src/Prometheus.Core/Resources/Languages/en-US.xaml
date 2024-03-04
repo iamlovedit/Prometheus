@@ -63,4 +63,26 @@
     <sys:String x:Key="Utility.Game">Game</sys:String>
     <sys:String x:Key="Utility.Profile">Profile</sys:String>
     <sys:String x:Key="Utility.Tier">Tier</sys:String>
+    <sys:String x:Key="Utility.AutoAccept">Auto Accept</sys:String>
+    <sys:String x:Key="Utility.AutoReconnect">Auto Reconnect</sys:String>
+    <sys:String x:Key="Utility.SelectChampion">Auto select champion</sys:String>
+    <sys:String x:Key="Utility.CreateLobby">Create 5v5 lobby</sys:String>
+    <sys:String x:Key="Utility.CreateLobby.Name">Lobby name</sys:String>
+    <sys:String x:Key="Utility.CreateLobby.Password">Password</sys:String>
+    <sys:String x:Key="Chat.Status.Chat">Chat</sys:String>
+    <sys:String x:Key="Chat.Status.Away">Away</sys:String>
+    <sys:String x:Key="Chat.Status.Offline">Offline</sys:String>
+    <sys:String x:Key="Chat.Status.Tips">Status</sys:String>
+    <sys:String x:Key="Chat.Tier.TierShow">Tier show</sys:String>
+    <sys:String x:Key="Match.Rank.TFT">Teamfight tactics</sys:String>
+    <sys:String x:Key="Match.Rank.Solo">Solo</sys:String>
+    <sys:String x:Key="Match.Rank.Flex">Flex</sys:String>
+    <sys:String x:Key="Match.Rank.Mode">Game mode</sys:String>
+    <sys:String x:Key="Match.Rank.Tier">Tier</sys:String>
+    <sys:String x:Key="Match.Rank.Division">Division</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.NA">无</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.I">I</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.II">II</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
 </ResourceDictionary>

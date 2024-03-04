@@ -62,4 +62,26 @@
     <sys:String x:Key="Utility.Game">游戏玩法</sys:String>
     <sys:String x:Key="Utility.Profile">个人资料</sys:String>
     <sys:String x:Key="Utility.Tier">段位设置</sys:String>
+    <sys:String x:Key="Utility.AutoAccept">自动接受</sys:String>
+    <sys:String x:Key="Utility.AutoReconnect">自动重连</sys:String>
+    <sys:String x:Key="Utility.SelectChampion">自动选择英雄</sys:String>
+    <sys:String x:Key="Utility.CreateLobby">创建5V5练习模式</sys:String>
+    <sys:String x:Key="Utility.CreateLobby.Name">房间名称</sys:String>
+    <sys:String x:Key="Utility.CreateLobby.Password">房间密码</sys:String>
+    <sys:String x:Key="Chat.Status.Chat">在线</sys:String>
+    <sys:String x:Key="Chat.Status.Away">离开</sys:String>
+    <sys:String x:Key="Chat.Status.Offline">离线</sys:String>
+    <sys:String x:Key="Chat.Status.Tips">在线状态</sys:String>
+    <sys:String x:Key="Chat.Tier.TierShow">段位展示</sys:String>
+    <sys:String x:Key="Match.Rank.TFT">云顶之弈</sys:String>
+    <sys:String x:Key="Match.Rank.Solo">单双排</sys:String>
+    <sys:String x:Key="Match.Rank.Flex">灵活组排</sys:String>
+    <sys:String x:Key="Match.Rank.Mode">游戏模式</sys:String>
+    <sys:String x:Key="Match.Rank.Tier">段位</sys:String>
+    <sys:String x:Key="Match.Rank.Division">等级</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.NA">NA</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.I">I</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.II">II</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
+    <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
 </ResourceDictionary>
