@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:Prometheus.Modules.Utility.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
@@ -57,8 +58,10 @@
                             Style="{DynamicResource ToggleButtonSwitch}" />
                     </Grid>
                 </Border>
-
-                <Expander Header="{DynamicResource Utility.SelectChampion}" IsExpanded="True">
+                <Expander
+                    Header="{DynamicResource Utility.SelectChampion}"
+                    IsExpanded="True"
+                    Visibility="Collapsed">
                     <Border Margin="0,8">
                         <hc:UniformSpacingPanel
                             Margin="8,8,12,8"
@@ -126,7 +129,28 @@
                             <ComboBoxItem Content="{DynamicResource Chat.Status.Chat}" />
                             <ComboBoxItem Content="{DynamicResource Chat.Status.Away}" />
                             <ComboBoxItem Content="{DynamicResource Chat.Status.Offline}" />
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="SelectionChanged">
+                                    <prism:InvokeCommandAction Command="{Binding ChatStatusChangedCommand}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
                         </hc:ComboBox>
+                    </DockPanel>
+                </Border>
+                <Border>
+                    <DockPanel Margin="12,8" LastChildFill="True">
+                        <TextBox
+                            Width="400"
+                            hc:TitleElement.Title="{DynamicResource Utility.Profile.Status}"
+                            hc:TitleElement.TitlePlacement="Left"
+                            Style="{DynamicResource TextBoxExtend}"
+                            Text="{Binding Status}" />
+                        <Button
+                            Width="80"
+                            HorizontalAlignment="Right"
+                            Command="{Binding StatusComfirmStatus}"
+                            Content="{DynamicResource Generic.Comfirm}"
+                            Style="{DynamicResource ButtonPrimary}" />
                     </DockPanel>
                 </Border>
 

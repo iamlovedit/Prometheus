@@ -20,7 +20,7 @@ namespace Prometheus.Modules.Utility.Views
         {
             if (value is int tierIndex)
             {
-                return tierIndex >= 7 ? Visibility.Collapsed : Visibility.Visible;
+                return tierIndex <= 7 ? Visibility.Visible : Visibility.Collapsed;
             }
             return Visibility.Collapsed;
         }
