@@ -69,6 +69,7 @@
     <sys:String x:Key="Utility.CreateLobby">Create 5v5 lobby</sys:String>
     <sys:String x:Key="Utility.CreateLobby.Name">Lobby name</sys:String>
     <sys:String x:Key="Utility.CreateLobby.Password">Password</sys:String>
+    <sys:String x:Key="Utility.Profile.Status">Status</sys:String>
     <sys:String x:Key="Chat.Status.Chat">Chat</sys:String>
     <sys:String x:Key="Chat.Status.Away">Away</sys:String>
     <sys:String x:Key="Chat.Status.Offline">Offline</sys:String>
@@ -85,4 +86,6 @@
     <sys:String x:Key="Match.Rank.Divisions.II">II</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
+    <sys:String x:Key="Errors.EmptyLobbyName">Lobby name can not be empty!</sys:String>
+    <sys:String x:Key="Infos.CreateLobbySuccesfully">Created succesfully!</sys:String>
 </ResourceDictionary>

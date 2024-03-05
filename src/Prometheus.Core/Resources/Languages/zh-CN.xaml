@@ -68,6 +68,7 @@
     <sys:String x:Key="Utility.CreateLobby">创建5V5练习模式</sys:String>
     <sys:String x:Key="Utility.CreateLobby.Name">房间名称</sys:String>
     <sys:String x:Key="Utility.CreateLobby.Password">房间密码</sys:String>
+    <sys:String x:Key="Utility.Profile.Status">个性签名</sys:String>
     <sys:String x:Key="Chat.Status.Chat">在线</sys:String>
     <sys:String x:Key="Chat.Status.Away">离开</sys:String>
     <sys:String x:Key="Chat.Status.Offline">离线</sys:String>
@@ -84,4 +85,6 @@
     <sys:String x:Key="Match.Rank.Divisions.II">II</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
+    <sys:String x:Key="Errors.EmptyLobbyName">房间名不能为空</sys:String>
+    <sys:String x:Key="Infos.CreateLobbySuccesfully">创建自定义房间成功!</sys:String>
 </ResourceDictionary>
