@@ -23,7 +23,6 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<MatchDetail> GetMatchDetailAsync(long gameId);
 
-        Task<string> GetSummonerSuperChampionDataAsync(long summonerId);
 
         Task<string> GetCurrentGameInfoAsync();
 
@@ -51,10 +50,18 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetChampionSkinById(int id);
 
-        Task CreatePracticeLobby(string name, string password);
+        Task CreatePracticeLobbyAsync(string name, string password);
 
-        Task<string> SetChatTier(QueueType queueType, Tier tier, Division division);
+        Task<string> SetChatTierAsync(QueueType queueType, Tier tier, Division division);
 
-        Task ReconnectGame();
+        Task SetOnlineStatusAsync(string chatStatus);
+
+        Task SetStatusAsync(string status);
+
+        Task ReconnectGameAsync();
+
+        Task<string> GetAcceptStatusAsync();
+
+        Task<string> GetMapSideAsync();
     }
 }

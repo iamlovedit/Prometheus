@@ -8,11 +8,11 @@ namespace Prometheus.Services.Client
 {
     public class GameService : IGameService
     {
+        private const string _chatMe = "lol-chat/v1/me";
         private const string _checkUrl = "lol-matchmaking/v1/ready-check/";
         private const string _gameSessionUrl = "lol-champ-select/v1/session";
         private const string _gameActionUrl = "lol-champ-select/v1/session/actions/{0}";
         private const string _matchDetails = "lol-match-history/v1/games/{0}";
-        private const string _summonerSuperChampion = "lol-collections/v1/inventories/{0}/champion-mastery";
         private const string _champDataUrl = "https://x1-6833.native.qq.com/x1/6833/1061021&3af49f";
         private const string _gameSessionData = "lol-gameflow/v1/session";
         private const string _currentChampion = "/lol-champ-select/v1/current-champion";
@@ -103,11 +103,6 @@ namespace Prometheus.Services.Client
             return _httpService.GetAsync(_spells);
         }
 
-        public async Task<string> GetSummonerSuperChampionDataAsync(long summonerId)
-        {
-            return await _httpService.GetAsync(string.Format(_summonerSuperChampion, summonerId));
-        }
-
         public async Task AcceptMatchAsync()
         {
             await _httpService.PostAsync($"{_checkUrl}accept", null);
@@ -162,7 +157,7 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(string.Format(_championskins, id));
         }
 
-        public async Task CreatePracticeLobby(string name, string password)
+        public async Task CreatePracticeLobbyAsync(string name, string password)
         {
             var mutators = new
             {
@@ -173,7 +168,7 @@ namespace Prometheus.Services.Client
                 gameMode = "PRACTICETOOL",
                 gameMutator = "",
                 gameServerRegion = "",
-                mapId = 1,
+                mapId = 11,
                 mutators,
                 spectatorPolicy = "AllAllowed",
                 teamSize = 5
@@ -184,6 +179,7 @@ namespace Prometheus.Services.Client
                 lobbyName = name,
                 lobbyPassword = password
             };
+
             var body = new
             {
                 customGameLobby,
@@ -203,7 +199,7 @@ namespace Prometheus.Services.Client
             await _httpService.SendAsync(HttpMethod.Patch, url, body);
         }
 
-        public async Task<string> SetChatTier(QueueType queueType, Tier tier, Division division)
+        public async Task<string> SetChatTierAsync(QueueType queueType, Tier tier, Division division)
         {
             var lol = new
             {
@@ -216,12 +212,40 @@ namespace Prometheus.Services.Client
             {
                 lol
             };
-            return await _httpService.SendAsync(HttpMethod.Put, "lol-chat/v1/me", body);
+            return await _httpService.SendAsync(HttpMethod.Put, _chatMe, body);
         }
 
-        public async Task ReconnectGame()
+        public async Task ReconnectGameAsync()
         {
             await _httpService.PostAsync("lol-gameflow/v1/reconnect", null);
+        }
+
+        public async Task SetOnlineStatusAsync(string chatStatus)
+        {
+            var body = new
+            {
+                availability = chatStatus
+            };
+            await _httpService.SendAsync(HttpMethod.Put, _chatMe, body);
+        }
+
+        public async Task SetStatusAsync(string status)
+        {
+            var body = new
+            {
+                statusMessage = status
+            };
+            await _httpService.SendAsync(HttpMethod.Put, _chatMe, body);
+        }
+
+        public async Task<string> GetAcceptStatusAsync()
+        {
+            return await _httpService.GetAsync(_checkUrl);
+        }
+
+        public async Task<string> GetMapSideAsync()
+        {
+            return await _httpService.GetAsync("lol-champ-select/v1/pin-drop-notification");
         }
     }
 }

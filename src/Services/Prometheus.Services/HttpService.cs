@@ -67,7 +67,8 @@ namespace Prometheus.Services
             {
                 return;
             }
-            await _httpClient.PostAsJsonAsync(url, body);
+            var response = await _httpClient.PostAsJsonAsync(url, body);
+            response.EnsureSuccessStatusCode();
         }
 
         public async Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters)

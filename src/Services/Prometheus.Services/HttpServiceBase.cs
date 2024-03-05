@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -80,9 +81,10 @@ namespace Prometheus.Services
                 return default;
             }
             var relativeUrl = BuildRelativeUrl(url, queryParameters);
+            var json = JsonConvert.SerializeObject(body);
             var requestMessage = new HttpRequestMessage(httpMethod, relativeUrl)
             {
-                Content = new StringContent(body?.ToString(), Encoding.UTF8, _jsonType)
+                Content = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, _jsonType)
             };
             var responseMessage = await _httpClient.SendAsync(requestMessage);
             responseMessage.EnsureSuccessStatusCode();

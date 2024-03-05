@@ -1,4 +1,5 @@
 ﻿using Prometheus.Core.Models;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
@@ -14,5 +15,11 @@ namespace Prometheus.Services.Interfaces.Client
         Task<string> GetRankStatsByPuuid(string puuid);
 
         Task<string> GetRecentMatchesByPuuid(string puuid);
+
+        Task<string> GetBackdorpByIdAsync(long summonerId);
+
+        Task<List<ChampionMastery>> GetChampionMasteriesAsync(string puuid,int count);
+
+        Task<string> GetMatchsPageAsync(string puuid, int start, int end);
     }
 }
