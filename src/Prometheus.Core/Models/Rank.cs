@@ -28,6 +28,13 @@ namespace Prometheus.Core.Models
 
     }
 
+    public enum MapSide
+    {
+        Blue,
+        Red,
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum QueueType
     {
         RANKED_SOLO_5x5,
@@ -36,15 +43,17 @@ namespace Prometheus.Core.Models
         RANKED_TFT_TURBO,
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Division
     {
+        NA,
         I,
         II,
         III,
         IV
     }
 
-    [JsonConverter(typeof(TierEnumConverter))]
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum Tier
     {
         UNRANKED,

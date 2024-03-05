@@ -1,4 +1,6 @@
-﻿namespace Prometheus.Core.Models
+﻿using System.Text.Json.Serialization;
+
+namespace Prometheus.Core.Models
 {
     public class SummonerAccount
     {
