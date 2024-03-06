@@ -39,6 +39,18 @@
     <sys:String x:Key="Career.Rank.Tier.Master">大师</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Grandmaster">宗师</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Challenger">王者</sys:String>
+
+    <sys:String x:Key="Career.Rank.Tier.QueueType">类型</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Count">场次</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.WinRate">胜率</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.WinCount">胜利</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.LossCount">失败</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Division">当前段位</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.LeaguePoints">胜点</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.HighestTier">赛季最高</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.PreviousSeasonEndTier">上赛季结算</sys:String>
+
+    <sys:String x:Key="Career.HighestMastery">最高成就英雄</sys:String>
     <sys:String x:Key="Career.Match.Last20">最近20场比赛</sys:String>
     <sys:String x:Key="Career.Match.Wins">胜利</sys:String>
     <sys:String x:Key="Career.Match.Losses">失败</sys:String>
@@ -74,7 +86,10 @@
     <sys:String x:Key="Chat.Status.Offline">离线</sys:String>
     <sys:String x:Key="Chat.Status.Tips">在线状态</sys:String>
     <sys:String x:Key="Chat.Tier.TierShow">段位展示</sys:String>
+
     <sys:String x:Key="Match.Rank.TFT">云顶之弈</sys:String>
+    <sys:String x:Key="Match.Rank.ARAM">极地大乱斗</sys:String>
+    <sys:String x:Key="Match.Rank.Normal">匹配模式</sys:String>
     <sys:String x:Key="Match.Rank.Solo">单双排</sys:String>
     <sys:String x:Key="Match.Rank.Flex">灵活组排</sys:String>
     <sys:String x:Key="Match.Rank.Mode">游戏模式</sys:String>
@@ -85,6 +100,9 @@
     <sys:String x:Key="Match.Rank.Divisions.II">II</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
+
     <sys:String x:Key="Errors.EmptyLobbyName">房间名不能为空</sys:String>
     <sys:String x:Key="Infos.CreateLobbySuccesfully">创建自定义房间成功!</sys:String>
+    <sys:String x:Key="Match.PurpleTeam">紫色方</sys:String>
+    <sys:String x:Key="Match.BlueTeam">蓝色方</sys:String>
 </ResourceDictionary>

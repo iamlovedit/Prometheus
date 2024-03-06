@@ -40,6 +40,19 @@
     <sys:String x:Key="Career.Rank.Tier.Master">Master</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Grandmaster">Grandmaster</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Challenger">Challenger</sys:String>
+
+    <sys:String x:Key="Career.Rank.Tier.QueueType">Queue</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Count">Count</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.WinRate">Win rate</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.WinCount">Wins</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.LossCount">Losses</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.Division">Division</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.LeaguePoints">Points</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.HighestTier">Highest tier</sys:String>
+    <sys:String x:Key="Career.Rank.Tier.PreviousSeasonEndTier">Previous season</sys:String>
+
+    <sys:String x:Key="Career.HighestMastery">Highest Champion Mastery</sys:String>
+
     <sys:String x:Key="Career.Match.Last20">Last 20 matches</sys:String>
     <sys:String x:Key="Career.Match.Wins">Wins</sys:String>
     <sys:String x:Key="Career.Match.Losses">Losses</sys:String>
@@ -75,7 +88,10 @@
     <sys:String x:Key="Chat.Status.Offline">Offline</sys:String>
     <sys:String x:Key="Chat.Status.Tips">Status</sys:String>
     <sys:String x:Key="Chat.Tier.TierShow">Tier show</sys:String>
+
     <sys:String x:Key="Match.Rank.TFT">Teamfight tactics</sys:String>
+    <sys:String x:Key="Match.Rank.Normal">Normal</sys:String>
+    <sys:String x:Key="Match.Rank.ARAM">ARAM</sys:String>
     <sys:String x:Key="Match.Rank.Solo">Solo</sys:String>
     <sys:String x:Key="Match.Rank.Flex">Flex</sys:String>
     <sys:String x:Key="Match.Rank.Mode">Game mode</sys:String>
@@ -86,6 +102,9 @@
     <sys:String x:Key="Match.Rank.Divisions.II">II</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
+
     <sys:String x:Key="Errors.EmptyLobbyName">Lobby name can not be empty!</sys:String>
     <sys:String x:Key="Infos.CreateLobbySuccesfully">Created succesfully!</sys:String>
+    <sys:String x:Key="Match.PurpleTeam">Purple team</sys:String>
+    <sys:String x:Key="Match.BlueTeam">Blue team</sys:String>
 </ResourceDictionary>
