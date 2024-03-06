@@ -16,5 +16,6 @@ namespace Prometheus.Modules.Match.ViewModels
         {
             _summonerService = summonerService;
         }
+
     }
 }

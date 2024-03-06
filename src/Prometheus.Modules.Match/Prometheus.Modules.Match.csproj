@@ -4,6 +4,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
   <ItemGroup>
+    <Content Remove="C:\Users\zhangyang201\.nuget\packages\windowsinput\6.4.1\contentFiles\any\net6.0-windows7.0\.nuget\mouse-keyboard-hook-logo.png" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Prism.Wpf" Version="8.1.97" />
 	<PackageReference Include="HandyControl" Version="3.5.0" />
 	<PackageReference Include="WindowsInput" Version="6.4.1" />	  

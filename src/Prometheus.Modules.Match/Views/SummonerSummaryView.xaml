@@ -1,0 +1,28 @@
+﻿<UserControl
+    x:Class="Prometheus.Modules.Match.Views.SummonerSummaryView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:viewmodels="clr-namespace:Prometheus.Modules.Match.ViewModels"
+    x:Name="Root"
+    d:DataContext="{d:DesignInstance Type=viewmodels:SummonerSummaryViewModel}"
+    d:DesignHeight="600"
+    d:DesignWidth="400"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+    <ListBox hc:BorderElement.CornerRadius="8" Style="{DynamicResource StackPanelVerticalListBox}">
+        <ListBox.ItemTemplate>
+            <DataTemplate>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                </Grid>
+            </DataTemplate>
+        </ListBox.ItemTemplate>
+    </ListBox>
+</UserControl>

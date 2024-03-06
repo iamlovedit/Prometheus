@@ -2,7 +2,9 @@
     x:Class="Prometheus.Modules.Match.Views.MatchView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Match.ViewModels"
@@ -12,6 +14,17 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <Grid>
-        <TextBlock Text="I am MatchView" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <hc:SimpleStackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+            <Button Content="{DynamicResource Match.BlueTeam}" Style="{DynamicResource ButtonPrimary}" />
+            <Button
+                Margin="8,0,0,0"
+                Content="{DynamicResource Match.PurpleTeam}"
+                Style="{DynamicResource ButtonPrimary}" />
+        </hc:SimpleStackPanel>
+        <ContentControl Grid.Column="1" prism:RegionManager.RegionName="{x:Static core:RegionNames.MatchViewContent}" />
     </Grid>
 </UserControl>
