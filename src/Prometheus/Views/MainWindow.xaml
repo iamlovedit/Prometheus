@@ -28,9 +28,9 @@
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition
-                    Width="200"
-                    MinWidth="200"
-                    MaxWidth="200" />
+                    Width="160"
+                    MinWidth="160"
+                    MaxWidth="160" />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
             <Grid Margin="12" Background="{DynamicResource RegionBrush}">
@@ -69,7 +69,10 @@
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding MatchCommand}" Header="{DynamicResource Menu.Match}">
+                    <hc:SideMenuItem
+                        Command="{Binding MatchCommand}"
+                        Header="{DynamicResource Menu.Match}"
+                        IsEnabled="True">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe635;" />
                         </hc:SideMenuItem.Icon>

@@ -53,6 +53,19 @@ namespace Prometheus.ViewModels
             {
                 eventAggregator.GetEvent<ConnectLCUEvent>().Publish(false);
             };
+
+            _eventAggregator.GetEvent<MatchStartEvent>().Subscribe(started =>
+            {
+                //TODO:
+                if (started)
+                {
+                    _matchCommand?.Execute();
+                }
+                else
+                {
+                    _careerCommand?.Execute();
+                }
+            });
         }
 
         private void LoadModuleCompleted(object sender, LoadModuleCompletedEventArgs e)

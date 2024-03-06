@@ -26,6 +26,28 @@ namespace Prometheus.Core.Models
 
         public double RatedRating { get; set; }
 
+        public int Count => Wins + Losses;
+
+        public double WinRate
+        {
+            get
+            {
+                if (Count == 0)
+                {
+                    return 0;
+                }
+                return Wins / Count;
+            }
+        }
+
+        public string HighestTier
+        {
+            get
+            {
+                return GlobalConfiguration.IsChinese ? "" : "";
+            }
+        }
+
     }
 
     public enum MapSide

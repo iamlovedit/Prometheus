@@ -37,5 +37,12 @@
         public const string MatchHistoryView = "MatchHistoryView";
 
         public const string SummonerDetailView = "SummonerDetailView";
+
+        public const string MatchViewContent = "MatchViewContent";
+    }
+
+    public static class GlobalConfiguration
+    {
+        public static bool IsChinese;
     }
 }
