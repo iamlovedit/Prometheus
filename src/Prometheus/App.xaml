@@ -44,6 +44,12 @@
             <Geometry x:Key="NextGeometry" PresentationOptions:Freeze="True">
                 M768 128h64v768h-64V128zM694.464 485.12a32 32 0 0 1 0 53.76L241.344 832A32 32 0 0 1 192 805.12V218.88A32 32 0 0 1 241.408 192l453.12 293.12zM256 277.632v468.736L618.24 512 256 277.632z
             </Geometry>
+
+            <Style x:Key="BackgroundBorder" TargetType="{x:Type Border}">
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </prism:PrismApplication>
