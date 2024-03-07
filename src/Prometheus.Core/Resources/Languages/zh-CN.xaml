@@ -50,7 +50,7 @@
     <sys:String x:Key="Career.Rank.Tier.HighestTier">赛季最高</sys:String>
     <sys:String x:Key="Career.Rank.Tier.PreviousSeasonEndTier">上赛季结算</sys:String>
 
-    <sys:String x:Key="Career.HighestMastery">最高成就英雄</sys:String>
+    <sys:String x:Key="Career.HighestMastery">最高英雄成就</sys:String>
     <sys:String x:Key="Career.Match.Last20">最近20场比赛</sys:String>
     <sys:String x:Key="Career.Match.Wins">胜利</sys:String>
     <sys:String x:Key="Career.Match.Losses">失败</sys:String>
@@ -87,6 +87,7 @@
     <sys:String x:Key="Chat.Status.Tips">在线状态</sys:String>
     <sys:String x:Key="Chat.Tier.TierShow">段位展示</sys:String>
 
+    <sys:String x:Key="Match.Rank.All">全部比赛</sys:String>
     <sys:String x:Key="Match.Rank.TFT">云顶之弈</sys:String>
     <sys:String x:Key="Match.Rank.ARAM">极地大乱斗</sys:String>
     <sys:String x:Key="Match.Rank.Normal">匹配模式</sys:String>

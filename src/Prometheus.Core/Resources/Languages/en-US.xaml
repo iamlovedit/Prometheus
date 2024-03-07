@@ -89,6 +89,7 @@
     <sys:String x:Key="Chat.Status.Tips">Status</sys:String>
     <sys:String x:Key="Chat.Tier.TierShow">Tier show</sys:String>
 
+    <sys:String x:Key="Match.Rank.All">All</sys:String>
     <sys:String x:Key="Match.Rank.TFT">Teamfight tactics</sys:String>
     <sys:String x:Key="Match.Rank.Normal">Normal</sys:String>
     <sys:String x:Key="Match.Rank.ARAM">ARAM</sys:String>
