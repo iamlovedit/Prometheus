@@ -1,9 +1,9 @@
 ﻿namespace Prometheus.Core.Models
 {
-    public class GameConfiguration
+    public static class GameConfiguration
     {
-        public bool AutoAccept { get; set; }
+        public static bool AutoAccept { get; set; }
 
-        public bool AutoReconnect { get; set; }
+        public static bool AutoReconnect { get; set; }
     }
 }

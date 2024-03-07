@@ -22,10 +22,8 @@
 
         public long LastPlayTime { get; set; }
 
-        public int PlayerId { get; set; }
-
-        public string Puuid { get; set; }
-
         public int TokensEarned { get; set; }
+
+        public string ChampionIcon { get; set; }
     }
 }
