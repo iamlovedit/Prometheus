@@ -77,14 +77,22 @@ namespace Prometheus.Modules.Utility.ViewModels
         public bool AutoReconnect
         {
             get { return _autoReconnect; }
-            set { SetProperty(ref _autoReconnect, value); }
+            set
+            {
+                SetProperty(ref _autoReconnect, value);
+                GameConfiguration.AutoReconnect = value;
+            }
         }
 
         private bool _autoAccept;
         public bool AutoAccept
         {
             get { return _autoAccept; }
-            set { SetProperty(ref _autoAccept, value); }
+            set
+            {
+                SetProperty(ref _autoAccept, value);
+                GameConfiguration.AutoAccept = value;
+            }
         }
 
         private int _selectedStatusIndex = -1;

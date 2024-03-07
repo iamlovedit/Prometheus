@@ -66,16 +66,5 @@ namespace Prometheus.Modules.Summoner.ViewModels
                 RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
             }
         }
-
-        void ExecuteModifyCommand()
-        {
-            _dialogService.ShowDialog(RegionNames.SelectBackgroundDialog, async dialogResult =>
-            {
-                if (dialogResult.Result == ButtonResult.OK)
-                {
-                    await _gameResourceManager.SetBackgroundSkinId(0);
-                }
-            });
-        }
     }
 }

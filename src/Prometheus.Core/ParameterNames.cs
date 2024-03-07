@@ -31,5 +31,7 @@
         public const string SelectedMatch = "SelectedMatch";
 
         public const string SkinsCache = "SkinsCache";
+
+        public const string Matches = "Matches";
     }
 }
