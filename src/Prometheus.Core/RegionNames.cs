@@ -4,19 +4,19 @@
     {
         public const string ContentRegion = "ContentRegion";
 
-        public const string HomeView = "HomeView";
+        public const string HomeView = "Home";
 
-        public const string CareerView = "CareerView";
+        public const string CareerView = "Career";
 
-        public const string MatchView = "MatchView";
+        public const string MatchView = "Match";
 
-        public const string InventoryView = "InventoryView";
+        public const string InventoryView = "Inventory";
 
-        public const string SettingView = "SettingView";
+        public const string SettingView = "Setting";
 
-        public const string UtilityView = "UtilityView";
+        public const string UtilityView = "Utility";
 
-        public const string SearchView = "SearchView";
+        public const string SearchView = "Search";
 
         public const string SettingTabRegion = "SettingTabRegion";
 
