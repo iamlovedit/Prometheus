@@ -9,43 +9,46 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Data;
 
 namespace Prometheus.Shared.ViewModels
 {
     public class SummonerDetailViewModel : RegionViewModelBase
     {
-        private bool _isInit;
         private readonly ISummonerService _summonerService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IEventAggregator _eventAggregator;
         private readonly IDialogService _dialogService;
         private readonly IResourceService _resourceService;
-        private readonly static Dictionary<Tier, string> _tierIconReosourceMap = new()
-        {
-            { Tier.UNRANKED,"Career.Rank.Tier.Unranked"},
-            { Tier.IRON,"Career.Rank.Tier.Iron"},
-            { Tier.BRONZE,"Career.Rank.Tier.Bronze"},
-            { Tier.GOLD,"Career.Rank.Tier.Gold"},
-            { Tier.PLATINUM,"Career.Rank.Tier.Platinum"},
-            { Tier.EMERALD,"Career.Rank.Tier.Emerald"},
-            { Tier.DIAMOND,"Career.Rank.Tier.Diamond"},
-            { Tier.MASTER,"Career.Rank.Tier.Master"},
-            { Tier.GRANDMASTER,"Career.Rank.Tier.Grandmaster"},
-            { Tier.CHALLENGER,"Career.Rank.Tier.Challenger"},
-        };
+        //private readonly static Dictionary<Tier, string> _tierIconReosourceMap = new()
+        //{
+        //    { Tier.UNRANKED,"Career.Rank.Tier.Unranked"},
+        //    { Tier.IRON,"Career.Rank.Tier.Iron"},
+        //    { Tier.BRONZE,"Career.Rank.Tier.Bronze"},
+        //    { Tier.GOLD,"Career.Rank.Tier.Gold"},
+        //    { Tier.PLATINUM,"Career.Rank.Tier.Platinum"},
+        //    { Tier.EMERALD,"Career.Rank.Tier.Emerald"},
+        //    { Tier.DIAMOND,"Career.Rank.Tier.Diamond"},
+        //    { Tier.MASTER,"Career.Rank.Tier.Master"},
+        //    { Tier.GRANDMASTER,"Career.Rank.Tier.Grandmaster"},
+        //    { Tier.CHALLENGER,"Career.Rank.Tier.Challenger"},
+        //};
         public SummonerDetailViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IContainerExtension containerExtension) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
             _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
             _resourceService = containerExtension.Resolve<IResourceService>();
-            _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(() =>
-            {
-                FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
-                SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
-            });
+            //_eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(() =>
+            //{
+            //    FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
+            //    SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
+            //});
             _summonerService = containerExtension.Resolve<ISummonerService>();
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
             _dialogService = containerExtension.Resolve<IDialogService>();
@@ -66,36 +69,67 @@ namespace Prometheus.Shared.ViewModels
 
         public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
-            _isInit = true;
+            if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
+            {
+                CanModify = canEdit;
+            }
             if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
             {
                 Summoner = summoner;
                 IsPublic = summoner.Privacy == "PUBLIC";
-                var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
-                if (!string.IsNullOrEmpty(jsonValue))
+                var skinId = 0;
+                if (canEdit)
                 {
-                    var skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
-                    BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
+                    var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
+                    if (!string.IsNullOrEmpty(jsonValue))
+                    {
+                        skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
+                    }
                 }
-                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(Summoner.ProfileIconId);
-
-                var rankJson = await _summonerService.GetRankStatsByPuuid(Summoner.Puuid);
+                else
+                {
+                    var jsonValue = await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId);
+                    if (!string.IsNullOrEmpty(jsonValue))
+                    {
+                        var uri = JObject.Parse(jsonValue)["backdropImage"].ToString();
+                        if (int.TryParse(Path.GetFileNameWithoutExtension(uri), out skinId))
+                        {
+                        }
+                    }
+                }
+                BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
+                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(_summoner.ProfileIconId);
+                var rankJson = await _summonerService.GetRankStatsByPuuid(_summoner.Puuid);
                 if (!string.IsNullOrEmpty(rankJson))
                 {
                     var jObject = JObject.Parse(rankJson);
                     Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
                     Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
+                    Ranks = [Solo, Flex];
+                    RaisePropertyChanged(nameof(Ranks));
                     SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
-                    FlexTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_flex.Tier]);
-                    SoloTier = _resourceService.FindResource<string>(_tierIconReosourceMap[_solo.Tier]);
+
+                    var masteries = await _summonerService.GetChampionMasteriesAsync(_summoner.Puuid, 3);
+                    masteries.ForEach(async m =>
+                    {
+                        m.ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.ChampionId);
+                    });
+                    Mastery1 = masteries[0];
+                    Mastery2 = masteries[1];
+                    Mastery3 = masteries[2];
                 }
-                var mathchesJosn = await _summonerService.GetRecentMatchesByPuuid(Summoner.Puuid);
+                var mathchesJosn = await _summonerService.GetMatchsPageAsync(_summoner.Puuid, 0, 19);
                 if (!string.IsNullOrEmpty(mathchesJosn))
                 {
                     var jObject = JObject.Parse(mathchesJosn);
-                    RecentMatches = jObject["games"]["games"].ToObject<List<Match>>();
-                    RecentMatches.ForEach(async m =>
+                    var matches = jObject["games"]["games"].ToObject<List<Match>>();
+                    Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
+                    var killed = matches.Sum(m => m.Participants[0].Stats.Kills);
+                    var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
+                    var assists = matches.Sum(m => m.Participants[0].Stats.Assists);
+                    KDA = $"{killed}/{deaths}/{assists}";
+                    matches.ForEach(async m =>
                     {
                         m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
                         //m.Participants[0].Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(m.Participants[0].Spell1Id);
@@ -109,32 +143,27 @@ namespace Prometheus.Shared.ViewModels
                         //m.Participants[0].Stats.Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item5);
                         //m.Participants[0].Stats.Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(m.Participants[0].Stats.Item6);
                     });
+                    RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
                     IsLoading = false;
                 }
-            }
-
-            if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
-            {
-                CanModify = canEdit;
             }
         }
 
         public Rank[] Ranks { get; set; }
 
-
-        private byte _wins;
-        public byte Wins
+        private int _wins;
+        public int Wins
         {
             get { return _wins; }
             set
             {
                 SetProperty(ref _wins, value);
-                Losses = (byte)(20 - value);
+                Losses = 20 - value;
             }
         }
 
-        private byte _losses;
-        public byte Losses
+        private int _losses;
+        public int Losses
         {
             get { return _losses; }
             set { SetProperty(ref _losses, value); }
@@ -147,19 +176,13 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _isLoading, value); }
         }
 
-
-        private List<Match> _recentMatches;
-        public List<Match> RecentMatches
+        private ListCollectionView _recentMatches;
+        public ListCollectionView RecentMatches
         {
             get { return _recentMatches; }
             set
             {
                 SetProperty(ref _recentMatches, value);
-                Wins = (byte)value.Where(m => m.Participants[0].Stats.Win).Count();
-                var killed = value.Sum(m => m.Participants[0].Stats.Kills);
-                var deaths = value.Sum(m => m.Participants[0].Stats.Deaths);
-                var assists = value.Sum(m => m.Participants[0].Stats.Assists);
-                KDA = $"{killed}/{deaths}/{assists}";
             }
         }
 
@@ -222,27 +245,12 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _flexIcon, value); }
         }
 
-        private string _soloTier;
-        public string SoloTier
-        {
-            get { return _soloTier; }
-            set { SetProperty(ref _soloTier, value); }
-        }
-
-        private string _flexTier;
-        public string FlexTier
-        {
-            get { return _flexTier; }
-            set { SetProperty(ref _flexTier, value); }
-        }
-
         private bool _canModify;
         public bool CanModify
         {
             get { return _canModify; }
             set { SetProperty(ref _canModify, value); }
         }
-
 
         private bool _isPublic = true;
         public bool IsPublic
@@ -251,14 +259,25 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _isPublic, value); }
         }
 
-        private SummonerAccount _selectedSummoner;
-        public SummonerAccount SelectedSummoner
+        private ChampionMastery _mastry1;
+        public ChampionMastery Mastery1
         {
-            get { return _selectedSummoner; }
-            set
-            {
-                SetProperty(ref _selectedSummoner, value);
-            }
+            get { return _mastry1; }
+            set { SetProperty(ref _mastry1, value); }
+        }
+
+        private ChampionMastery _mastery2;
+        public ChampionMastery Mastery2
+        {
+            get { return _mastery2; }
+            set { SetProperty(ref _mastery2, value); }
+        }
+
+        private ChampionMastery _mastery3;
+        public ChampionMastery Mastery3
+        {
+            get { return _mastery3; }
+            set { SetProperty(ref _mastery3, value); }
         }
 
         private Match _selectedMatch;
@@ -268,24 +287,47 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _selectedMatch, value); }
         }
 
-        private DelegateCommand _matchChangedCommand;
-        public DelegateCommand MatchChangedCommand =>
-            _matchChangedCommand ?? (_matchChangedCommand = new DelegateCommand(ExecuteMatchChangedCommand));
-        void ExecuteMatchChangedCommand()
+        private int _selectedMatchTypeIndex;
+        public int SelectedMatchTypeIndex
         {
-            if (_isInit)
-            {
-                _isInit = false;
-                return;
-            }
+            get { return _selectedMatchTypeIndex; }
+            set { SetProperty(ref _selectedMatchTypeIndex, value); }
+        }
+
+        private DelegateCommand _matchTypeChangedCommand;
+        public DelegateCommand MatchTypeChangedCommand =>
+            _matchTypeChangedCommand ?? (_matchTypeChangedCommand = new DelegateCommand(ExecuteMatchTypeChangedCommand));
+        void ExecuteMatchTypeChangedCommand()
+        {
+            //TODO:
+        }
+
+        private DelegateCommand _moreMatchCommand;
+        public DelegateCommand MoreMatchCommand =>
+            _moreMatchCommand ?? (_moreMatchCommand = new DelegateCommand(ExecuteMoreMatchCommand));
+        void ExecuteMoreMatchCommand()
+        {
             var parameters = new NavigationParameters()
             {
                 {ParameterNames.CanEdit,CanModify },
-                {ParameterNames.SelectedMatch,SelectedMatch},
+                {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
             RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SearchContent, RegionNames.MatchHistoryView, parameters);
         }
 
+        private DelegateCommand<Match> _matchDetailCommand;
+        public DelegateCommand<Match> MatchDetailCommand =>
+            _matchDetailCommand ?? (_matchDetailCommand = new DelegateCommand<Match>(ExecuteMatchDetailCommand));
+        void ExecuteMatchDetailCommand(Match match)
+        {
+            var parameters = new NavigationParameters()
+            {
+                {ParameterNames.CanEdit,CanModify },
+                {ParameterNames.SelectedMatch,match},
+                {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
+            };
+            RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SearchContent, RegionNames.MatchHistoryView, parameters);
+        }
 
         private DelegateCommand _modifyCommand;
         public DelegateCommand ModifyCommand =>

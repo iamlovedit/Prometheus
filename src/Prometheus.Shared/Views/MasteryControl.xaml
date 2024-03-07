@@ -1,0 +1,25 @@
+﻿<UserControl
+    x:Class="Prometheus.Shared.Views.MasteryControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:local="clr-namespace:Prometheus.Shared.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="Root"
+    mc:Ignorable="d">
+    <hc:UniformSpacingPanel
+        ItemHorizontalAlignment="Center"
+        Orientation="Vertical"
+        VerticalSpacing="12">
+        <hc:Gravatar
+            Width="{Binding ElementName=Root, Path=ImageWidth}"
+            Height="{Binding ElementName=Root, Path=ImageHeight}"
+            Style="{DynamicResource GravatarCircleImg}">
+            <Image Source="{Binding ElementName=Root, Path=Mastery.ChampionIcon}" Stretch="UniformToFill" />
+        </hc:Gravatar>
+        <TextBlock Foreground="{DynamicResource InfoBrush}" Text="{Binding ElementName=Root, Path=Mastery.ChampionLevel}" />
+        <TextBlock Foreground="{DynamicResource InfoBrush}" Text="{Binding ElementName=Root, Path=Mastery.HighestGrade}" />
+        <TextBlock Foreground="{DynamicResource InfoBrush}" Text="{Binding ElementName=Root, Path=Mastery.ChampionPoints}" />
+    </hc:UniformSpacingPanel>
+</UserControl>

@@ -19,7 +19,6 @@ namespace Prometheus.Shared.ViewModels
             _gameService = containerExtension.Resolve<IGameService>();
         }
 
-
         private List<Match> _matches;
         public List<Match> Matches
         {
@@ -33,6 +32,14 @@ namespace Prometheus.Shared.ViewModels
             get { return _isLoading; }
             set { SetProperty(ref _isLoading, value); }
         }
+        private int _currentPage = 1;
+        public int CurrentPage
+        {
+            get { return _currentPage; }
+            set { SetProperty(ref _currentPage, value); }
+        }
+
+
 
         private DelegateCommand _backCommand;
         public DelegateCommand BackCommand =>
@@ -51,6 +58,10 @@ namespace Prometheus.Shared.ViewModels
             if (navigationContext.Parameters.TryGetValue<Match>(ParameterNames.SelectedMatch, out var match))
             {
                 var matchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
+            }
+            if (navigationContext.Parameters.TryGetValue(ParameterNames.Matches, out _matches))
+            {
+                RaisePropertyChanged(nameof(Matches));
             }
         }
     }

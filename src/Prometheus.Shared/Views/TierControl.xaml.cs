@@ -44,18 +44,5 @@ namespace Prometheus.Shared.Views
         public static readonly DependencyProperty TierTypeProperty =
             DependencyProperty.Register("TierType", typeof(string), typeof(TierControl), new PropertyMetadata());
 
-
-
-        public string Division
-        {
-            get { return (string)GetValue(DivisionProperty); }
-            set { SetValue(DivisionProperty, value); }
-        }
-
-        public static readonly DependencyProperty DivisionProperty =
-            DependencyProperty.Register("Division", typeof(string), typeof(TierControl), new PropertyMetadata());
-
-
-
     }
 }

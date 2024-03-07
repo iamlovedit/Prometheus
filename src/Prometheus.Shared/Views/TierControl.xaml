@@ -19,8 +19,6 @@
             HorizontalAlignment="Center"
             Foreground="White">
             <Run Text="{Binding ElementName=Root, Path=Tier}" />
-            <Run Text=" " />
-            <Run Text="{Binding ElementName=Root, Path=Division}" />
         </TextBlock>
         <TextBlock
             HorizontalAlignment="Center"

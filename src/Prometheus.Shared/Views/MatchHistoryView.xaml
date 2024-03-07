@@ -26,48 +26,63 @@
             </Grid.RowDefinitions>
             <Button
                 HorizontalAlignment="Left"
-                hc:IconElement.Geometry="{DynamicResource BackGeometry}"
                 Command="{Binding BackCommand}"
-                Content="{DynamicResource Generic.Back}" />
+                Content="{DynamicResource Generic.Back}"
+                Style="{DynamicResource ButtonPrimary}" />
             <ListBox
                 Grid.Row="1"
                 Margin="0,12"
+                hc:BorderElement.CornerRadius="8"
                 ItemsSource="{Binding Matches}"
                 Style="{DynamicResource StackPanelVerticalListBox}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid Margin="4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="4" />
-                                <ColumnDefinition />
-                            </Grid.ColumnDefinitions>
-                            <hc:Gravatar
-                                Width="60"
-                                Height="60"
-                                Style="{DynamicResource GravatarCircle}">
-                                <Image Source="{Binding}" />
-                            </hc:Gravatar>
-                            <hc:UniformSpacingPanel
-                                Grid.Column="2"
-                                VerticalAlignment="Center"
-                                Orientation="Vertical">
-                                <TextBlock Text="{Binding GameMode}" />
-                                <TextBlock Text="{Binding Participants[0].Stats.KDA}" />
-                            </hc:UniformSpacingPanel>
-                            <TextBlock
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                Foreground="ForestGreen"
-                                Text="{DynamicResource Career.Match.Victory}"
-                                Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                            <TextBlock
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                Foreground="Red"
-                                Text="{DynamicResource Career.Match.Defeated}"
-                                Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
-                        </Grid>
+                        <Border
+                            Height="52"
+                            Margin="4"
+                            Style="{DynamicResource BackgroundBorder}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition Width="auto" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <hc:Gravatar
+                                    Width="40"
+                                    Height="40"
+                                    Style="{StaticResource GravatarCircleImg}">
+                                    <Image Source="{Binding Participants[0].ChampionIcon}" />
+                                </hc:Gravatar>
+                                <hc:SimpleStackPanel
+                                    Grid.Column="1"
+                                    Margin="4,0,0,0"
+                                    VerticalAlignment="Center">
+                                    <TextBlock Foreground="{DynamicResource PrimaryTextBrush}" Text="{Binding GameMode}" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Text="{Binding GameCreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
+                                </hc:SimpleStackPanel>
+                                <hc:SimplePanel
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center">
+                                    <TextBlock
+                                        Foreground="ForestGreen"
+                                        Text="{DynamicResource Career.Match.Victory}"
+                                        Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                    <TextBlock
+                                        Foreground="OrangeRed"
+                                        Text="{DynamicResource Career.Match.Defeated}"
+                                        Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
+                                </hc:SimplePanel>
+                            </Grid>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Cursor" Value="Hand" />
+                            </Trigger>
+                        </DataTemplate.Triggers>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -77,7 +92,7 @@
                     hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
                     DockPanel.Dock="Left"
                     IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
-                <TextBlock HorizontalAlignment="Center" />
+                <TextBlock HorizontalAlignment="Center" Text="{Binding CurrentPage}" />
                 <Button
                     HorizontalAlignment="Right"
                     hc:IconElement.Geometry="{DynamicResource NextGeometry}"
@@ -91,6 +106,7 @@
                 <RowDefinition />
             </Grid.RowDefinitions>
             <TextBlock Text="" />
+            <ListBox Grid.Row="1" hc:BorderElement.CornerRadius="8" />
         </Grid>
     </Grid>
 </UserControl>
