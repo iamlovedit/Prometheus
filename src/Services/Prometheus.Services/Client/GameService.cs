@@ -84,15 +84,6 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(_items);
         }
 
-        public async Task<string> GetMatchRecordsPage(string puuid, int pageStart, int pageEnd)
-        {
-            return await _httpService.GetAsync(string.Format($"lol-match-history/v1/products/lol/{puuid}/matches", puuid),
-            [
-                $"begIndex={pageStart}",
-                $"endIndex={pageEnd}",
-            ]);
-        }
-
         public async Task<byte[]> GetResourceByUrl(string url)
         {
             return await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, url);

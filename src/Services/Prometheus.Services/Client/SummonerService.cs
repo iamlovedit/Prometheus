@@ -1,4 +1,5 @@
-﻿using Prometheus.Core.Models;
+﻿using Newtonsoft.Json.Linq;
+using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using System.Collections.Generic;
@@ -17,7 +18,12 @@ namespace Prometheus.Services.Client
 
         public async Task<List<ChampionMastery>> GetChampionMasteriesAsync(string puuid, int count)
         {
-            return await _httpService.GetAsync<List<ChampionMastery>>($"lol-collections/v1/inventories/{puuid}/champion-mastery/top?limit={count}");
+            var json = await _httpService.GetAsync($"lol-collections/v1/inventories/{puuid}/champion-mastery/top?limit={count}");
+            if (!string.IsNullOrEmpty(json))
+            {
+                return JObject.Parse(json)["masteries"].ToObject<List<ChampionMastery>>();
+            }
+            return null;
         }
 
         public async Task<string> GetBackdorpByIdAsync(long summonerId)
