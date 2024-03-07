@@ -20,6 +20,7 @@ namespace Prometheus.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
+        private static readonly string _prometheus = "Prometheus";
         private string _token;
         private string _port;
         private bool _connected;
@@ -73,7 +74,7 @@ namespace Prometheus.ViewModels
 
         }
 
-        private string _title = "Prometheus";
+        private string _title = _prometheus;
         public string Title
         {
             get { return _title; }
@@ -87,7 +88,7 @@ namespace Prometheus.ViewModels
         {
             _eventAggregator.GetEvent<TitleChangeEvent>().Subscribe(v =>
             {
-                Title = "Prometheus--" + v;
+                Title = $"{_prometheus} -- {v}";
             });
             var argsMap = _clientService.GetClientCommandLines();
             if (argsMap != null)
@@ -118,7 +119,7 @@ namespace Prometheus.ViewModels
         void ExecuteCareerCommand()
         {
             LoadModule<SummonerModule>();
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.CareerView);
+            Navigate(RegionNames.CareerView);
         }
 
         private DelegateCommand _inventoryComamnd;
@@ -127,7 +128,7 @@ namespace Prometheus.ViewModels
         void ExecuteInventoryCommand()
         {
             LoadModule<InventoryModule>();
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.InventoryView);
+            Navigate(RegionNames.InventoryView);
         }
 
         private DelegateCommand _searchCommand;
@@ -136,7 +137,7 @@ namespace Prometheus.ViewModels
         void ExecuteSearchCommand()
         {
             LoadModule<SearchModule>();
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.SearchView);
+            Navigate(RegionNames.SearchView);
         }
 
         private DelegateCommand _utilityCommand;
@@ -145,7 +146,7 @@ namespace Prometheus.ViewModels
         void ExecuteUtilityCommand()
         {
             LoadModule<UtilityModule>();
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.UtilityView);
+            Navigate(RegionNames.UtilityView);
         }
 
         private DelegateCommand _matchCommand;
@@ -154,7 +155,7 @@ namespace Prometheus.ViewModels
         void ExecuteMatchCommand()
         {
             LoadModule<MatchModule>();
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.MatchView);
+            Navigate(RegionNames.MatchView);
         }
 
 
@@ -163,9 +164,19 @@ namespace Prometheus.ViewModels
             _settingCommand ?? (_settingCommand = new DelegateCommand(ExecuteSettingCommand));
         void ExecuteSettingCommand()
         {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.SettingView);
+            Navigate(RegionNames.SettingView);
         }
 
+        private void Navigate(string region)
+        {
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, region, result =>
+            {
+                if (result.Result ?? false)
+                {
+                    _eventAggregator.GetEvent<TitleChangeEvent>().Publish(region);
+                }
+            });
+        }
 
         private void LoadModule<T>() where T : IModule
         {
