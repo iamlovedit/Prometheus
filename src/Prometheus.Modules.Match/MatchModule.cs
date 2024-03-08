@@ -1,6 +1,6 @@
 ﻿using Prism.Ioc;
 using Prism.Regions;
-using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Match.Views;
 
@@ -19,7 +19,7 @@ namespace Prometheus.Modules.Match
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<MatchView>(RegionNames.MatchView);
+            containerRegistry.RegisterForNavigation<MatchView>(MenuName.Match.ToString());
         }
     }
 }

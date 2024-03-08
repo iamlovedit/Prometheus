@@ -1,6 +1,7 @@
 ﻿using Prism.Ioc;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Summoner.Views;
 
@@ -18,7 +19,7 @@ namespace Prometheus.Modules.Summoner
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<SummonerView>(RegionNames.CareerView);
+            containerRegistry.RegisterForNavigation<SummonerView>(MenuName.Career.ToString());
             containerRegistry.RegisterDialog<SelectBackgroundDialog>(RegionNames.SelectBackgroundDialog);
         }
     }

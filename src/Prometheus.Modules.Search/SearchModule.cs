@@ -1,6 +1,7 @@
 ﻿using Prism.Ioc;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Search.Views;
 
@@ -19,7 +20,7 @@ namespace Prometheus.Modules.Search
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<SearchView>(RegionNames.SearchView);
+            containerRegistry.RegisterForNavigation<SearchView>(MenuName.Search.ToString());
             containerRegistry.RegisterForNavigation<NotFoundView>(RegionNames.UserNotFoundView);
         }
     }

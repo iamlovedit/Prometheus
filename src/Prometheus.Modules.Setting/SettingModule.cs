@@ -1,11 +1,11 @@
 ﻿using Prism.Ioc;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Setting.Properties;
 using Prometheus.Modules.Setting.Views;
 using Prometheus.Services.Interfaces.Client;
-using System;
 using System.Globalization;
 
 namespace Prometheus.Modules.Setting
@@ -47,7 +47,7 @@ namespace Prometheus.Modules.Setting
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<SettingView>(RegionNames.SettingView);
+            containerRegistry.RegisterForNavigation<SettingView>(MenuName.Setting.ToString());
             containerRegistry.RegisterForNavigation<GenericView>(RegionNames.SettingGenericView);
             containerRegistry.RegisterForNavigation<SystemView>(RegionNames.SettingSystemView);
             containerRegistry.RegisterForNavigation<PreferenceView>(RegionNames.SettingPreferenceView);

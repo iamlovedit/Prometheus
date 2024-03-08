@@ -1,6 +1,6 @@
 ﻿using Prism.Ioc;
 using Prism.Modularity;
-using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Modules.Utility.Views;
 
 namespace Prometheus.Modules.Utility
@@ -14,7 +14,7 @@ namespace Prometheus.Modules.Utility
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<UtilityView>(RegionNames.UtilityView);
+            containerRegistry.RegisterForNavigation<UtilityView>(MenuName.Utility.ToString());
         }
     }
 }

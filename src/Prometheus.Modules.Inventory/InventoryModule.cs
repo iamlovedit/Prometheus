@@ -1,6 +1,6 @@
 ﻿using Prism.Ioc;
 using Prism.Modularity;
-using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Modules.Inventory.Views;
 
 namespace Prometheus.Modules.Inventory
@@ -14,7 +14,7 @@ namespace Prometheus.Modules.Inventory
 
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<InventoryView>(RegionNames.InventoryView);
+            containerRegistry.RegisterForNavigation<InventoryView>(MenuName.Inventory.ToString());
 
         }
     }

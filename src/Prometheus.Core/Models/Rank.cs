@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json.Converters;
 using Newtonsoft.Json;
 using System;
-using System.Windows;
 using System.Reflection;
 
 namespace Prometheus.Core.Models
@@ -50,7 +49,7 @@ namespace Prometheus.Core.Models
         {
             get
             {
-                var attribute = GetDisplayKeyAttribute(HighestTier);
+                var attribute = DisplayKeyAttribute.GetDisplayKey(HighestTier);
                 if (attribute != null)
                 {
                     return $"{attribute.GetDisplayValue()} {HighestDivision}";
@@ -63,7 +62,7 @@ namespace Prometheus.Core.Models
         {
             get
             {
-                var attribute = GetDisplayKeyAttribute(PreviousSeasonEndTier);
+                var attribute = DisplayKeyAttribute.GetDisplayKey(PreviousSeasonEndTier);
                 if (attribute != null)
                 {
                     return $"{attribute.GetDisplayValue()} {PreviousSeasonEndDivision}";
@@ -76,7 +75,7 @@ namespace Prometheus.Core.Models
         {
             get
             {
-                var attribute = GetDisplayKeyAttribute(Tier);
+                var attribute = DisplayKeyAttribute.GetDisplayKey(Tier);
                 if (attribute != null)
                 {
                     return $"{attribute.GetDisplayValue()} {Division}";
@@ -89,15 +88,9 @@ namespace Prometheus.Core.Models
         {
             get
             {
-                var attribute = GetDisplayKeyAttribute(QueueType);
+                var attribute = DisplayKeyAttribute.GetDisplayKey(QueueType);
                 return attribute?.GetDisplayValue();
             }
-        }
-
-
-        private static DisplayKeyAttribute GetDisplayKeyAttribute(object o)
-        {
-            return o.GetType().GetField(o.ToString()).GetCustomAttribute<DisplayKeyAttribute>();
         }
     }
 
@@ -178,16 +171,6 @@ namespace Prometheus.Core.Models
                 return Tier.UNRANKED;
             }
             return base.ReadJson(reader, objectType, existingValue, serializer);
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Field)]
-    public class DisplayKeyAttribute(string key) : Attribute
-    {
-        public string Key { get; } = key;
-        public string GetDisplayValue()
-        {
-            return Application.Current.FindResource(Key)?.ToString();
         }
     }
 }

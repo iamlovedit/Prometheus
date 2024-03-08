@@ -1,6 +1,7 @@
 ﻿using Prism.Ioc;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Home.Views;
 
@@ -14,12 +15,12 @@ namespace Prometheus.Modules.Home
 
         public override void OnInitialized(IContainerProvider containerProvider)
         {
-            RegionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
+            RegionManager.RequestNavigate(RegionNames.ContentRegion, MenuName.Home.ToString());
         }
 
         public override void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            containerRegistry.RegisterForNavigation<HomeView>(RegionNames.HomeView);
+            containerRegistry.RegisterForNavigation<HomeView>(MenuName.Home.ToString());
 
         }
     }

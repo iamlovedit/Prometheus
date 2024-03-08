@@ -6,6 +6,7 @@ using Prism.Mvvm;
 using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Events;
+using Prometheus.Core.Models;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
 using Prometheus.Modules.Search;
@@ -15,6 +16,8 @@ using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System;
+using System.Windows.Markup;
+using System.Xml.Linq;
 
 namespace Prometheus.ViewModels
 {
@@ -88,7 +91,14 @@ namespace Prometheus.ViewModels
         {
             _eventAggregator.GetEvent<TitleChangeEvent>().Subscribe(v =>
             {
-                Title = $"{_prometheus} -- {v}";
+                if (!string.IsNullOrEmpty(v))
+                {
+                    Title = $"{_prometheus} -- {v}";
+                }
+                else
+                {
+                    Title = _prometheus;
+                }
             });
             var argsMap = _clientService.GetClientCommandLines();
             if (argsMap != null)
@@ -110,7 +120,13 @@ namespace Prometheus.ViewModels
             _homeCommand ?? (_homeCommand = new DelegateCommand(ExecuteHomeCommand));
         void ExecuteHomeCommand()
         {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, MenuName.Home.ToString(), result =>
+            {
+                if (result.Result ?? false)
+                {
+                    _eventAggregator.GetEvent<TitleChangeEvent>().Publish(string.Empty);
+                }
+            });
         }
 
         private DelegateCommand _careerCommand;
@@ -119,7 +135,7 @@ namespace Prometheus.ViewModels
         void ExecuteCareerCommand()
         {
             LoadModule<SummonerModule>();
-            Navigate(RegionNames.CareerView);
+            Navigate(MenuName.Career);
         }
 
         private DelegateCommand _inventoryComamnd;
@@ -128,7 +144,7 @@ namespace Prometheus.ViewModels
         void ExecuteInventoryCommand()
         {
             LoadModule<InventoryModule>();
-            Navigate(RegionNames.InventoryView);
+            Navigate(MenuName.Inventory);
         }
 
         private DelegateCommand _searchCommand;
@@ -137,7 +153,7 @@ namespace Prometheus.ViewModels
         void ExecuteSearchCommand()
         {
             LoadModule<SearchModule>();
-            Navigate(RegionNames.SearchView);
+            Navigate(MenuName.Search);
         }
 
         private DelegateCommand _utilityCommand;
@@ -146,7 +162,7 @@ namespace Prometheus.ViewModels
         void ExecuteUtilityCommand()
         {
             LoadModule<UtilityModule>();
-            Navigate(RegionNames.UtilityView);
+            Navigate(MenuName.Utility);
         }
 
         private DelegateCommand _matchCommand;
@@ -155,7 +171,7 @@ namespace Prometheus.ViewModels
         void ExecuteMatchCommand()
         {
             LoadModule<MatchModule>();
-            Navigate(RegionNames.MatchView);
+            Navigate(MenuName.Match);
         }
 
 
@@ -164,16 +180,17 @@ namespace Prometheus.ViewModels
             _settingCommand ?? (_settingCommand = new DelegateCommand(ExecuteSettingCommand));
         void ExecuteSettingCommand()
         {
-            Navigate(RegionNames.SettingView);
+            Navigate(MenuName.Setting);
         }
 
-        private void Navigate(string region)
+        private void Navigate(MenuName menuName)
         {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, region, result =>
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, menuName.ToString(), result =>
             {
                 if (result.Result ?? false)
                 {
-                    _eventAggregator.GetEvent<TitleChangeEvent>().Publish(region);
+                    var name = DisplayKeyAttribute.GetDisplayKey(menuName)?.GetDisplayValue();
+                    _eventAggregator.GetEvent<TitleChangeEvent>().Publish(name);
                 }
             });
         }
@@ -186,4 +203,5 @@ namespace Prometheus.ViewModels
             }
         }
     }
+
 }
