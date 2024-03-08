@@ -1,4 +1,5 @@
-﻿using Prism.Ioc;
+﻿using Prism.DryIoc;
+using Prism.Ioc;
 using Prism.Modularity;
 using Prometheus.Core;
 using Prometheus.Core.Models;
@@ -16,21 +17,26 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.Views;
 using Prometheus.Views;
 using Serilog;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
 
 namespace Prometheus
 {
-    public partial class App
+    public partial class App : PrismApplication
     {
-        public App()
-        {
-            Log.Logger = new LoggerConfiguration().WriteTo.File("log-.txt",
-                rollingInterval: RollingInterval.Day,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}").CreateLogger();
-        }
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+
         protected override Window CreateShell()
         {
             return Container.Resolve<MainWindow>();
@@ -81,6 +87,27 @@ namespace Prometheus
             moduleCatalog.AddModule<InventoryModule>(InitializationMode.OnDemand);
             moduleCatalog.AddModule<SearchModule>(InitializationMode.OnDemand);
             moduleCatalog.AddModule<UtilityModule>(InitializationMode.OnDemand);
+        }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            var currentProcessName = Process.GetCurrentProcess().ProcessName;
+            var existingProcess = Process.GetProcessesByName(currentProcessName)
+                                 .FirstOrDefault(p => p.Id != System.Environment.ProcessId);
+            if (existingProcess != null)
+            {
+                var mainWindowHandle = existingProcess.MainWindowHandle;
+                ShowWindow(mainWindowHandle, 9);
+                SetForegroundWindow(mainWindowHandle);
+                Environment.Exit(0);
+            }
+            else
+            {
+                Log.Logger = new LoggerConfiguration().WriteTo.File("log-.txt",
+                    rollingInterval: RollingInterval.Day,
+                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}").CreateLogger();
+                base.OnStartup(e);
+            }
         }
     }
 }
