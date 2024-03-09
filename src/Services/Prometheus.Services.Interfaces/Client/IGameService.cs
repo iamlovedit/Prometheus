@@ -23,7 +23,6 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<MatchDetail> GetMatchDetailAsync(long gameId);
 
-
         Task<string> GetCurrentGameInfoAsync();
 
         Task<string> GetCurrentChampionInfoAsync();
