@@ -104,8 +104,16 @@
     <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
 
+    <sys:String x:Key="Match.Date">Date</sys:String>
+    <sys:String x:Key="Match.GameMode">Mode</sys:String>
+    <sys:String x:Key="Match.GameDuration">Duration</sys:String>
+    <sys:String x:Key="Match.Kill">Kills</sys:String>
+
     <sys:String x:Key="Errors.EmptyLobbyName">Lobby name can not be empty!</sys:String>
     <sys:String x:Key="Infos.CreateLobbySuccesfully">Created succesfully!</sys:String>
     <sys:String x:Key="Match.PurpleTeam">Purple team</sys:String>
     <sys:String x:Key="Match.BlueTeam">Blue team</sys:String>
+
+    <sys:String x:Key="Match.Winner">Winner</sys:String>
+    <sys:String x:Key="Match.Loser">Loser</sys:String>
 </ResourceDictionary>

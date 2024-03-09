@@ -102,8 +102,15 @@
     <sys:String x:Key="Match.Rank.Divisions.III">III</sys:String>
     <sys:String x:Key="Match.Rank.Divisions.IV">IV</sys:String>
 
+    <sys:String x:Key="Match.Date">时间</sys:String>
+    <sys:String x:Key="Match.GameMode">类型</sys:String>
+    <sys:String x:Key="Match.GameDuration">时长</sys:String>
+    <sys:String x:Key="Match.Kill">击杀</sys:String>
+
     <sys:String x:Key="Errors.EmptyLobbyName">房间名不能为空</sys:String>
     <sys:String x:Key="Infos.CreateLobbySuccesfully">创建自定义房间成功!</sys:String>
     <sys:String x:Key="Match.PurpleTeam">紫色方</sys:String>
     <sys:String x:Key="Match.BlueTeam">蓝色方</sys:String>
+    <sys:String x:Key="Match.Winner">胜方</sys:String>
+    <sys:String x:Key="Match.Loser">败方</sys:String>
 </ResourceDictionary>
