@@ -17,5 +17,7 @@
         public string Spell1Icon { get; set; }
 
         public string Spell2Icon { get; set; }
+
+        public int TeamId { get; set; }
     }
 }
