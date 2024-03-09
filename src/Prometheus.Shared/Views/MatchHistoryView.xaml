@@ -4,6 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:local="clr-namespace:Prometheus.Shared.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Shared.ViewModels"
@@ -14,7 +16,7 @@
     mc:Ignorable="d">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="180" />
+            <ColumnDefinition Width="200" />
             <ColumnDefinition Width="8" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
@@ -31,17 +33,23 @@
                 Style="{DynamicResource ButtonPrimary}" />
             <ListBox
                 Grid.Row="1"
-                Margin="0,12"
+                Margin="0,8"
                 hc:BorderElement.CornerRadius="8"
                 ItemsSource="{Binding Matches}"
+                SelectedItem="{Binding SelectedMatch}"
                 Style="{DynamicResource StackPanelVerticalListBox}">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="SelectionChanged">
+                        <prism:InvokeCommandAction Command="{Binding MatchChangedCommand}" CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBox}, Path=SelectedItem}" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border
                             Height="52"
                             Margin="4"
                             Style="{DynamicResource BackgroundBorder}">
-                            <Grid>
+                            <Grid Margin="4,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="auto" />
                                     <ColumnDefinition Width="auto" />
@@ -61,7 +69,7 @@
                                     <TextBlock
                                         Margin="0,4,0,0"
                                         Foreground="{DynamicResource PrimaryTextBrush}"
-                                        Text="{Binding GameCreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
+                                        Text="{Binding CreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
                                 </hc:SimpleStackPanel>
                                 <hc:SimplePanel
                                     Grid.Column="2"
@@ -78,13 +86,18 @@
                                 </hc:SimplePanel>
                             </Grid>
                         </Border>
-                        <DataTemplate.Triggers>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.ItemContainerStyle>
+                    <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}">
+                        <Setter Property="Padding" Value="0" />
+                        <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="true">
                                 <Setter Property="Cursor" Value="Hand" />
                             </Trigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.ItemContainerStyle>
             </ListBox>
             <Grid Grid.Row="2">
                 <Button
@@ -92,7 +105,10 @@
                     hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
                     DockPanel.Dock="Left"
                     IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
-                <TextBlock HorizontalAlignment="Center" Text="{Binding CurrentPage}" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Text="{Binding CurrentPage}" />
                 <Button
                     HorizontalAlignment="Right"
                     hc:IconElement.Geometry="{DynamicResource NextGeometry}"
@@ -102,11 +118,33 @@
         </Grid>
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="32" />
+                <RowDefinition Height="auto" />
                 <RowDefinition />
             </Grid.RowDefinitions>
-            <TextBlock Text="" />
-            <ListBox Grid.Row="1" hc:BorderElement.CornerRadius="8" />
+            <hc:UniformSpacingPanel
+                Margin="4,0,0,0"
+                Orientation="Horizontal"
+                Spacing="60">
+                <local:StatusBar Title="{DynamicResource Match.Date}" Value="{Binding MatchDetail.CreationDate}" />
+                <local:StatusBar Title="{DynamicResource Match.GameMode}" Value="{Binding MatchDetail.GameMode}" />
+                <local:StatusBar Title="{DynamicResource Match.GameDuration}" Value="{Binding MatchDetail.Duration}" />
+                <local:StatusBar Title="{DynamicResource Match.Kill}" Value="{Binding MatchDetail.Kills}" />
+            </hc:UniformSpacingPanel>
+            <hc:LoadingCircle
+                Grid.Row="1"
+                Style="{DynamicResource LoadingCircleBaseStyle}"
+                Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
+            <Grid
+                Grid.Row="1"
+                Margin="0,4,0,0"
+                Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <local:DetailControl Team="{Binding BlueTeam}" />
+                <local:DetailControl Grid.Row="1" Team="{Binding PurPleTeam}" />
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

@@ -16,8 +16,6 @@ using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System;
-using System.Windows.Markup;
-using System.Xml.Linq;
 
 namespace Prometheus.ViewModels
 {

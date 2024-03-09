@@ -353,13 +353,18 @@
                         <ComboBoxItem Content="{DynamicResource Match.Rank.Flex}" />
                     </hc:ComboBox>
                 </DockPanel>
+                <hc:LoadingCircle
+                    Grid.Row="1"
+                    Style="{DynamicResource LoadingBaseStyle}"
+                    Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
                 <ListBox
                     Grid.Row="1"
                     Margin="0,8,0,0"
                     hc:BorderElement.CornerRadius="12"
                     BorderThickness="1"
                     ItemsSource="{Binding RecentMatches}"
-                    Style="{DynamicResource StackPanelVerticalListBox}">
+                    Style="{DynamicResource StackPanelVerticalListBox}"
+                    Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Button
@@ -403,7 +408,7 @@
                                                                 <TextBlock
                                                                     Margin="0,4,0,0"
                                                                     Foreground="{DynamicResource PrimaryTextBrush}"
-                                                                    Text="{Binding GameCreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
+                                                                    Text="{Binding CreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
                                                             </hc:SimpleStackPanel>
                                                             <hc:SimplePanel
                                                                 Grid.Column="2"
