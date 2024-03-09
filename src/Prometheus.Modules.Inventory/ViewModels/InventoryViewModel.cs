@@ -84,28 +84,33 @@ namespace Prometheus.Modules.Inventory.ViewModels
             if (_championsSummary is null)
             {
                 var allChampions = await _gameResourceManager.GetChampionSummarysAsync();
-                _championsSummary = [];
-                foreach (var champion in allChampions)
+                if (allChampions != null)
                 {
-                    if (champion.Id == -1)
+                    _championsSummary = [];
+                    foreach (var champion in allChampions)
                     {
-                        continue;
+                        if (champion.Id == -1)
+                        {
+                            continue;
+                        }
+                        champion.IconUri = await _gameResourceManager.GetChampoinIconByIdAsync(champion.Id);
+                        _championsSummary.Add(champion);
                     }
-                    champion.IconUri = await _gameResourceManager.GetChampoinIconByIdAsync(champion.Id);
-                    _championsSummary.Add(champion);
+                    Champions = CollectionViewSource.GetDefaultView(_championsSummary);
+                    SelectedChampion = _championsSummary.FirstOrDefault();
                 }
             }
-            Champions = CollectionViewSource.GetDefaultView(_championsSummary);
-            SelectedChampion = _championsSummary.FirstOrDefault();
-
             if (_allIcons is null)
             {
                 _allIcons = await _gameResourceManager.GetProfileIconsAsync();
-                _profileIcons = [];
-                CalculatePageCount(_selectdCount);
-                await UpdateImagesAsync(1, _selectdCount);
-                RaisePropertyChanged(nameof(ProfileIcons));
-                IsLoading = false;
+                if (_allIcons != null)
+                {
+                    _profileIcons = [];
+                    CalculatePageCount(_selectdCount);
+                    await UpdateImagesAsync(1, _selectdCount);
+                    RaisePropertyChanged(nameof(ProfileIcons));
+                    IsLoading = false;
+                }
             }
         }
 
