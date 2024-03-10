@@ -12,9 +12,17 @@
 
         public uint PerkId { get; set; }
 
+        public string PerkIcon { get; set; }
+
         public uint Spell1Id { get; set; }
 
+        public string Spell1Icon { get; set; }
+
         public uint Spell2Id { get; set; }
+
+        public string Spell2Icon { get; set; }
+
+        public string KDA { get; set; }
 
         public uint Assists { get; set; }
 
@@ -28,17 +36,30 @@
 
         public uint Item0 { get; set; }
 
+        public string Item0Icon { get; set; }
+
         public uint Item1 { get; set; }
+
+        public string Item1Icon { get; set; }
 
         public uint Item2 { get; set; }
 
+        public string Item2Icon { get; set; }
+
         public uint Item3 { get; set; }
 
+        public string Item3Icon { get; set; }
         public uint Item4 { get; set; }
+
+        public string Item4Icon { get; set; }
 
         public uint Item5 { get; set; }
 
+        public string Item5Icon { get; set; }
+
         public uint Item6 { get; set; }
+
+        public string Item6Icon { get; set; }
 
         public ulong TotalDamage { get; set; }
     }

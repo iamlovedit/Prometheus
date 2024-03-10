@@ -5,8 +5,10 @@ using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Shared.Models;
 using System.Collections.Generic;
 using System.Linq;
+using Team = Prometheus.Shared.Models.Team;
 
 namespace Prometheus.Shared.ViewModels
 {
@@ -14,9 +16,11 @@ namespace Prometheus.Shared.ViewModels
     {
         private bool _canEdit;
         private readonly IGameService _gameService;
+        private readonly IGameResourceManager _gameResourceManager;
         public MatchHistoryViewModel(IRegionManager regionManager, IContainerExtension containerExtension) : base(regionManager)
         {
             _gameService = containerExtension.Resolve<IGameService>();
+            _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
         }
 
         private List<Match> _matches;
@@ -40,63 +44,7 @@ namespace Prometheus.Shared.ViewModels
             set
             {
                 SetProperty(ref _matchDetail, value);
-                if (value != null)
-                {
-                    IsLoading = true;
-                    //var groups = _matchDetail.Participants.GroupBy(p => p.TeamId).OrderBy(g => g.Key).ToArray();
-                    //var blueGroup = groups[0].ToArray();
-                    //var purpleGroup = groups[1].ToArray();
-                    var bluePlayers = new List<Player>();
-                    var purplePlayers = new List<Player>();
 
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var identity = _matchDetail.ParticipantIdentities[i];
-                        var participants = _matchDetail.Participants[i];
-                        var player = new Player()
-                        {
-                            Id = (uint)identity.Player.SummonerId,
-                            Name = identity.Player.GameName,
-                            Win = participants.Stats.Win,
-                            PerkId = (uint)participants.Stats.Perk0,
-                            Kills = (uint)participants.Stats.Kills,
-                            Deaths = (uint)participants.Stats.Deaths,
-                            Assists = (uint)participants.Stats.Assists,
-                            GoldEarned = (uint)participants.Stats.GoldEarned,
-                            Spell1Id = (uint)participants.Spell1Id,
-                            Spell2Id = (uint)participants.Spell2Id,
-                            ChampLevel = (byte)participants.Stats.ChampLevel,
-                            Item0 = (byte)participants.Stats.Item0,
-                            Item1 = (byte)participants.Stats.Item1,
-                            Item2 = (byte)participants.Stats.Item2,
-                            Item3 = (byte)participants.Stats.Item3,
-                            Item4 = (byte)participants.Stats.Item4,
-                            Item5 = (byte)participants.Stats.Item5,
-                            Item6 = (byte)participants.Stats.Item6,
-                            TotalDamage = (ulong)participants.Stats.TotalDamageDealtToChampions
-                        };
-
-                        if (i > 4)
-                        {
-                            //purple team
-                            purplePlayers.Add(player);
-                        }
-                        else
-                        {
-                            bluePlayers.Add(player);
-                        }
-                    }
-                    BlueTeam = new Team
-                    {
-                        Players = bluePlayers,
-                    };
-
-                    PurPleTeam = new Team
-                    {
-                        Players = purplePlayers,
-                    };
-                    IsLoading = false;
-                }
             }
         }
 
@@ -136,6 +84,71 @@ namespace Prometheus.Shared.ViewModels
             if (obj is Match match)
             {
                 MatchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
+                if (_matchDetail != null)
+                {
+                    IsLoading = true;
+                    var bluePlayers = new List<Player>();
+                    var purplePlayers = new List<Player>();
+
+                    for (var i = 0; i < 10; i++)
+                    {
+                        var identity = _matchDetail.ParticipantIdentities[i];
+                        var participants = _matchDetail.Participants[i];
+                        var player = new Player()
+                        {
+                            ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(participants.ChampionId),
+                            Id = (uint)identity.Player.SummonerId,
+                            Name = identity.Player.GameName,
+                            Win = participants.Stats.Win,
+                            PerkId = (uint)participants.Stats.Perk0,
+                            PerkIcon = await _gameResourceManager.GetPerkIconByIdAsync(participants.Stats.Perk0),
+                            Kills = (uint)participants.Stats.Kills,
+                            Deaths = (uint)participants.Stats.Deaths,
+                            Assists = (uint)participants.Stats.Assists,
+                            GoldEarned = (uint)participants.Stats.GoldEarned,
+                            Spell1Id = (uint)participants.Spell1Id,
+                            Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(participants.Spell1Id),
+                            Spell2Id = (uint)participants.Spell2Id,
+                            Spell2Icon = await _gameResourceManager.GetSpellIconByIdAsync(participants.Spell2Id),
+                            ChampLevel = (byte)participants.Stats.ChampLevel,
+                            Item0 = (byte)participants.Stats.Item0,
+                            Item0Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item0),
+                            Item1 = (byte)participants.Stats.Item1,
+                            Item1Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item1),
+                            Item2 = (byte)participants.Stats.Item2,
+                            Item2Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item2),
+                            Item3 = (byte)participants.Stats.Item3,
+                            Item3Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item3),
+                            Item4 = (byte)participants.Stats.Item4,
+                            Item4Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item4),
+                            Item5 = (byte)participants.Stats.Item5,
+                            Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item5),
+                            Item6 = (byte)participants.Stats.Item6,
+                            Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item6),
+                            TotalDamage = (ulong)participants.Stats.TotalDamageDealtToChampions
+                        };
+
+                        if (i > 4)
+                        {
+                            //purple team
+                            purplePlayers.Add(player);
+                        }
+                        else
+                        {
+                            bluePlayers.Add(player);
+                        }
+                    }
+                    BlueTeam = new Team
+                    {
+                        Players = bluePlayers,
+                    };
+
+                    PurPleTeam = new Team
+                    {
+                        Players = purplePlayers,
+                    };
+                    IsLoading = false;
+                }
             }
         }
 
@@ -167,76 +180,5 @@ namespace Prometheus.Shared.ViewModels
             }
             MatchDetail = await _gameService.GetMatchDetailAsync(_selectedMatch.GameId);
         }
-    }
-
-
-    public class Team
-    {
-        public bool Win
-        {
-            get
-            {
-                return Players?.FirstOrDefault()?.Win ?? false;
-            }
-        }
-
-        private string _kda;
-        public string KDA
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(_kda))
-                {
-                    _kda = $"{Players.Sum(p => p.Kills)}/{Players.Sum(p => p.Deaths)}/{Players.Sum(p => p.Assists)}";
-                }
-                return _kda;
-            }
-
-        }
-
-        public uint Gold => (uint)Players.Sum(p => p.GoldEarned);
-
-        public List<Player> Players { get; set; }
-    }
-
-    public class Player
-    {
-        public bool Win { get; set; }
-
-        public uint Id { get; set; }
-
-        public string Name { get; set; }
-
-        public uint PerkId { get; set; }
-
-        public uint Spell1Id { get; set; }
-
-        public uint Spell2Id { get; set; }
-
-        public uint Assists { get; set; }
-
-        public byte ChampLevel { get; set; }
-
-        public uint Deaths { get; set; }
-
-        public uint Kills { get; set; }
-
-        public uint GoldEarned { get; set; }
-
-        public uint Item0 { get; set; }
-
-        public uint Item1 { get; set; }
-
-        public uint Item2 { get; set; }
-
-        public uint Item3 { get; set; }
-
-        public uint Item4 { get; set; }
-
-        public uint Item5 { get; set; }
-
-        public uint Item6 { get; set; }
-
-        public ulong TotalDamage { get; set; }
     }
 }
