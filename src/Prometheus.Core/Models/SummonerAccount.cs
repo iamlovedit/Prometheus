@@ -10,6 +10,8 @@ namespace Prometheus.Core.Models
 
         public string GameName { get; set; }
 
+        public string SummonerName { get; set; }
+
         public string InternalName { get; set; }
 
         public bool NameChangeFlag { get; set; }
