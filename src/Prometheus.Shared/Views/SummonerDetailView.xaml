@@ -236,7 +236,7 @@
                 <hc:LoadingCircle
                     Grid.Row="1"
                     Style="{DynamicResource LoadingBaseStyle}"
-                    Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                    Visibility="Collapsed" />
                 <ListBox
                     Grid.Row="1"
                     Margin="0,8,0,0"

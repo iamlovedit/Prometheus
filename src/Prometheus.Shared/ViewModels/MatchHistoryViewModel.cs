@@ -17,10 +17,12 @@ namespace Prometheus.Shared.ViewModels
         private bool _canEdit;
         private readonly IGameService _gameService;
         private readonly IGameResourceManager _gameResourceManager;
+        private readonly ISummonerService _summonerServices;
         public MatchHistoryViewModel(IRegionManager regionManager, IContainerExtension containerExtension) : base(regionManager)
         {
             _gameService = containerExtension.Resolve<IGameService>();
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
+            _summonerServices = containerExtension.Resolve<ISummonerService>();
         }
 
         private List<Match> _matches;
@@ -44,7 +46,6 @@ namespace Prometheus.Shared.ViewModels
             set
             {
                 SetProperty(ref _matchDetail, value);
-
             }
         }
 
@@ -75,6 +76,17 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _purpleTeam, value); }
         }
 
+        private DelegateCommand<Player> _summonerCommand;
+        public DelegateCommand<Player> SummonerCommand =>
+            _summonerCommand ?? (_summonerCommand = new DelegateCommand<Player>(ExecuteSummonerCommand));
+        async void ExecuteSummonerCommand(Player player)
+        {
+            var summoner = await _summonerServices.SearchSummonerByPuuid(player.Puuid);
+            if (summoner != null)
+            {
+                RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView);
+            }
+        }
 
         private DelegateCommand<object> _matchChangedCommand;
         public DelegateCommand<object> MatchChangedCommand =>
@@ -86,68 +98,7 @@ namespace Prometheus.Shared.ViewModels
                 MatchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
                 if (_matchDetail != null)
                 {
-                    IsLoading = true;
-                    var bluePlayers = new List<Player>();
-                    var purplePlayers = new List<Player>();
-
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var identity = _matchDetail.ParticipantIdentities[i];
-                        var participants = _matchDetail.Participants[i];
-                        var player = new Player()
-                        {
-                            ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(participants.ChampionId),
-                            Id = (uint)identity.Player.SummonerId,
-                            Name = identity.Player.GameName,
-                            Win = participants.Stats.Win,
-                            PerkId = (uint)participants.Stats.Perk0,
-                            PerkIcon = await _gameResourceManager.GetPerkIconByIdAsync(participants.Stats.Perk0),
-                            Kills = (uint)participants.Stats.Kills,
-                            Deaths = (uint)participants.Stats.Deaths,
-                            Assists = (uint)participants.Stats.Assists,
-                            GoldEarned = (uint)participants.Stats.GoldEarned,
-                            Spell1Id = (uint)participants.Spell1Id,
-                            Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(participants.Spell1Id),
-                            Spell2Id = (uint)participants.Spell2Id,
-                            Spell2Icon = await _gameResourceManager.GetSpellIconByIdAsync(participants.Spell2Id),
-                            ChampLevel = (byte)participants.Stats.ChampLevel,
-                            Item0 = (byte)participants.Stats.Item0,
-                            Item0Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item0),
-                            Item1 = (byte)participants.Stats.Item1,
-                            Item1Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item1),
-                            Item2 = (byte)participants.Stats.Item2,
-                            Item2Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item2),
-                            Item3 = (byte)participants.Stats.Item3,
-                            Item3Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item3),
-                            Item4 = (byte)participants.Stats.Item4,
-                            Item4Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item4),
-                            Item5 = (byte)participants.Stats.Item5,
-                            Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item5),
-                            Item6 = (byte)participants.Stats.Item6,
-                            Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item6),
-                            TotalDamage = (ulong)participants.Stats.TotalDamageDealtToChampions
-                        };
-
-                        if (i > 4)
-                        {
-                            //purple team
-                            purplePlayers.Add(player);
-                        }
-                        else
-                        {
-                            bluePlayers.Add(player);
-                        }
-                    }
-                    BlueTeam = new Team
-                    {
-                        Players = bluePlayers,
-                    };
-
-                    PurPleTeam = new Team
-                    {
-                        Players = purplePlayers,
-                    };
-                    IsLoading = false;
+                    UpdateDetail(_matchDetail);
                 }
             }
         }
@@ -179,6 +130,67 @@ namespace Prometheus.Shared.ViewModels
                 SelectedMatch = _matches.FirstOrDefault();
             }
             MatchDetail = await _gameService.GetMatchDetailAsync(_selectedMatch.GameId);
+            if (MatchDetail != null)
+            {
+                UpdateDetail(MatchDetail);
+            }
+        }
+
+        private async void UpdateDetail(MatchDetail match)
+        {
+            IsLoading = true;
+            var bluePlayers = new List<Player>();
+            var purplePlayers = new List<Player>();
+
+            for (var i = 0; i < 10; i++)
+            {
+                var identity = match.ParticipantIdentities[i];
+                var participants = match.Participants[i];
+                var player = new Player()
+                {
+                    ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(participants.ChampionId),
+                    Puuid = identity.Player.Puuid,
+                    Name = identity.Player.GameName,
+                    SummonerName = identity.Player.SummonerName,
+                    Win = participants.Stats.Win,
+                    PerkIcon = await _gameResourceManager.GetPerkIconByIdAsync(participants.Stats.Perk0),
+                    Kills = (uint)participants.Stats.Kills,
+                    Deaths = (uint)participants.Stats.Deaths,
+                    Assists = (uint)participants.Stats.Assists,
+                    GoldEarned = (uint)participants.Stats.GoldEarned,
+                    Spell1Icon = await _gameResourceManager.GetSpellIconByIdAsync(participants.Spell1Id),
+                    Spell2Icon = await _gameResourceManager.GetSpellIconByIdAsync(participants.Spell2Id),
+                    ChampLevel = (byte)participants.Stats.ChampLevel,
+                    Item0Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item0),
+                    Item1Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item1),
+                    Item2Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item2),
+                    Item3Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item3),
+                    Item4Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item4),
+                    Item5Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item5),
+                    Item6Icon = await _gameResourceManager.GetEquipmentIconByIdAsync(participants.Stats.Item6),
+                    TotalDamage = (ulong)participants.Stats.TotalDamageDealtToChampions
+                };
+
+                if (i > 4)
+                {
+                    //purple team
+                    purplePlayers.Add(player);
+                }
+                else
+                {
+                    bluePlayers.Add(player);
+                }
+            }
+            BlueTeam = new Team
+            {
+                Players = bluePlayers,
+            };
+
+            PurPleTeam = new Team
+            {
+                Players = purplePlayers,
+            };
+            IsLoading = false;
         }
     }
 }

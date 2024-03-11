@@ -103,6 +103,8 @@
                                 Grid.Column="1"
                                 Margin="4,0,0,0"
                                 HorizontalAlignment="Left"
+                                Command="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}, Path=DataContext.SummonerCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ListBoxItem}, Path=DataContext}"
                                 Content="{Binding Name}">
                                 <Button.Style>
                                     <Style BasedOn="{StaticResource ButtonBaseStyle}" TargetType="{x:Type Button}">
@@ -124,7 +126,7 @@
                             HorizontalAlignment="Left"
                             Damage="{Binding TotalDamage}"
                             Gold="{Binding GoldEarned}"
-                            KDA="{Binding Assists}" />
+                            KDA="{Binding KDA, Mode=OneWay}" />
                         <Grid
                             Grid.Column="2"
                             Margin="12,0,0,0"
