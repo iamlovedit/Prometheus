@@ -40,6 +40,9 @@
     <sys:String x:Key="Career.Rank.Tier.Grandmaster">宗师</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Challenger">王者</sys:String>
 
+    <sys:String x:Key="Career.Tips.BackMe">回到我</sys:String>
+    <sys:String x:Key="Career.Tips.SetSkin">设置生涯皮肤</sys:String>
+
     <sys:String x:Key="Career.Rank.Tier.QueueType">类型</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Count">场次</sys:String>
     <sys:String x:Key="Career.Rank.Tier.WinRate">胜率</sys:String>
