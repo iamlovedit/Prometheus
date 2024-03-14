@@ -16,6 +16,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
 {
     public class SummonerViewModel : RegionViewModelBase
     {
+        private SummonerAccount _summoner;
         private readonly ISummonerService _summonerService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IEventAggregator _eventAggregator;
@@ -29,7 +30,6 @@ namespace Prometheus.Modules.Summoner.ViewModels
             {21,("极限闪击","Nexus Blitz") },
             {30,("斗魂竞技场","Arena") },
         };
-
         public SummonerViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IContainerExtension containerExtension) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
@@ -55,14 +55,25 @@ namespace Prometheus.Modules.Summoner.ViewModels
 
         public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
-            var summoner = await _summonerService.GetCurrentSummoner();
-            if (summoner != null)
+            if (_summoner is null)
             {
-                var parameters = new NavigationParameters
+                if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
                 {
-                    {ParameterNames.Summoner,summoner},
+                    if (summoner != null)
+                    {
+                        _summoner = summoner;
+                    }
+                }
+                else
+                {
+                    _summoner = await _summonerService.GetCurrentSummoner();
+                }
+
+                var parameters = new NavigationParameters
+                  {
+                    {ParameterNames.Summoner,_summoner},
                     {ParameterNames.CanEdit,true}
-                };
+                  };
                 RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
             }
         }
