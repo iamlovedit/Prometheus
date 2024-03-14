@@ -75,13 +75,18 @@
                     hc:IconElement.Geometry="{StaticResource LookGeometry}"
                     ToolTip="{DynamicResource Career.Private}"
                     Visibility="{Binding IsPublic, Converter={StaticResource Boolean2VisibilityReConverter}}" />
-                <Button
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    hc:IconElement.Geometry="{StaticResource EditGeometry}"
-                    Command="{Binding ModifyCommand}"
-                    Visibility="{Binding CanModify, Converter={StaticResource Boolean2VisibilityConverter}}" />
-
+                <hc:SimplePanel HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button
+                        hc:IconElement.Geometry="{StaticResource EditGeometry}"
+                        Command="{Binding ModifyCommand}"
+                        ToolTip="{DynamicResource Career.Tips.SetSkin}"
+                        Visibility="{Binding CanModify, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                    <Button
+                        hc:IconElement.Geometry="{StaticResource BackGeometry}"
+                        Command="{Binding BackMeCommand}"
+                        ToolTip="{DynamicResource Career.Tips.BackMe}"
+                        Visibility="{Binding CanModify, Converter={StaticResource Boolean2VisibilityReConverter}}" />
+                </hc:SimplePanel>
                 <hc:UniformSpacingPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
                     <local:TierControl
                         Tier="{Binding Solo.DisplayTier}"

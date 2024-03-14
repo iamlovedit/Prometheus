@@ -316,7 +316,7 @@ namespace Prometheus.Shared.ViewModels
                 {ParameterNames.SelectedMatch,match},
                 {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
-            RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SearchContent, RegionNames.MatchHistoryView, parameters);
+            RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);
         }
 
         private DelegateCommand _modifyCommand;
@@ -335,6 +335,23 @@ namespace Prometheus.Shared.ViewModels
                 }
             });
         }
+
+        private DelegateCommand _backMeCommand;
+        public DelegateCommand BackMeCommand =>
+            _backMeCommand ?? (_backMeCommand = new DelegateCommand(ExecuteBackMeCommand));
+        async void ExecuteBackMeCommand()
+        {
+            var summoner = await _summonerService.GetCurrentSummoner();
+            var parameters = new NavigationParameters()
+            {
+                {ParameterNames.CanEdit,true},
+                {ParameterNames.Summoner,summoner},
+            };
+
+            RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
+        }
+
+
 
         private DelegateCommand _copyCommand;
         public DelegateCommand CopyCommand =>

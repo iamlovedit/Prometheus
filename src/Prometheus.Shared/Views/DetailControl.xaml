@@ -68,7 +68,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid Width="840">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="210" />
                             <ColumnDefinition Width="auto" />

@@ -84,7 +84,12 @@ namespace Prometheus.Shared.ViewModels
             var summoner = await _summonerServices.SearchSummonerByPuuid(player.Puuid);
             if (summoner != null)
             {
-                RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView);
+                var parameters = new NavigationParameters()
+                {
+                    {ParameterNames.Summoner,summoner },
+                    {ParameterNames.CanEdit,false }
+                };
+                RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
             }
         }
 
@@ -108,7 +113,7 @@ namespace Prometheus.Shared.ViewModels
             _backCommand ?? (_backCommand = new DelegateCommand(ExecuteBackCommand));
         void ExecuteBackCommand()
         {
-            RegionManager.Regions[_canEdit ? RegionNames.SummonerContent : RegionNames.SearchContent].NavigationService.Journal.GoBack();
+            RegionManager.Regions[RegionNames.SummonerContent].NavigationService.Journal.GoBack();
         }
 
         public override async void OnNavigatedTo(NavigationContext navigationContext)
