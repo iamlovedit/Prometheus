@@ -139,6 +139,11 @@ namespace Prometheus.Shared.ViewModels
             }
         }
 
+        public override void OnNavigatedFrom(NavigationContext navigationContext)
+        {
+            RecentMatches = null;
+        }
+
         public Rank[] Ranks { get; set; }
 
         private int _wins;
@@ -349,6 +354,14 @@ namespace Prometheus.Shared.ViewModels
             };
 
             RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
+        }
+
+        private DelegateCommand _refreshCommand;
+        public DelegateCommand RefershCommand =>
+            _refreshCommand ?? (_refreshCommand = new DelegateCommand(ExecuteRefershCommand));
+        void ExecuteRefershCommand()
+        {
+            //TODO:
         }
 
 

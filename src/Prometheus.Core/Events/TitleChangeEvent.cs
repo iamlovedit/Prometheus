@@ -1,4 +1,5 @@
 ﻿using Prism.Events;
+using Prometheus.Core.Models;
 
 namespace Prometheus.Core.Events
 {
@@ -22,6 +23,11 @@ namespace Prometheus.Core.Events
 
     }
     public class MatchStartEvent : PubSubEvent<bool>
+    {
+
+    }
+
+    public class SearchSummonerEvent : PubSubEvent<SummonerAccount>
     {
 
     }

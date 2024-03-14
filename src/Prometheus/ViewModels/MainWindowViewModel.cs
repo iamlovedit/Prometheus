@@ -16,6 +16,7 @@ using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System;
+using System.Windows.Controls.Primitives;
 
 namespace Prometheus.ViewModels
 {
@@ -25,6 +26,7 @@ namespace Prometheus.ViewModels
         private string _token;
         private string _port;
         private bool _connected;
+        private SummonerAccount _summoner = null;
         private readonly IRegionManager _regionManager;
         private readonly IEventAggregator _eventAggregator;
         private readonly IContainerExtension _containerExtension;
@@ -67,6 +69,12 @@ namespace Prometheus.ViewModels
                 {
                     _careerCommand?.Execute();
                 }
+            });
+
+            _eventAggregator.GetEvent<SearchSummonerEvent>().Subscribe(summoner =>
+            {
+                _summoner = summoner;
+                _careerCommand?.Execute();
             });
         }
 
@@ -133,7 +141,19 @@ namespace Prometheus.ViewModels
         void ExecuteCareerCommand()
         {
             LoadModule<SummonerModule>();
-            Navigate(MenuName.Career);
+
+            var parameters = new NavigationParameters()
+            {
+                {ParameterNames.Summoner,_summoner }
+            };
+            _regionManager.RequestNavigate(RegionNames.ContentRegion, MenuName.Career.ToString(), result =>
+            {
+                if (result.Result ?? false)
+                {
+                    var name = DisplayKeyAttribute.GetDisplayKey(MenuName.Career)?.GetDisplayValue();
+                    _eventAggregator.GetEvent<TitleChangeEvent>().Publish(name);
+                }
+            }, parameters);
         }
 
         private DelegateCommand _inventoryComamnd;

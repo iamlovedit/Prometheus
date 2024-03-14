@@ -38,6 +38,11 @@ namespace Prometheus.Modules.Summoner.ViewModels
             _summonerService = containerExtension.Resolve<ISummonerService>();
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
             _dialogService = containerExtension.Resolve<IDialogService>();
+
+            _eventAggregator.GetEvent<SearchSummonerEvent>().Subscribe(s =>
+            {
+                _summoner = null;
+            });
         }
 
         private void OnConnectHandler(bool isConnected)
@@ -59,7 +64,11 @@ namespace Prometheus.Modules.Summoner.ViewModels
             {
                 if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
                 {
-                    if (summoner != null)
+                    if (summoner is null)
+                    {
+                        _summoner = await _summonerService.GetCurrentSummoner();
+                    }
+                    else
                     {
                         _summoner = summoner;
                     }
@@ -69,12 +78,15 @@ namespace Prometheus.Modules.Summoner.ViewModels
                     _summoner = await _summonerService.GetCurrentSummoner();
                 }
 
-                var parameters = new NavigationParameters
-                  {
-                    {ParameterNames.Summoner,_summoner},
-                    {ParameterNames.CanEdit,true}
-                  };
-                RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
+                if (_summoner != null)
+                {
+                    var parameters = new NavigationParameters
+                        {
+                            {ParameterNames.Summoner,_summoner},
+                            {ParameterNames.CanEdit,true}
+                        };
+                    RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
+                }
             }
         }
     }
