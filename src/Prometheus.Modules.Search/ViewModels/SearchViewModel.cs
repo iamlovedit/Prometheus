@@ -1,6 +1,8 @@
 ﻿using Prism.Commands;
+using Prism.Events;
 using Prism.Regions;
 using Prometheus.Core;
+using Prometheus.Core.Events;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
@@ -12,10 +14,21 @@ namespace Prometheus.Modules.Search.ViewModels
     public class SearchViewModel : RegionViewModelBase
     {
         private readonly ISummonerService _summonerService;
-        public SearchViewModel(IRegionManager regionManager, ISummonerService summonerService) : base(regionManager)
+        private readonly IEventAggregator _eventAggregtor;
+        public SearchViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, ISummonerService summonerService) : base(regionManager)
         {
             _summonerService = summonerService;
+            _eventAggregtor = eventAggregator;
+
         }
+
+        private bool _hasSummoner = true;
+        public bool HasSummoner
+        {
+            get { return _hasSummoner; }
+            set { SetProperty(ref _hasSummoner, value); }
+        }
+
 
         private DelegateCommand<string> _searchCommand;
         public DelegateCommand<string> SearchCommand =>
@@ -29,21 +42,11 @@ namespace Prometheus.Modules.Search.ViewModels
                     return;
                 }
                 var summoner = await _summonerService.SearchSummonerByName(name);
-                if (summoner is null)
-                {
-                    RegionManager.RequestNavigate(RegionNames.SearchContent, RegionNames.UserNotFoundView);
-                    return;
-                }
-                var parameters = new NavigationParameters()
-                {
-                    {ParameterNames.Summoner,summoner},
-                    {ParameterNames.CanEdit,false }
-                };
-                RegionManager.RequestNavigate(RegionNames.SearchContent, RegionNames.SummonerDetailView, parameters);
+                _eventAggregtor.GetEvent<SearchSummonerEvent>().Publish(summoner);
             }
             catch (HttpRequestException)
             {
-                RegionManager.RequestNavigate(RegionNames.SearchContent, RegionNames.UserNotFoundView);
+                HasSummoner = false;
             }
             catch (TimeoutException e)
             {
@@ -53,6 +56,11 @@ namespace Prometheus.Modules.Search.ViewModels
             {
                 Log.Error(e.Message);
             }
+        }
+
+        public override void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            HasSummoner = true;
         }
     }
 }

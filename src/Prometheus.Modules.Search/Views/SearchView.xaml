@@ -5,6 +5,7 @@
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:local="clr-namespace:Prometheus.Modules.Search.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Search.ViewModels"
@@ -15,7 +16,7 @@
     mc:Ignorable="d">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
+            <RowDefinition Height="200" />
             <RowDefinition Height="12" />
             <RowDefinition />
         </Grid.RowDefinitions>
@@ -25,17 +26,22 @@
             CornerRadius="12">
             <hc:UniformSpacingPanel
                 Margin="0,8"
+                VerticalAlignment="Center"
                 ItemHorizontalAlignment="Center"
                 Orientation="Vertical"
-                VerticalSpacing="12">
+                VerticalSpacing="24">
                 <hc:SearchBar
                     Width="220"
+                    Height="36"
                     hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
                     hc:InfoElement.ShowClearButton="True"
                     Command="{Binding SearchCommand}"
                     CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
                     Style="{DynamicResource SearchBarPlus}" />
-                <TextBlock HorizontalAlignment="Center" Text="{DynamicResource Search.SearchNameTips}" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="14"
+                    Text="{DynamicResource Search.SearchNameTips}" />
             </hc:UniformSpacingPanel>
         </Border>
 
@@ -44,7 +50,7 @@
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1"
             CornerRadius="12">
-            <ContentControl Grid.Row="2" prism:RegionManager.RegionName="{x:Static core:RegionNames.SearchContent}" />
+            <local:NotFoundView Visibility="{Binding HasSummoner, Converter={StaticResource Boolean2VisibilityReConverter}}" />
         </Border>
     </Grid>
 </UserControl>
