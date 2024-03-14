@@ -43,6 +43,7 @@
 
     <sys:String x:Key="Career.Tips.BackMe">Back me</sys:String>
     <sys:String x:Key="Career.Tips.SetSkin">Set skin</sys:String>
+    <sys:String x:Key="Career.Tips.Refresh">Refresh</sys:String>
 
     <sys:String x:Key="Career.Rank.Tier.QueueType">Queue</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Count">Count</sys:String>
