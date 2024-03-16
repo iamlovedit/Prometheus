@@ -103,6 +103,7 @@
                 <Button
                     HorizontalAlignment="Left"
                     hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
+                    Command="{Binding PreviousPageCommand}"
                     DockPanel.Dock="Left"
                     IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
                 <TextBlock
@@ -112,6 +113,7 @@
                 <Button
                     HorizontalAlignment="Right"
                     hc:IconElement.Geometry="{DynamicResource NextGeometry}"
+                    Command="{Binding NextPageCommand}"
                     DockPanel.Dock="Right"
                     IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}" />
             </Grid>

@@ -119,11 +119,9 @@ namespace Prometheus.Shared.ViewModels
                     Mastery2 = masteries[1];
                     Mastery3 = masteries[2];
                 }
-                var mathchesJosn = await _summonerService.GetMatchsPageAsync(_summoner.Puuid, 0, 19);
-                if (!string.IsNullOrEmpty(mathchesJosn))
+                var matches = await _summonerService.GetMatchsAsync(_summoner.Puuid, 0, 19);
+                if (matches != null)
                 {
-                    var jObject = JObject.Parse(mathchesJosn);
-                    var matches = jObject["games"]["games"].ToObject<List<Match>>();
                     Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
                     var killed = matches.Sum(m => m.Participants[0].Stats.Kills);
                     var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
@@ -142,6 +140,7 @@ namespace Prometheus.Shared.ViewModels
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
             RecentMatches = null;
+            SelectedMatchTypeIndex = 0;
         }
 
         public Rank[] Ranks { get; set; }
@@ -295,6 +294,31 @@ namespace Prometheus.Shared.ViewModels
         void ExecuteMatchTypeChangedCommand()
         {
             //TODO:
+            switch (_selectedMatchTypeIndex)
+            {
+                case 1:
+                    _recentMatches.Filter = (@object) =>
+                    {
+                        if (@object is Match match)
+                        {
+                            return match.GameMode == "ARAM";
+                        }
+                        return true;
+                    };
+                    break;
+                case 2:
+                    break;
+                case 3:
+                    break;
+                case 4:
+                    break;
+                default:
+                    if (_recentMatches != null)
+                    {
+                        _recentMatches.Filter = null;
+                    }
+                    break;
+            }
         }
 
         private DelegateCommand _moreMatchCommand;
@@ -305,6 +329,7 @@ namespace Prometheus.Shared.ViewModels
             var parameters = new NavigationParameters()
             {
                 {ParameterNames.CanEdit,CanModify },
+                {ParameterNames.Summoner,_summoner },
                 {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
             RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SearchContent, RegionNames.MatchHistoryView, parameters);
@@ -319,6 +344,7 @@ namespace Prometheus.Shared.ViewModels
             {
                 {ParameterNames.CanEdit,CanModify },
                 {ParameterNames.SelectedMatch,match},
+                {ParameterNames.Summoner,_summoner },
                 {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
             RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);

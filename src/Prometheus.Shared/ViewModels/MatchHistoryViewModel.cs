@@ -15,6 +15,7 @@ namespace Prometheus.Shared.ViewModels
     public class MatchHistoryViewModel : RegionViewModelBase
     {
         private bool _canEdit;
+        private SummonerAccount _summoner;
         private readonly IGameService _gameService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly ISummonerService _summonerServices;
@@ -116,6 +117,35 @@ namespace Prometheus.Shared.ViewModels
             RegionManager.Regions[RegionNames.SummonerContent].NavigationService.Journal.GoBack();
         }
 
+        private DelegateCommand _nextPageCommand;
+        public DelegateCommand NextPageCommand =>
+            _nextPageCommand ?? (_nextPageCommand = new DelegateCommand(ExecuteNextPageCommand));
+        async void ExecuteNextPageCommand()
+        {
+            IsLoading = true;
+            CurrentPage++;
+            Matches = await _summonerServices.GetMatchsAsync(_summoner?.Puuid, 19, 28);
+            //TODO:
+            IsLoading = false;
+        }
+
+        private DelegateCommand _previousPageCommand;
+        public DelegateCommand PreviousPageCommand =>
+            _previousPageCommand ?? (_previousPageCommand = new DelegateCommand(ExecutePreviosPageCommand));
+        async void ExecutePreviosPageCommand()
+        {
+            if (_currentPage == 1)
+            {
+                return;
+            }
+            CurrentPage--;
+            IsLoading = true;
+            Matches = await _summonerServices.GetMatchsAsync(_summoner?.Puuid, 19, 28);
+            //TODO:
+            IsLoading = false;
+        }
+
+
         public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
             if (navigationContext.Parameters.TryGetValue(ParameterNames.Matches, out _matches))
@@ -126,6 +156,11 @@ namespace Prometheus.Shared.ViewModels
             {
 
             }
+            if (navigationContext.Parameters.TryGetValue(ParameterNames.Summoner, out _summoner))
+            {
+
+            }
+
             if (navigationContext.Parameters.TryGetValue<Match>(ParameterNames.SelectedMatch, out var match))
             {
                 SelectedMatch = match;
