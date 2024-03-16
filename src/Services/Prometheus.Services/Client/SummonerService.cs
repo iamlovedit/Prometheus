@@ -67,5 +67,21 @@ namespace Prometheus.Services.Client
                $"endIndex={end}",
             ]);
         }
+
+        public async Task<List<Match>> GetMatchsAsync(string puuid, int start, int end)
+        {
+            var mathchesJosn = await _httpService.GetAsync(string.Format($"lol-match-history/v1/products/lol/{puuid}/matches", puuid),
+            [
+               $"begIndex={start}",
+               $"endIndex={end}",
+            ]);
+
+            if (!string.IsNullOrEmpty(mathchesJosn))
+            {
+                var jObject = JObject.Parse(mathchesJosn);
+                return jObject["games"]["games"].ToObject<List<Match>>();
+            }
+            return default;
+        }
     }
 }

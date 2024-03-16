@@ -21,5 +21,7 @@ namespace Prometheus.Services.Interfaces.Client
         Task<List<ChampionMastery>> GetChampionMasteriesAsync(string puuid,int count);
 
         Task<string> GetMatchsPageAsync(string puuid, int start, int end);
+
+        Task<List<Match>> GetMatchsAsync(string puuid, int start, int end);
     }
 }
