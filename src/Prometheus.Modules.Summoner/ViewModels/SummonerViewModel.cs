@@ -62,11 +62,12 @@ namespace Prometheus.Modules.Summoner.ViewModels
         {
             if (_summoner is null)
             {
+                var currentSummoner = await _summonerService.GetCurrentSummoner();
                 if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
                 {
                     if (summoner is null)
                     {
-                        _summoner = await _summonerService.GetCurrentSummoner();
+                        _summoner = currentSummoner;
                     }
                     else
                     {
@@ -75,7 +76,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
                 }
                 else
                 {
-                    _summoner = await _summonerService.GetCurrentSummoner();
+                    _summoner = currentSummoner;
                 }
 
                 if (_summoner != null)
@@ -83,7 +84,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
                     var parameters = new NavigationParameters
                         {
                             {ParameterNames.Summoner,_summoner},
-                            {ParameterNames.CanEdit,true}
+                            {ParameterNames.CanEdit,_summoner.Puuid==currentSummoner.Puuid}
                         };
                     RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
                 }

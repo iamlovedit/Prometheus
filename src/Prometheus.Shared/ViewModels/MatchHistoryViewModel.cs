@@ -8,6 +8,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Team = Prometheus.Shared.Models.Team;
 
 namespace Prometheus.Shared.ViewModels
@@ -101,11 +102,13 @@ namespace Prometheus.Shared.ViewModels
         {
             if (obj is Match match)
             {
+                IsLoading = true;
                 MatchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
                 if (_matchDetail != null)
                 {
                     UpdateDetail(_matchDetail);
                 }
+                IsLoading = false;
             }
         }
 
@@ -124,8 +127,7 @@ namespace Prometheus.Shared.ViewModels
         {
             IsLoading = true;
             CurrentPage++;
-            Matches = await _summonerServices.GetMatchsAsync(_summoner?.Puuid, 19, 28);
-            //TODO:
+            await GetMatchesAsync(_summoner.Puuid, _currentPage);
             IsLoading = false;
         }
 
@@ -134,15 +136,34 @@ namespace Prometheus.Shared.ViewModels
             _previousPageCommand ?? (_previousPageCommand = new DelegateCommand(ExecutePreviosPageCommand));
         async void ExecutePreviosPageCommand()
         {
+            IsLoading = true;
             if (_currentPage == 1)
             {
                 return;
             }
             CurrentPage--;
-            IsLoading = true;
-            Matches = await _summonerServices.GetMatchsAsync(_summoner?.Puuid, 19, 28);
-            //TODO:
+            await GetMatchesAsync(_summoner.Puuid, _currentPage);
             IsLoading = false;
+        }
+
+        private async Task GetMatchesAsync(string puuid, int pageIndex)
+        {
+            var startIndex = pageIndex * 20 - 20;
+            var endIndex = pageIndex * 20 - 1;
+            Matches = await _summonerServices.GetMatchesAsync(puuid, startIndex, endIndex);
+            if (_matches != null)
+            {
+                _matches.ForEach(async m =>
+                {
+                    m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
+                });
+                SelectedMatch = Matches.FirstOrDefault();
+                MatchDetail = await _gameService.GetMatchDetailAsync(_selectedMatch.GameId);
+                if (_matchDetail != null)
+                {
+                    UpdateDetail(_matchDetail);
+                }
+            }
         }
 
 
@@ -170,15 +191,15 @@ namespace Prometheus.Shared.ViewModels
                 SelectedMatch = _matches.FirstOrDefault();
             }
             MatchDetail = await _gameService.GetMatchDetailAsync(_selectedMatch.GameId);
-            if (MatchDetail != null)
+            if (_matchDetail != null)
             {
-                UpdateDetail(MatchDetail);
+                UpdateDetail(_matchDetail);
             }
+            IsLoading = false;
         }
 
         private async void UpdateDetail(MatchDetail match)
         {
-            IsLoading = true;
             var bluePlayers = new List<Player>();
             var purplePlayers = new List<Player>();
 
@@ -230,7 +251,6 @@ namespace Prometheus.Shared.ViewModels
             {
                 Players = purplePlayers,
             };
-            IsLoading = false;
         }
     }
 }

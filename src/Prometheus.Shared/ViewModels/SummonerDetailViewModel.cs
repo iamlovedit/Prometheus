@@ -119,7 +119,7 @@ namespace Prometheus.Shared.ViewModels
                     Mastery2 = masteries[1];
                     Mastery3 = masteries[2];
                 }
-                var matches = await _summonerService.GetMatchsAsync(_summoner.Puuid, 0, 19);
+                var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19);
                 if (matches != null)
                 {
                     Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
@@ -332,7 +332,7 @@ namespace Prometheus.Shared.ViewModels
                 {ParameterNames.Summoner,_summoner },
                 {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
-            RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SearchContent, RegionNames.MatchHistoryView, parameters);
+            RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);
         }
 
         private DelegateCommand<Match> _matchDetailCommand;
@@ -383,9 +383,9 @@ namespace Prometheus.Shared.ViewModels
         }
 
         private DelegateCommand _refreshCommand;
-        public DelegateCommand RefershCommand =>
-            _refreshCommand ?? (_refreshCommand = new DelegateCommand(ExecuteRefershCommand));
-        void ExecuteRefershCommand()
+        public DelegateCommand RefreshCommand =>
+            _refreshCommand ?? (_refreshCommand = new DelegateCommand(ExecuteRefreshCommand));
+        void ExecuteRefreshCommand()
         {
             //TODO:
         }

@@ -89,7 +89,7 @@
                         Visibility="{Binding CanModify, Converter={StaticResource Boolean2VisibilityReConverter}}" />
                     <Button
                         hc:IconElement.Geometry="{StaticResource RefreshGeometry}"
-                        Command="{Binding RefershCommand}"
+                        Command="{Binding RefreshCommand}"
                         ToolTip="{DynamicResource Career.Tips.Refresh}" />
                 </hc:SimpleStackPanel>
                 <hc:UniformSpacingPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
