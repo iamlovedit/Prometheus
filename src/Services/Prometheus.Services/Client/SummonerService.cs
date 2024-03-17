@@ -59,16 +59,7 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync<SummonerAccount>($"lol-summoner/v2/summoners/puuid/{puuid}");
         }
 
-        public async Task<string> GetMatchsPageAsync(string puuid, int start, int end)
-        {
-            return await _httpService.GetAsync(string.Format($"lol-match-history/v1/products/lol/{puuid}/matches", puuid),
-            [
-               $"begIndex={start}",
-               $"endIndex={end}",
-            ]);
-        }
-
-        public async Task<List<Match>> GetMatchsAsync(string puuid, int start, int end)
+        public async Task<List<Match>> GetMatchesAsync(string puuid, int start, int end)
         {
             var mathchesJosn = await _httpService.GetAsync(string.Format($"lol-match-history/v1/products/lol/{puuid}/matches", puuid),
             [
