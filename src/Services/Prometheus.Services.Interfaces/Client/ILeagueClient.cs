@@ -12,5 +12,9 @@ namespace Prometheus.Services.Interfaces.Client
         event Action<OnWebsocketEventArgs> OnWebsocketEvent;
 
         bool Connected { get; }
+
+        string Port { get;protected set; }
+
+        string Token { get; protected set; }
     }
 }
