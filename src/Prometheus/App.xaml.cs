@@ -52,6 +52,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IGameResourceManager, GameResourceManager>();
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
+            containerRegistry.RegisterSingleton<ILeagueClient, LeagueClient>();
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
             containerRegistry.RegisterDialogWindow<DialogWindow>();
@@ -64,8 +65,12 @@ namespace Prometheus
             {
                 Directory.CreateDirectory(directory);
             }
+
             var subDirectories = new string[6]
-            { ParameterNames.Equipments, ParameterNames.Perks, ParameterNames.Skins, ParameterNames.Spells, ParameterNames.ChampoinIcon, ParameterNames.ProfileIcon };
+            {
+                ParameterNames.Equipments, ParameterNames.Perks, ParameterNames.Skins, ParameterNames.Spells,
+                ParameterNames.ChampoinIcon, ParameterNames.ProfileIcon
+            };
             foreach (var dirName in subDirectories)
             {
                 var subDir = Path.Combine(directory, dirName);
@@ -73,8 +78,10 @@ namespace Prometheus
                 {
                     Directory.CreateDirectory(subDir);
                 }
+
                 containerRegistry.RegisterInstance(subDir, dirName);
             }
+
             containerRegistry.RegisterInstance(directory, ParameterNames.LocalResourceDirectory);
         }
 
@@ -93,7 +100,7 @@ namespace Prometheus
         {
             var currentProcessName = Process.GetCurrentProcess().ProcessName;
             var existingProcess = Process.GetProcessesByName(currentProcessName)
-                                 .FirstOrDefault(p => p.Id != System.Environment.ProcessId);
+                .FirstOrDefault(p => p.Id != System.Environment.ProcessId);
             if (existingProcess != null)
             {
                 var mainWindowHandle = existingProcess.MainWindowHandle;
@@ -104,8 +111,10 @@ namespace Prometheus
             else
             {
                 Log.Logger = new LoggerConfiguration().WriteTo.File("log-.txt",
-                    rollingInterval: RollingInterval.Day,
-                    outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}").CreateLogger();
+                        rollingInterval: RollingInterval.Day,
+                        outputTemplate:
+                        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                    .CreateLogger();
                 base.OnStartup(e);
             }
         }
