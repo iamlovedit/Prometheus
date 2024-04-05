@@ -3,7 +3,9 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Security.Authentication;
+using System.Threading.Tasks;
 using WebSocketSharp;
 
 namespace Prometheus.Services.Client
@@ -18,6 +20,49 @@ namespace Prometheus.Services.Client
         public string Port { get; set; }
 
         public string Token { get; set; }
+
+        public int ProcessId { get; set; }
+
+        public void Subscribe(string uri, Action<OnWebsocketEventArgs> args)
+        {
+            if (_eventsMap.TryGetValue(uri, out var events))
+            {
+                events.Add(args);
+            }
+            else
+            {
+                _eventsMap.Add(uri, [args]);
+            }
+        }
+
+        public void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action)
+        {
+            if (_eventsMap.TryGetValue(uri, out var events))
+            {
+                if (events.Count == 1)
+                {
+                    _eventsMap.Remove(uri);
+                    return;
+                }
+
+                foreach (var item in events.ToArray())
+                {
+                    if (item != action)
+                    {
+                        continue;
+                    }
+
+                    var index = events.IndexOf(action);
+                    events.RemoveAt(index);
+                }
+            }
+        }
+
+        public async Task StartAsync()
+        {
+            TryConnectOrRetry();
+            await Task.Yield();
+        }
 
         public event Action OnConnected;
 
@@ -35,19 +80,23 @@ namespace Prometheus.Services.Client
                 {
                     return;
                 }
+
+                ProcessId = clientService.GetClientProcessId();
                 var argsMap = clientService.GetClientCommandLines();
                 if (argsMap is null)
                 {
                     return;
                 }
-                if (argsMap.TryGetValue("--app-port", out var port) && argsMap.TryGetValue("--remoting-auth-token", out var token))
+
+                if (argsMap.TryGetValue("--app-port", out var port) &&
+                    argsMap.TryGetValue("--remoting-auth-token", out var token))
                 {
                     Port = port;
                     Token = token;
 
                     _socketConnection = new WebSocket("wss://127.0.0.1:" + port + "/", "wamp");
 
-                    _socketConnection.SetCredentials("roit", token, true);
+                    _socketConnection.SetCredentials("riot", token, true);
                     _socketConnection.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
                     _socketConnection.SslConfiguration.ServerCertificateValidationCallback = (a, b, c, d) => true;
 
@@ -59,12 +108,28 @@ namespace Prometheus.Services.Client
 
                     OnConnected?.Invoke();
                 }
-
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 _connected = false;
+                if (!_connected)
+                {
+                    throw new InvalidOperationException(
+                        $"Exception occurred trying to connect to League of Legends: {e}");
+                }
             }
+        }
+
+        private void TryConnectOrRetry()
+        {
+            if (_connected)
+            {
+                return;
+            }
+
+            TryConnect();
+
+            Task.Delay(2000).ContinueWith(a => TryConnectOrRetry());
         }
 
         private void HandleMessageReceived(object sender, MessageEventArgs args)
@@ -73,6 +138,7 @@ namespace Prometheus.Services.Client
             {
                 return;
             }
+
             var payload = JArray.Parse(args.Data);
             if (payload.Count != 3)
             {
@@ -102,14 +168,7 @@ namespace Prometheus.Services.Client
             _connected = false;
             _socketConnection = null;
             OnDisconnected?.Invoke();
-        }
-
-
-        internal class ClientParameter
-        {
-            public string Port { get; set; }
-
-            public string Token { get; set; }
+            TryConnectOrRetry();
         }
     }
 }

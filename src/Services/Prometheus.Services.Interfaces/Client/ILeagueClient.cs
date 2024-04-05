@@ -1,5 +1,6 @@
 ﻿using Prometheus.Core.Models;
 using System;
+using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
 {
@@ -13,8 +14,16 @@ namespace Prometheus.Services.Interfaces.Client
 
         bool Connected { get; }
 
-        string Port { get;protected set; }
+        string Port { get; protected set; }
 
         string Token { get; protected set; }
+
+        int ProcessId { get; protected set; }
+
+        void Subscribe(string uri, Action<OnWebsocketEventArgs> args);
+
+        void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action);
+
+        Task StartAsync();
     }
 }
