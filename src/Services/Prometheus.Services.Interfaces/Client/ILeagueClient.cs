@@ -24,6 +24,6 @@ namespace Prometheus.Services.Interfaces.Client
 
         void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action);
 
-        Task StartAsync();
+        Task<bool> StartAsync();
     }
 }

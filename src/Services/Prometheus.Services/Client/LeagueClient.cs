@@ -3,7 +3,6 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Security.Authentication;
 using System.Threading.Tasks;
 using WebSocketSharp;
@@ -58,10 +57,11 @@ namespace Prometheus.Services.Client
             }
         }
 
-        public async Task StartAsync()
+        public async Task<bool> StartAsync()
         {
             TryConnectOrRetry();
             await Task.Yield();
+            return _connected;
         }
 
         public event Action OnConnected;
