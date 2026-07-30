@@ -99,26 +99,29 @@ namespace Prometheus.Shared.ViewModels
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
                 }
-                var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19);
-                if (matches != null)
+                var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19) ?? [];
+                var displayMatches = matches
+                    .Where(match => match?.Participants?.FirstOrDefault()?.Stats is not null)
+                    .ToList();
+                var participants = displayMatches
+                    .Select(match => match.Participants[0])
+                    .ToList();
+
+                Wins = participants.Count(participant => participant.Stats.Win);
+                Losses = participants.Count - Wins;
+                var killed = participants.Sum(participant => participant.Stats.Kills);
+                var deaths = participants.Sum(participant => participant.Stats.Deaths);
+                var assists = participants.Sum(participant => participant.Stats.Assists);
+                KDA = $"{killed}/{deaths}/{assists}";
+
+                var iconTasks = participants.Select(async participant =>
                 {
-                    Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
-                    var killed = matches.Sum(m => m.Participants[0].Stats.Kills);
-                    var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
-                    var assists = matches.Sum(m => m.Participants[0].Stats.Assists);
-                    KDA = $"{killed}/{deaths}/{assists}";
-                    var iconTasks = matches
-                        .Where(match => match.Participants?.Count > 0)
-                        .Select(async match =>
-                        {
-                            var participant = match.Participants[0];
-                            participant.ChampionIcon = await _gameResourceManager
-                                .GetChampoinIconByIdAsync(participant.ChampionId);
-                        });
-                    await Task.WhenAll(iconTasks);
-                    RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
-                    IsLoading = false;
-                }
+                    participant.ChampionIcon = await _gameResourceManager
+                        .GetChampoinIconByIdAsync(participant.ChampionId);
+                });
+                await Task.WhenAll(iconTasks);
+                RecentMatches = CollectionViewSource.GetDefaultView(displayMatches) as ListCollectionView;
+                IsLoading = false;
             }
         }
 
@@ -137,7 +140,6 @@ namespace Prometheus.Shared.ViewModels
             set
             {
                 SetProperty(ref _wins, value);
-                Losses = 20 - value;
             }
         }
 

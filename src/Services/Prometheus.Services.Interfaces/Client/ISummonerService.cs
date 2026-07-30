@@ -1,5 +1,6 @@
 ﻿using Prometheus.Core.Models;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
@@ -18,6 +19,12 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetBackdorpByIdAsync(long summonerId);
 
-        Task<List<Match>> GetMatchesAsync(string puuid, int start, int end);
+        /// <summary>
+        /// Gets a page of matches from
+        /// <c>lol-match-history/v1/products/lol/{puuid}/matches</c>.
+        /// Returns an empty list when LCU is unavailable or the response contains no games.
+        /// </summary>
+        Task<List<Match>> GetMatchesAsync(string puuid, int start, int end,
+            CancellationToken cancellationToken = default);
     }
 }

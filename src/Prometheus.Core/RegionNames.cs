@@ -18,15 +18,11 @@
 
         public const string SearchView = "Search";
 
-        public const string SettingTabRegion = "SettingTabRegion";
+        public const string SettingContentRegion = "SettingContentRegion";
 
-        public const string SettingGenericView = "SettingGenericView";
+        public const string SettingPreferenceView = "PreferenceView";
 
-        public const string SettingPreferenceView = "SettingPreferenceView";
-
-        public const string SettingSystemView = "SettingSystemView";
-
-        public const string SettingLogView = "SettingLogView";
+        public const string SettingLogView = "LogView";
 
         public const string SearchContent = "SearchContent";
 

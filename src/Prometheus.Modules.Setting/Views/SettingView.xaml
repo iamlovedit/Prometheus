@@ -1,23 +1,80 @@
-﻿<UserControl
+<UserControl
     x:Class="Prometheus.Modules.Setting.Views.SettingView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Setting.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:SettingViewModel}"
-    d:DesignHeight="600"
-    d:DesignWidth="400"
+    d:DesignHeight="760"
+    d:DesignWidth="1080"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <TabControl prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingTabRegion}" Style="{DynamicResource TabControlInLine}">
-        <TabControl.ItemTemplate>
-            <DataTemplate>
-                <TextBlock Text="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabItem}, Path=Content.DataContext.Title}" />
-            </DataTemplate>
-        </TabControl.ItemTemplate>
-    </TabControl>
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <Border
+            Padding="18,0"
+            Background="{DynamicResource RegionBrush}"
+            Style="{DynamicResource BackgroundBorder}">
+            <Grid>
+                <Grid Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityReConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="22"
+                            FontWeight="Bold"
+                            Text="{DynamicResource Setting.Title}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Text="{DynamicResource Setting.Description}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Command="{Binding OpenDiagnosticsCommand}"
+                        Content="{DynamicResource Setting.Diagnostics.Open}"
+                        Style="{DynamicResource ButtonIcon}" />
+                </Grid>
+
+                <Grid Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Button
+                        Margin="0,0,14,0"
+                        VerticalAlignment="Center"
+                        Command="{Binding OpenOverviewCommand}"
+                        Content="&#x2190;"
+                        FontSize="18"
+                        Style="{DynamicResource ButtonIcon}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="22"
+                            FontWeight="Bold"
+                            Text="{DynamicResource Setting.Diagnostics}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Text="{DynamicResource Setting.Diagnostics.Description}" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <ContentControl
+            Grid.Row="2"
+            prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingContentRegion}" />
+    </Grid>
 </UserControl>

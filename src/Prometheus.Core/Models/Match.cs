@@ -5,6 +5,16 @@ using System.Windows;
 
 namespace Prometheus.Core.Models
 {
+    public class MatchHistoryResponse
+    {
+        public MatchHistoryPage Games { get; set; }
+    }
+
+    public class MatchHistoryPage
+    {
+        public List<Match> Games { get; set; } = [];
+    }
+
     public class Match
     {
         public long GameId { get; set; }

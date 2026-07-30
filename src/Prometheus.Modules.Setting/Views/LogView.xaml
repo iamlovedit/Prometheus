@@ -27,6 +27,10 @@
                 Width="220"
                 hc:InfoElement.Placeholder="{DynamicResource Setting.Log.Search}"
                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Text="{DynamicResource Setting.Log.MinimumLevel}" />
             <ComboBox
                 Width="130"
                 SelectedIndex="{Binding MinimumLevelIndex}">
@@ -43,10 +47,25 @@
                 Content="{DynamicResource Setting.Log.AutoScroll}" />
             <ToggleButton
                 IsChecked="{Binding IsPaused}"
-                Content="{DynamicResource Setting.Log.Pause}" />
+                >
+                <TextBlock>
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Text" Value="{DynamicResource Setting.Log.Pause}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Resume}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </ToggleButton>
             <Button
                 Command="{Binding ClearCommand}"
-                Content="{DynamicResource Setting.Log.Clear}" />
+                Content="{DynamicResource Setting.Log.Clear}"
+                IsEnabled="{Binding HasAnyEntries}"
+                ToolTip="{DynamicResource Setting.Log.Clear.ToolTip}" />
             <TextBlock
                 VerticalAlignment="Center"
                 Foreground="{DynamicResource SecondaryTextBrush}"
@@ -66,7 +85,7 @@
                     ItemsSource="{Binding Entries}"
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                    Visibility="{Binding IsNotEmpty, Converter={StaticResource Boolean2VisibilityConverter}}"
+                    Visibility="{Binding HasVisibleEntries, Converter={StaticResource Boolean2VisibilityConverter}}"
                     VirtualizingPanel.IsVirtualizing="True"
                     VirtualizingPanel.VirtualizationMode="Recycling">
                     <ListBox.ItemContainerStyle>
@@ -180,7 +199,13 @@
                 VerticalAlignment="Center"
                 Foreground="{DynamicResource SecondaryTextBrush}"
                 Text="{DynamicResource Setting.Log.Empty}"
-                Visibility="{Binding IsEmpty, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                Visibility="{Binding IsLogEmpty, Converter={StaticResource Boolean2VisibilityConverter}}" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Text="{DynamicResource Setting.Log.NoResults}"
+                Visibility="{Binding HasNoFilterResults, Converter={StaticResource Boolean2VisibilityConverter}}" />
         </Grid>
     </Grid>
 </UserControl>

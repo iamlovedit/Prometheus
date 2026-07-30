@@ -21,11 +21,9 @@ namespace Prometheus.Modules.Setting.ViewModels
     /// </summary>
     public class LogViewModel : TabItemViewModelBase
     {
-        /// <summary>Matches the capacity configured on the singleton log history service.</summary>
-        private const int BufferCapacity = 1000;
-
         private readonly ILogHistoryService _logHistory;
         private readonly ObservableCollection<LogEntry> _allEntries;
+        private readonly int _bufferCapacity;
 
         protected override string TitleResourceKey { get; set; } = "Setting.Log";
 
@@ -36,6 +34,7 @@ namespace Prometheus.Modules.Setting.ViewModels
             : base(eventAggregator, resourceService)
         {
             _logHistory = logHistory;
+            _bufferCapacity = logHistory.Capacity;
             _allEntries = new ObservableCollection<LogEntry>(logHistory.GetSnapshot());
             TrimToCapacity();
 
@@ -120,9 +119,13 @@ namespace Prometheus.Modules.Setting.ViewModels
             private set => SetProperty(ref _filteredCount, value);
         }
 
-        public bool IsEmpty => FilteredCount == 0;
+        public bool HasVisibleEntries => FilteredCount > 0;
 
-        public bool IsNotEmpty => FilteredCount > 0;
+        public bool IsLogEmpty => TotalCount == 0;
+
+        public bool HasNoFilterResults => TotalCount > 0 && FilteredCount == 0;
+
+        public bool HasAnyEntries => TotalCount > 0;
 
         private string _countText;
         public string CountText
@@ -204,7 +207,7 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         private void TrimToCapacity()
         {
-            while (_allEntries.Count > BufferCapacity)
+            while (_allEntries.Count > _bufferCapacity)
             {
                 _allEntries.RemoveAt(0);
             }
@@ -215,14 +218,24 @@ namespace Prometheus.Modules.Setting.ViewModels
             TotalCount = _allEntries.Count;
             FilteredCount = Entries?.Count ?? 0;
             RefreshCountText();
-            RaisePropertyChanged(nameof(IsEmpty));
-            RaisePropertyChanged(nameof(IsNotEmpty));
+            RaisePropertyChanged(nameof(HasVisibleEntries));
+            RaisePropertyChanged(nameof(IsLogEmpty));
+            RaisePropertyChanged(nameof(HasNoFilterResults));
+            RaisePropertyChanged(nameof(HasAnyEntries));
         }
 
         private void RefreshCountText()
         {
             var format = ResourceService.FindResource<string>("Setting.Log.Count") ?? "{0} / {1}";
             CountText = string.Format(format, FilteredCount, TotalCount);
+        }
+
+        public override void Destroy()
+        {
+            _logHistory.EntryLogged -= HandleEntryLogged;
+            _logHistory.Cleared -= HandleCleared;
+            EventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(RefreshCountText);
+            base.Destroy();
         }
 
         private static void Dispatch(Action action)

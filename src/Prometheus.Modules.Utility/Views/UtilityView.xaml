@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="Prometheus.Modules.Utility.Views.UtilityView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,173 +10,259 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Utility.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:UtilityViewModel}"
-    d:DesignHeight="600"
-    d:DesignWidth="400"
+    d:DesignHeight="760"
+    d:DesignWidth="1080"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style TargetType="{x:Type Border}">
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
+        <Style x:Key="UtilityCard" TargetType="{x:Type Border}">
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        </Style>
+        <Style x:Key="FieldName" TargetType="{x:Type TextBlock}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        </Style>
+        <Style x:Key="CaptionText" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <local:DivisionConverter x:Key="DivisionConverter" />
         <local:ReDivisionConverter x:Key="ReDivisionConverter" />
         <local:TierShowConverter x:Key="TierShowConverter" />
     </UserControl.Resources>
-    <TabControl Style="{DynamicResource TabControlInLine}">
-        <TabItem Header="{DynamicResource Utility.Game}">
-            <hc:UniformSpacingPanel
-                Margin="12"
-                Orientation="Vertical"
-                VerticalSpacing="12">
-                <Border>
-                    <Grid Margin="12,0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="36" />
-                            <RowDefinition Height="36" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{DynamicResource Utility.AutoAccept}" />
-                        <ToggleButton
-                            Grid.Column="1"
-                            HorizontalAlignment="Right"
-                            IsChecked="{Binding AutoAccept}"
-                            Style="{DynamicResource ToggleButtonSwitch}" />
-                        <TextBlock Grid.Row="1" Text="{DynamicResource Utility.AutoReconnect}" />
-                        <ToggleButton
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            HorizontalAlignment="Right"
-                            IsChecked="{Binding AutoReconnect}"
-                            Style="{DynamicResource ToggleButtonSwitch}" />
-                    </Grid>
-                </Border>
-                <Expander
-                    Header="{DynamicResource Utility.SelectChampion}"
-                    IsExpanded="True"
-                    Visibility="Collapsed">
-                    <Border Margin="0,8">
-                        <hc:UniformSpacingPanel
-                            Margin="8,8,12,8"
-                            HorizontalAlignment="Right"
-                            HorizontalSpacing="12"
-                            Orientation="Horizontal">
-                            <ComboBox
-                                Width="180"
-                                hc:InfoElement.ShowClearButton="True"
-                                IsEditable="True"
-                                Style="{DynamicResource ComboBoxExtend}" />
+
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <Border
+            Padding="18,0"
+            Background="{DynamicResource RegionBrush}"
+            Style="{DynamicResource BackgroundBorder}">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    FontSize="22"
+                    FontWeight="Bold"
+                    Text="{DynamicResource Menu.Utility}" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Text="{DynamicResource Utility.Description}" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer
+            Grid.Row="2"
+            HorizontalContentAlignment="Stretch"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <Grid
+                Margin="0,0,0,16"
+                HorizontalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource UtilityCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="18" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="12" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="16" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Utility.CreateLobby}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Style="{StaticResource CaptionText}"
+                                    Text="{DynamicResource Utility.CreateLobby.Description}" />
+                            </StackPanel>
+
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource FieldName}" Text="{DynamicResource Utility.CreateLobby.Name}" />
+                                <TextBox
+                                    Grid.Column="1"
+                                    Width="260"
+                                    hc:InfoElement.Necessary="True"
+                                    hc:InfoElement.ShowClearButton="True"
+                                    Style="{DynamicResource TextBoxExtend}"
+                                    Text="{Binding LobbyName, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
+                            <Grid Grid.Row="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource FieldName}" Text="{DynamicResource Utility.CreateLobby.Password}" />
+                                <TextBox
+                                    Grid.Column="1"
+                                    Width="260"
+                                    hc:InfoElement.ShowClearButton="True"
+                                    Style="{DynamicResource TextBoxExtend}"
+                                    Text="{Binding LobbyPassword, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+
                             <Button
-                                Width="80"
-                                Command="{Binding ConfigChampionCommand}"
-                                Content="{DynamicResource Generic.Comfirm}"
-                                Style="{DynamicResource ButtonPrimary}" />
-                        </hc:UniformSpacingPanel>
-                    </Border>
-                </Expander>
-                <Expander Header="{DynamicResource Utility.CreateLobby}" IsExpanded="True">
-                    <Border Margin="0,8">
-                        <hc:UniformSpacingPanel
-                            Margin="8"
-                            Orientation="Vertical"
-                            VerticalSpacing="8">
-                            <TextBox
-                                Width="400"
-                                hc:InfoElement.Necessary="True"
-                                hc:InfoElement.TitleWidth="120"
-                                hc:TitleElement.Title="{DynamicResource Utility.CreateLobby.Name}"
-                                hc:TitleElement.TitlePlacement="Left"
-                                Style="{DynamicResource TextBoxExtend}"
-                                Text="{Binding LobbyName}" />
-                            <TextBox
-                                Width="400"
-                                hc:InfoElement.TitleWidth="120"
-                                hc:TitleElement.Title="{DynamicResource Utility.CreateLobby.Password}"
-                                hc:TitleElement.TitlePlacement="Left"
-                                Style="{DynamicResource TextBoxExtend}"
-                                Text="{Binding LobbyPassword}" />
-                            <Button
-                                Width="80"
+                                Grid.Row="6"
+                                MinWidth="100"
+                                HorizontalAlignment="Right"
                                 Command="{Binding CreateLobbyCommand}"
-                                Content="{DynamicResource Generic.Comfirm}"
+                                Content="{DynamicResource Utility.CreateLobby.Action}"
                                 Style="{DynamicResource ButtonPrimary}" />
-                        </hc:UniformSpacingPanel>
+                        </Grid>
                     </Border>
 
-                </Expander>
-            </hc:UniformSpacingPanel>
-        </TabItem>
-        <TabItem Header="{DynamicResource Utility.Profile}">
-            <hc:UniformSpacingPanel
-                Margin="12"
-                Orientation="Vertical"
-                VerticalSpacing="12">
-                <Border>
-                    <DockPanel Margin="12,8" LastChildFill="True">
-                        <TextBlock Text="{DynamicResource Chat.Status.Tips}" />
-                        <hc:ComboBox
-                            Width="200"
-                            HorizontalAlignment="Right"
-                            SelectedIndex="{Binding SelectedStatusIndex}"
-                            Style="{DynamicResource ComboBoxExtend}">
-                            <ComboBoxItem Content="{DynamicResource Chat.Status.Chat}" />
-                            <ComboBoxItem Content="{DynamicResource Chat.Status.Away}" />
-                            <ComboBoxItem Content="{DynamicResource Chat.Status.Offline}" />
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="SelectionChanged">
-                                    <prism:InvokeCommandAction Command="{Binding ChatStatusChangedCommand}" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                        </hc:ComboBox>
-                    </DockPanel>
-                </Border>
-                <Border>
-                    <DockPanel Margin="12,8" LastChildFill="True">
-                        <TextBox
-                            Width="400"
-                            hc:TitleElement.Title="{DynamicResource Utility.Profile.Status}"
-                            hc:TitleElement.TitlePlacement="Left"
-                            Style="{DynamicResource TextBoxExtend}"
-                            Text="{Binding Status}" />
-                        <Button
-                            Width="80"
-                            HorizontalAlignment="Right"
-                            Command="{Binding StatusComfirmStatus}"
-                            Content="{DynamicResource Generic.Comfirm}"
-                            Style="{DynamicResource ButtonPrimary}" />
-                    </DockPanel>
-                </Border>
+                    <Border Grid.Column="2" Style="{StaticResource UtilityCard}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="18" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="14" />
+                                <RowDefinition Height="1" />
+                                <RowDefinition Height="14" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Utility.Profile}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Style="{StaticResource CaptionText}"
+                                    Text="{DynamicResource Utility.Profile.Description}" />
+                            </StackPanel>
 
-                <Expander Header="{DynamicResource Chat.Tier.TierShow}" IsExpanded="True">
-                    <Border Margin="0,8,0,0">
-                        <hc:UniformSpacingPanel
-                            Margin="8,12,12,12"
-                            Orientation="Vertical"
-                            VerticalSpacing="8">
-                            <DockPanel LastChildFill="True">
-                                <TextBlock Text="{DynamicResource Match.Rank.Mode}" />
-                                <ComboBox
-                                    Width="200"
-                                    HorizontalAlignment="Right"
-                                    SelectedIndex="{Binding SelectedModeIndex, Mode=OneWayToSource}">
+                            <Grid Grid.Row="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource FieldName}" Text="{DynamicResource Chat.Status.Tips}" />
+                                    <TextBlock
+                                        Margin="0,3,0,0"
+                                        Style="{StaticResource CaptionText}"
+                                        Text="{DynamicResource Chat.Status.Description}" />
+                                </StackPanel>
+                                <hc:ComboBox
+                                    Grid.Column="1"
+                                    Width="220"
+                                    VerticalAlignment="Center"
+                                    SelectedIndex="{Binding SelectedStatusIndex, Mode=TwoWay}"
+                                    Style="{DynamicResource ComboBoxExtend}">
+                                    <ComboBoxItem Content="{DynamicResource Chat.Status.Chat}" />
+                                    <ComboBoxItem Content="{DynamicResource Chat.Status.Away}" />
+                                    <ComboBoxItem Content="{DynamicResource Chat.Status.Offline}" />
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="SelectionChanged">
+                                            <prism:InvokeCommandAction Command="{Binding ChatStatusChangedCommand}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </hc:ComboBox>
+                            </Grid>
+
+                            <Border
+                                Grid.Row="4"
+                                Background="{DynamicResource BorderBrush}" />
+
+                            <Grid Grid.Row="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource FieldName}" Text="{DynamicResource Utility.Profile.Status}" />
+                                    <TextBlock
+                                        Margin="0,3,0,0"
+                                        Style="{StaticResource CaptionText}"
+                                        Text="{DynamicResource Utility.Profile.Status.Description}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <TextBox
+                                        Width="220"
+                                        Style="{DynamicResource TextBoxExtend}"
+                                        Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" />
+                                    <Button
+                                        MinWidth="80"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding ConfirmStatusCommand}"
+                                        Content="{DynamicResource Utility.Profile.Action}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Row="2" Style="{StaticResource UtilityCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="18" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Chat.Tier.TierShow}" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                Style="{StaticResource CaptionText}"
+                                Text="{DynamicResource Utility.Tier.Description}" />
+                        </StackPanel>
+
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Margin="0,0,0,7" Style="{StaticResource FieldName}" Text="{DynamicResource Match.Rank.Mode}" />
+                                <ComboBox SelectedIndex="{Binding SelectedModeIndex, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Match.Rank.TFT}" />
                                     <ComboBoxItem Content="{DynamicResource Match.Rank.Solo}" />
                                     <ComboBoxItem Content="{DynamicResource Match.Rank.Flex}" />
                                 </ComboBox>
-                            </DockPanel>
-                            <DockPanel LastChildFill="True">
-                                <TextBlock Text="{DynamicResource Match.Rank.Tier}" />
-                                <ComboBox
-                                    Width="200"
-                                    HorizontalAlignment="Right"
-                                    SelectedIndex="{Binding SelectedTierIndex, Mode=OneWayToSource}">
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Margin="0,0,0,7" Style="{StaticResource FieldName}" Text="{DynamicResource Match.Rank.Tier}" />
+                                <ComboBox SelectedIndex="{Binding SelectedTierIndex, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Unranked}" />
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Iron}" />
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Bronze}" />
@@ -189,30 +275,41 @@
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Grandmaster}" />
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Challenger}" />
                                 </ComboBox>
-                            </DockPanel>
-                            <DockPanel LastChildFill="True" Visibility="{Binding SelectedTierIndex, Converter={StaticResource TierShowConverter}}">
-                                <TextBlock VerticalAlignment="Center" Text="{DynamicResource Match.Rank.Division}" />
-                                <Grid Width="200" HorizontalAlignment="Right">
-                                    <ComboBox SelectedIndex="0" Visibility="{Binding SelectedTierIndex, Converter={StaticResource ReDivisionConverter}}">
+                            </StackPanel>
+
+                            <StackPanel
+                                Grid.Column="4"
+                                Visibility="{Binding SelectedTierIndex, Converter={StaticResource TierShowConverter}}">
+                                <TextBlock Margin="0,0,0,7" Style="{StaticResource FieldName}" Text="{DynamicResource Match.Rank.Division}" />
+                                <Grid>
+                                    <ComboBox
+                                        IsEnabled="False"
+                                        SelectedIndex="0"
+                                        Visibility="{Binding SelectedTierIndex, Converter={StaticResource ReDivisionConverter}}">
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.NA}" />
                                     </ComboBox>
-                                    <ComboBox SelectedIndex="{Binding SelectedDivisionIndex, Mode=OneWayToSource}" Visibility="{Binding SelectedTierIndex, Converter={StaticResource DivisionConverter}}">
+                                    <ComboBox
+                                        SelectedIndex="{Binding SelectedDivisionIndex, Mode=TwoWay}"
+                                        Visibility="{Binding SelectedTierIndex, Converter={StaticResource DivisionConverter}}">
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.I}" />
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.II}" />
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.III}" />
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.IV}" />
                                     </ComboBox>
                                 </Grid>
-                            </DockPanel>
+                            </StackPanel>
+
                             <Button
-                                Width="80"
-                                Command="{Binding TierComfirmCommand}"
-                                Content="{DynamicResource Generic.Comfirm}"
+                                Grid.Column="6"
+                                MinWidth="100"
+                                VerticalAlignment="Bottom"
+                                Command="{Binding ApplyTierCommand}"
+                                Content="{DynamicResource Utility.Tier.Action}"
                                 Style="{DynamicResource ButtonPrimary}" />
-                        </hc:UniformSpacingPanel>
-                    </Border>
-                </Expander>
-            </hc:UniformSpacingPanel>
-        </TabItem>
-    </TabControl>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

@@ -207,19 +207,47 @@ namespace Prometheus.Services.Client
 
         public async Task<string> GetPerkIconByIdAsync(int perkId)
         {
+            if (perkId <= 0)
+            {
+                return default;
+            }
+
             var directory = GetDirectory(ParameterNames.Perks);
             var iconPath = Path.Combine(directory, $"{perkId}.png");
-            if (!File.Exists(iconPath))
+            if (File.Exists(iconPath))
+            {
+                return iconPath;
+            }
+
+            try
             {
                 if (_perks is null)
                 {
-                    _perks = await GetPerksAsync();
+                    var perks = await GetPerksAsync().ConfigureAwait(false);
+                    if (perks is null || perks.Count == 0)
+                    {
+                        Log.Warning("Unable to load perk metadata for perk {PerkId}", perkId);
+                        return default;
+                    }
+
+                    _perks = perks;
                 }
+
                 var perk = _perks.FirstOrDefault(p => p.Id == perkId);
-                //TODO:default icon
-                await DownloadAsync(perk.IconPath, iconPath);
+                if (string.IsNullOrWhiteSpace(perk?.IconPath))
+                {
+                    Log.Warning("LCU perk metadata does not contain perk {PerkId}", perkId);
+                    return default;
+                }
+
+                await DownloadAsync(perk.IconPath, iconPath).ConfigureAwait(false);
+                return iconPath;
             }
-            return iconPath;
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load perk icon {PerkId}", perkId);
+                return default;
+            }
         }
 
         private string GetDirectory(string directoryName)

@@ -2,7 +2,12 @@
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using Newtonsoft.Json;
+using Serilog;
+using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -10,35 +15,47 @@ namespace Prometheus.Services.Client
 {
     public class SummonerService : ISummonerService
     {
+        private const string CurrentSummonerEndpoint = "lol-summoner/v1/current-summoner";
+        private const string SummonerByNameEndpoint = "lol-summoner/v1/summoners";
+        private const string SummonerByPuuidEndpoint = "lol-summoner/v2/summoners/puuid/{0}";
+        private const string RankedStatsEndpoint = "lol-ranked/v1/ranked-stats/{0}";
+        private const string MatchHistoryEndpoint =
+            "lol-match-history/v1/products/lol/{0}/matches";
+        private const string BackdropEndpoint =
+            "lol-collections/v1/inventories/{0}/backdrop";
+
         private readonly IHttpService _httpService;
+
         public SummonerService(IHttpService httpService)
         {
-            _httpService = httpService;
+            _httpService = httpService ?? throw new ArgumentNullException(nameof(httpService));
         }
 
         public async Task<string> GetBackdorpByIdAsync(long summonerId)
         {
-            return await _httpService.GetAsync($"lol-collections/v1/inventories/{summonerId}/backdrop");
+            return await _httpService.GetAsync(string.Format(BackdropEndpoint, summonerId));
         }
 
         public async Task<SummonerAccount> GetCurrentSummoner()
         {
-            return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/current-summoner");
+            return await _httpService.GetAsync<SummonerAccount>(CurrentSummonerEndpoint);
         }
 
         public async Task<string> GetRankStatsByPuuid(string puuid)
         {
-            return await _httpService.GetAsync($"lol-ranked/v1/ranked-stats/{puuid}");
+            return await _httpService.GetAsync(string.Format(
+                RankedStatsEndpoint, Uri.EscapeDataString(puuid)));
         }
 
         public async Task<string> GetRecentMatchesByPuuid(string puuid)
         {
-            return await _httpService.GetAsync($"lol-match-history/v1/products/lol/{puuid}/matches");
+            return await _httpService.GetAsync(string.Format(
+                MatchHistoryEndpoint, Uri.EscapeDataString(puuid)));
         }
 
         public async Task<SummonerAccount> SearchSummonerByName(string nickname)
         {
-            return await _httpService.GetAsync<SummonerAccount>("lol-summoner/v1/summoners",
+            return await _httpService.GetAsync<SummonerAccount>(SummonerByNameEndpoint,
             [
                $"name={HttpUtility.UrlEncode(nickname)}"
             ]);
@@ -46,23 +63,39 @@ namespace Prometheus.Services.Client
 
         public async Task<SummonerAccount> SearchSummonerByPuuid(string puuid)
         {
-            return await _httpService.GetAsync<SummonerAccount>($"lol-summoner/v2/summoners/puuid/{puuid}");
+            return await _httpService.GetAsync<SummonerAccount>(string.Format(
+                SummonerByPuuidEndpoint, Uri.EscapeDataString(puuid)));
         }
 
-        public async Task<List<Match>> GetMatchesAsync(string puuid, int start, int end)
+        public async Task<List<Match>> GetMatchesAsync(string puuid, int start, int end,
+            CancellationToken cancellationToken = default)
         {
-            var mathchesJosn = await _httpService.GetAsync(string.Format($"lol-match-history/v1/products/lol/{puuid}/matches", puuid),
-            [
-               $"begIndex={start}",
-               $"endIndex={end}",
-            ]);
-
-            if (!string.IsNullOrEmpty(mathchesJosn))
+            if (string.IsNullOrWhiteSpace(puuid) || start < 0 || end < start)
             {
-                var jObject = JObject.Parse(mathchesJosn);
-                return jObject["games"]["games"].ToObject<List<Match>>();
+                return [];
             }
-            return default;
+
+            try
+            {
+                var response = await _httpService.GetAsync<MatchHistoryResponse>(
+                    string.Format(MatchHistoryEndpoint, Uri.EscapeDataString(puuid)),
+                    [
+                        $"begIndex={start}",
+                        $"endIndex={end}"
+                    ], cancellationToken).ConfigureAwait(false);
+
+                return response?.Games?.Games ?? [];
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Error(exception, "Unable to load LCU match history");
+                return [];
+            }
+            catch (JsonException exception)
+            {
+                Log.Error(exception, "Unable to parse LCU match history");
+                return [];
+            }
         }
     }
 }

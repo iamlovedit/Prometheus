@@ -20,7 +20,9 @@ namespace Prometheus.Modules.Utility.Views
         {
             if (value is int tierIndex)
             {
-                return tierIndex <= 7 ? Visibility.Visible : Visibility.Collapsed;
+                return tierIndex is >= 1 and <= 7
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             }
             return Visibility.Collapsed;
         }
@@ -37,7 +39,9 @@ namespace Prometheus.Modules.Utility.Views
         {
             if (value is int tierIndex)
             {
-                return tierIndex > 7 ? Visibility.Visible : Visibility.Collapsed;
+                return tierIndex is >= 8 and <= 10
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             }
             return Visibility.Collapsed;
         }
@@ -54,7 +58,9 @@ namespace Prometheus.Modules.Utility.Views
         {
             if (value is int tierIndex)
             {
-                return tierIndex != 0 ? Visibility.Visible : Visibility.Collapsed;
+                return tierIndex is >= 1 and <= 10
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             }
             return Visibility.Collapsed;
         }

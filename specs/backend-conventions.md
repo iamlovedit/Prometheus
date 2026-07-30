@@ -211,6 +211,8 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 
 - 使用 **Serilog**（`Log.Error(ex, ...)`），禁止 `Console.WriteLine` / `Debug.WriteLine` 进入正式代码。
 - 日志中不得出现 token（§3.3）、不得打印完整响应体中的用户隐私字段。
+- 具有业务意义的玩家操作、自动化动作和其执行结果还必须遵守
+  [玩家操作日志规范](./player-operation-logging.md)。
 
 ---
 

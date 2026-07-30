@@ -1,4 +1,4 @@
-﻿using HandyControl.Controls;
+using HandyControl.Controls;
 using Prism.Commands;
 using Prism.Regions;
 using Prometheus.Core.Models;
@@ -13,234 +13,209 @@ namespace Prometheus.Modules.Utility.ViewModels
 {
     public class UtilityViewModel : RegionViewModelBase
     {
-        private readonly static Dictionary<int, string> _statusMap = new()
+        private static readonly Dictionary<int, string> _statusMap = new()
         {
-            {0,"chat"},
-            {1,"away"},
-            {2,"offline"},
-        };
-        private readonly static Dictionary<int, Tier> _tierMap = new()
-        {
-            {0,Tier.UNRANKED },
-            {1,Tier.IRON },
-            {2,Tier.BRONZE },
-            {3,Tier.SILVER },
-            {4,Tier.GOLD },
-            {5,Tier.PLATINUM },
-            {6,Tier.EMERALD },
-            {7,Tier.DIAMOND },
-            {8,Tier.MASTER },
-            {9,Tier.GRANDMASTER },
-            {10,Tier.CHALLENGER },
-        };
-        private readonly static Dictionary<int, QueueType> _ququeMap = new()
-        {
-            {0,QueueType.RANKED_TFT },
-            {1,QueueType.RANKED_SOLO_5x5 },
-            {2,QueueType.RANKED_FLEX_SR},
-        };
-        private readonly static Dictionary<int, Division> _divsionMap = new()
-        {
-            {-1,Division.NA },
-            {0,Division.I },
-            {1,Division.II },
-            {2,Division.III},
-            {3,Division.IV},
+            { 0, "chat" },
+            { 1, "away" },
+            { 2, "offline" }
         };
 
+        private static readonly Dictionary<int, Tier> _tierMap = new()
+        {
+            { 0, Tier.UNRANKED },
+            { 1, Tier.IRON },
+            { 2, Tier.BRONZE },
+            { 3, Tier.SILVER },
+            { 4, Tier.GOLD },
+            { 5, Tier.PLATINUM },
+            { 6, Tier.EMERALD },
+            { 7, Tier.DIAMOND },
+            { 8, Tier.MASTER },
+            { 9, Tier.GRANDMASTER },
+            { 10, Tier.CHALLENGER }
+        };
 
-        private readonly IClientService _clientService;
+        private static readonly Dictionary<int, QueueType> _queueMap = new()
+        {
+            { 0, QueueType.RANKED_TFT },
+            { 1, QueueType.RANKED_SOLO_5x5 },
+            { 2, QueueType.RANKED_FLEX_SR }
+        };
+
+        private static readonly Dictionary<int, Division> _divisionMap = new()
+        {
+            { -1, Division.NA },
+            { 0, Division.I },
+            { 1, Division.II },
+            { 2, Division.III },
+            { 3, Division.IV }
+        };
+
         private readonly IResourceService _resourceService;
         private readonly IGameService _gameService;
-        private readonly IGameAutomationSettings _automationSettings;
 
-        public UtilityViewModel(IRegionManager regionManager, IClientService clientService,
+        public UtilityViewModel(
+            IRegionManager regionManager,
             IResourceService resourceService,
-            IGameService gameService,
-            IGameAutomationSettings automationSettings) : base(regionManager)
+            IGameService gameService)
+            : base(regionManager)
         {
-            _clientService = clientService;
             _resourceService = resourceService;
             _gameService = gameService;
-            _automationSettings = automationSettings;
-            _automationSettings.Changed += HandleAutomationChanged;
-            InitializeAsync().Observe("Loading League client installation data");
-        }
-
-        private string _installtionPath;
-        public string InstalltionPath
-        {
-            get { return _installtionPath; }
-            set { SetProperty(ref _installtionPath, value); }
-        }
-
-        private async Task InitializeAsync()
-        {
-            InstalltionPath = await _clientService.GetInstallLocation();
-        }
-
-        public bool AutoReconnect
-        {
-            get { return _automationSettings.AutoReconnect; }
-            set
-            {
-                if (_automationSettings.AutoReconnect == value)
-                {
-                    return;
-                }
-                _automationSettings.AutoReconnect = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        public bool AutoAccept
-        {
-            get { return _automationSettings.AutoAcceptReadyCheck; }
-            set
-            {
-                if (_automationSettings.AutoAcceptReadyCheck == value)
-                {
-                    return;
-                }
-                _automationSettings.AutoAcceptReadyCheck = value;
-                RaisePropertyChanged();
-            }
-        }
-
-        private void HandleAutomationChanged(object sender, EventArgs e)
-        {
-            RaisePropertyChanged(nameof(AutoAccept));
-            RaisePropertyChanged(nameof(AutoReconnect));
-        }
-
-        public override void Destroy()
-        {
-            _automationSettings.Changed -= HandleAutomationChanged;
-            base.Destroy();
         }
 
         private int _selectedStatusIndex = -1;
         public int SelectedStatusIndex
         {
-            get { return _selectedStatusIndex; }
-            set { SetProperty(ref _selectedStatusIndex, value); }
+            get => _selectedStatusIndex;
+            set => SetProperty(ref _selectedStatusIndex, value);
         }
-
 
         private int _selectedModeIndex;
         public int SelectedModeIndex
         {
-            get { return _selectedModeIndex; }
-            set { SetProperty(ref _selectedModeIndex, value); }
+            get => _selectedModeIndex;
+            set => SetProperty(ref _selectedModeIndex, value);
         }
 
         private int _selectedTierIndex;
         public int SelectedTierIndex
         {
-            get { return _selectedTierIndex; }
+            get => _selectedTierIndex;
             set
             {
-                SetProperty(ref _selectedTierIndex, value);
-                if (value > 7)
+                if (!SetProperty(ref _selectedTierIndex, value))
                 {
-                    _selectedDivisionIndex = -1;
+                    return;
+                }
+
+                if (value == 0 || value > 7)
+                {
+                    SelectedDivisionIndex = -1;
+                }
+                else if (SelectedDivisionIndex < 0)
+                {
+                    SelectedDivisionIndex = 0;
                 }
             }
         }
 
-        private int _selectedDivisionIndex;
+        private int _selectedDivisionIndex = -1;
         public int SelectedDivisionIndex
         {
-            get { return _selectedDivisionIndex; }
-            set { SetProperty(ref _selectedDivisionIndex, value); }
+            get => _selectedDivisionIndex;
+            set => SetProperty(ref _selectedDivisionIndex, value);
         }
 
-        public string LobbyName { get; set; }
-
-        public string LobbyPassword { get; set; } = "";
-
-        public string Status { get; set; }
-
-        private DelegateCommand _statusComfirmStatus;
-        public DelegateCommand StatusComfirmStatus =>
-            _statusComfirmStatus ?? (_statusComfirmStatus = new DelegateCommand(ExecuteStatusComfirmStatus));
-        void ExecuteStatusComfirmStatus()
+        private string _lobbyName;
+        public string LobbyName
         {
-            ExecuteStatusComfirmStatusAsync().Observe("Updating League chat status message");
+            get => _lobbyName;
+            set => SetProperty(ref _lobbyName, value);
         }
 
-        private async Task ExecuteStatusComfirmStatusAsync()
+        private string _lobbyPassword = string.Empty;
+        public string LobbyPassword
         {
-            try
-            {
-                await _gameService.SetStatusAsync(Status);
-            }
-            catch (Exception e)
-            {
-                Growl.Error(e.Message);
-            }
-
+            get => _lobbyPassword;
+            set => SetProperty(ref _lobbyPassword, value);
         }
 
-        private DelegateCommand _chatStausChangedCommand;
+        private string _status;
+        public string Status
+        {
+            get => _status;
+            set => SetProperty(ref _status, value);
+        }
+
+        private DelegateCommand _confirmStatusCommand;
+        public DelegateCommand ConfirmStatusCommand =>
+            _confirmStatusCommand ??= new DelegateCommand(() =>
+                UpdateStatusMessageAsync().Observe("Updating League chat status message"));
+
+        private DelegateCommand _chatStatusChangedCommand;
         public DelegateCommand ChatStatusChangedCommand =>
-            _chatStausChangedCommand ?? (_chatStausChangedCommand = new DelegateCommand(ExecuteChatStatusChangedCommand));
-        void ExecuteChatStatusChangedCommand()
-        {
-            ExecuteChatStatusChangedCommandAsync().Observe("Updating League online status");
-        }
-
-        private async Task ExecuteChatStatusChangedCommandAsync()
-        {
-            await _gameService.SetOnlineStatusAsync(_statusMap[_selectedStatusIndex]);
-        }
+            _chatStatusChangedCommand ??= new DelegateCommand(() =>
+                UpdateOnlineStatusAsync().Observe("Updating League online status"));
 
         private DelegateCommand _createLobbyCommand;
         public DelegateCommand CreateLobbyCommand =>
-            _createLobbyCommand ?? (_createLobbyCommand = new DelegateCommand(ExecuteCreateLobbyCommand));
-        void ExecuteCreateLobbyCommand()
+            _createLobbyCommand ??= new DelegateCommand(() =>
+                CreateLobbyAsync().Observe("Creating a practice lobby"));
+
+        private DelegateCommand _applyTierCommand;
+        public DelegateCommand ApplyTierCommand =>
+            _applyTierCommand ??= new DelegateCommand(() =>
+                ApplyTierAsync().Observe("Updating displayed League rank"));
+
+        private async Task UpdateStatusMessageAsync()
         {
-            ExecuteCreateLobbyCommandAsync().Observe("Creating a practice lobby");
+            try
+            {
+                await _gameService.SetStatusAsync(Status ?? string.Empty);
+            }
+            catch (Exception exception)
+            {
+                Growl.Error(exception.Message);
+            }
         }
 
-        private async Task ExecuteCreateLobbyCommandAsync()
+        private async Task UpdateOnlineStatusAsync()
         {
-            if (string.IsNullOrEmpty(LobbyName))
+            if (!_statusMap.TryGetValue(SelectedStatusIndex, out var status))
+            {
+                return;
+            }
+
+            try
+            {
+                await _gameService.SetOnlineStatusAsync(status);
+            }
+            catch (Exception exception)
+            {
+                Growl.Error(exception.Message);
+            }
+        }
+
+        private async Task CreateLobbyAsync()
+        {
+            if (string.IsNullOrWhiteSpace(LobbyName))
             {
                 Growl.Error(_resourceService.FindResource<string>("Errors.EmptyLobbyName"));
                 return;
             }
+
             try
             {
-                await _gameService.CreatePracticeLobbyAsync(LobbyName, LobbyPassword);
+                await _gameService.CreatePracticeLobbyAsync(
+                    LobbyName.Trim(),
+                    LobbyPassword ?? string.Empty);
                 Growl.Info(_resourceService.FindResource<string>("Infos.CreateLobbySuccesfully"));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                Growl.Error(e.Message);
+                Growl.Error(exception.Message);
             }
         }
 
-        private DelegateCommand _configChampionCommand;
-        public DelegateCommand ConfigChampionCommand =>
-            _configChampionCommand ?? (_configChampionCommand = new DelegateCommand(ExecuteConfigChampionCommand));
-        void ExecuteConfigChampionCommand()
+        private async Task ApplyTierAsync()
         {
+            if (!_queueMap.TryGetValue(SelectedModeIndex, out var queue)
+                || !_tierMap.TryGetValue(SelectedTierIndex, out var tier)
+                || !_divisionMap.TryGetValue(SelectedDivisionIndex, out var division))
+            {
+                Growl.Error(_resourceService.FindResource<string>("Utility.InvalidSelection"));
+                return;
+            }
 
-        }
-
-
-        private DelegateCommand _tierComfirmCommand;
-        public DelegateCommand TierComfirmCommand =>
-            _tierComfirmCommand ?? (_tierComfirmCommand = new DelegateCommand(ExecuteComfirmCommand));
-        void ExecuteComfirmCommand()
-        {
-            ExecuteComfirmCommandAsync().Observe("Updating displayed League rank");
-        }
-
-        private async Task ExecuteComfirmCommandAsync()
-        {
-            await _gameService.SetChatTierAsync(_ququeMap[_selectedModeIndex], _tierMap[_selectedTierIndex], _divsionMap[_selectedDivisionIndex]);
+            try
+            {
+                await _gameService.SetChatTierAsync(queue, tier, division);
+            }
+            catch (Exception exception)
+            {
+                Growl.Error(exception.Message);
+            }
         }
     }
 }
