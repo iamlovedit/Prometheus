@@ -50,14 +50,18 @@ namespace Prometheus.Modules.Utility.ViewModels
         private readonly IClientService _clientService;
         private readonly IResourceService _resourceService;
         private readonly IGameService _gameService;
+        private readonly IGameAutomationSettings _automationSettings;
 
         public UtilityViewModel(IRegionManager regionManager, IClientService clientService,
             IResourceService resourceService,
-            IGameService gameService) : base(regionManager)
+            IGameService gameService,
+            IGameAutomationSettings automationSettings) : base(regionManager)
         {
             _clientService = clientService;
             _resourceService = resourceService;
             _gameService = gameService;
+            _automationSettings = automationSettings;
+            _automationSettings.Changed += HandleAutomationChanged;
             Initialize();
         }
 
@@ -73,26 +77,44 @@ namespace Prometheus.Modules.Utility.ViewModels
             InstalltionPath = await _clientService.GetInstallLocation();
         }
 
-        private bool _autoReconnect;
         public bool AutoReconnect
         {
-            get { return _autoReconnect; }
+            get { return _automationSettings.AutoReconnect; }
             set
             {
-                SetProperty(ref _autoReconnect, value);
-                GameConfiguration.AutoReconnect = value;
+                if (_automationSettings.AutoReconnect == value)
+                {
+                    return;
+                }
+                _automationSettings.AutoReconnect = value;
+                RaisePropertyChanged();
             }
         }
 
-        private bool _autoAccept;
         public bool AutoAccept
         {
-            get { return _autoAccept; }
+            get { return _automationSettings.AutoAcceptReadyCheck; }
             set
             {
-                SetProperty(ref _autoAccept, value);
-                GameConfiguration.AutoAccept = value;
+                if (_automationSettings.AutoAcceptReadyCheck == value)
+                {
+                    return;
+                }
+                _automationSettings.AutoAcceptReadyCheck = value;
+                RaisePropertyChanged();
             }
+        }
+
+        private void HandleAutomationChanged(object sender, EventArgs e)
+        {
+            RaisePropertyChanged(nameof(AutoAccept));
+            RaisePropertyChanged(nameof(AutoReconnect));
+        }
+
+        public override void Destroy()
+        {
+            _automationSettings.Changed -= HandleAutomationChanged;
+            base.Destroy();
         }
 
         private int _selectedStatusIndex = -1;

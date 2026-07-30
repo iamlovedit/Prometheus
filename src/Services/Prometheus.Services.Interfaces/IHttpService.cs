@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces
@@ -8,20 +9,33 @@ namespace Prometheus.Services.Interfaces
     {
         void Initialize(int port, string token);
 
-        Task<T> GetAsync<T>(string url, IEnumerable<string> queryParameters = null) where T : class, new();
+        bool IsInitialized { get; }
 
-        Task<string> GetAsync(string url, IEnumerable<string> queryParameters = null);
+        Task<T> GetAsync<T>(string url, IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default) where T : class, new();
 
-        Task<T> PostAsync<T>(string url, object body, IEnumerable<string> queryParameters = null) where T : class, new();
+        Task<string> GetAsync(string url, IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default);
+
+        Task<T> PostAsync<T>(string url, object body, IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default) where T : class, new();
 
         Task PostAsync(string url, object body);
 
-        Task<string> PostAsync(string url, object body, IEnumerable<string> queryParameters = null);
+        Task PostAsync(string url, object body, CancellationToken cancellationToken);
 
-        Task<byte[]> GetByteArrayResponseAsync(HttpMethod httpMethod, string url, IEnumerable<string> queryParameters = null);
+        Task<string> PostAsync(string url, object body, IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default);
 
-        Task<T> SendAsync<T>(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters = null) where T : class, new();
+        Task<byte[]> GetByteArrayResponseAsync(HttpMethod httpMethod, string url,
+            IEnumerable<string> queryParameters = null, CancellationToken cancellationToken = default);
 
-        Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters = null);
+        Task<T> SendAsync<T>(HttpMethod httpMethod, string url, object body,
+            IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default) where T : class, new();
+
+        Task<string> SendAsync(HttpMethod httpMethod, string url, object body,
+            IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default);
     }
 }

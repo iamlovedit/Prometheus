@@ -1,5 +1,6 @@
-﻿using Prometheus.Core.Models;
+using Prometheus.Core.Models;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
@@ -25,5 +26,11 @@ namespace Prometheus.Services.Interfaces.Client
         void Unsubscribe(string uri, Action<OnWebsocketEventArgs> action);
 
         Task<bool> StartAsync();
+
+        Task<bool> StartAsync(CancellationToken cancellationToken);
+
+        Task StopAsync();
+
+        Task StopAsync(CancellationToken cancellationToken);
     }
 }

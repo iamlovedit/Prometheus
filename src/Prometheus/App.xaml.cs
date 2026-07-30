@@ -51,6 +51,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IGameService, GameService>();
             containerRegistry.RegisterSingleton<IGameResourceManager, GameResourceManager>();
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
+            containerRegistry.RegisterSingleton<IGameAutomationSettings, GameAutomationSettings>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
             containerRegistry.RegisterSingleton<ILeagueClient, LeagueClient>();
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);

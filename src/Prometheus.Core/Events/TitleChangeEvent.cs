@@ -31,4 +31,12 @@ namespace Prometheus.Core.Events
     {
 
     }
+
+    /// <summary>
+    /// Requests navigation from a feature module without coupling it to the shell's
+    /// module-loading and title-management implementation.
+    /// </summary>
+    public class NavigateMenuEvent : PubSubEvent<MenuName>
+    {
+    }
 }

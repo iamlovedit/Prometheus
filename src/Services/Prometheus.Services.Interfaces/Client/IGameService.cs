@@ -1,4 +1,5 @@
-﻿using Prometheus.Core.Models;
+using Prometheus.Core.Models;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
@@ -60,5 +61,25 @@ namespace Prometheus.Services.Interfaces.Client
         Task<string> GetAcceptStatusAsync();
 
         Task<string> GetMapSideAsync();
+
+        Task<GameflowSessionSnapshot> GetGameflowSessionSnapshotAsync(
+            CancellationToken cancellationToken = default);
+
+        Task<string> GetGameflowPhaseAsync(CancellationToken cancellationToken = default);
+
+        Task<LobbySnapshot> GetLobbySnapshotAsync(CancellationToken cancellationToken = default);
+
+        Task<MatchmakingSnapshot> GetMatchmakingSnapshotAsync(CancellationToken cancellationToken = default);
+
+        Task<ReadyCheckSnapshot> GetReadyCheckSnapshotAsync(CancellationToken cancellationToken = default);
+
+        Task<ChampionSelectSnapshot> GetChampionSelectSnapshotAsync(
+            CancellationToken cancellationToken = default);
+
+        Task<PostGameSnapshot> GetPostGameSnapshotAsync(CancellationToken cancellationToken = default);
+
+        Task AcceptMatchAsync(CancellationToken cancellationToken);
+
+        Task ReconnectGameAsync(CancellationToken cancellationToken);
     }
 }

@@ -1,7 +1,9 @@
 ﻿using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using Newtonsoft.Json;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services.Client
@@ -15,6 +17,10 @@ namespace Prometheus.Services.Client
         private const string _matchDetails = "lol-match-history/v1/games/{0}";
         private const string _champDataUrl = "https://x1-6833.native.qq.com/x1/6833/1061021&3af49f";
         private const string _gameSessionData = "lol-gameflow/v1/session";
+        private const string _gameflowPhase = "lol-gameflow/v1/gameflow-phase";
+        private const string _lobby = "lol-lobby/v2/lobby";
+        private const string _matchmakingSearch = "lol-matchmaking/v1/search";
+        private const string _postGame = "lol-end-of-game/v1/eog-stats-block";
         private const string _currentChampion = "/lol-champ-select/v1/current-champion";
         private const string _pickableChampion = "/lol-champ-select/v1/pickable-champions";
         private const string _champRestraintData = "https://lol.qq.com/act/lbp/common/guides/champDetail/champDetail_{0}.js?ts=2760378";
@@ -237,6 +243,81 @@ namespace Prometheus.Services.Client
         public async Task<string> GetMapSideAsync()
         {
             return await _httpService.GetAsync("lol-champ-select/v1/pin-drop-notification");
+        }
+
+        public Task<GameflowSessionSnapshot> GetGameflowSessionSnapshotAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _httpService.GetAsync<GameflowSessionSnapshot>(
+                _gameSessionData, null, cancellationToken);
+        }
+
+        public async Task<string> GetGameflowPhaseAsync(CancellationToken cancellationToken = default)
+        {
+            var json = await _httpService.GetAsync(
+                _gameflowPhase, null, cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                return JsonConvert.DeserializeObject<string>(json) ?? string.Empty;
+            }
+            catch (JsonException)
+            {
+                return json.Trim().Trim('"');
+            }
+        }
+
+        public Task<LobbySnapshot> GetLobbySnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            return _httpService.GetAsync<LobbySnapshot>(_lobby, null, cancellationToken);
+        }
+
+        public Task<MatchmakingSnapshot> GetMatchmakingSnapshotAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _httpService.GetAsync<MatchmakingSnapshot>(
+                _matchmakingSearch, null, cancellationToken);
+        }
+
+        public Task<ReadyCheckSnapshot> GetReadyCheckSnapshotAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _httpService.GetAsync<ReadyCheckSnapshot>(_checkUrl, null, cancellationToken);
+        }
+
+        public async Task<ChampionSelectSnapshot> GetChampionSelectSnapshotAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _httpService.GetAsync<ChampionSelectSnapshot>(
+                _gameSessionUrl, null, cancellationToken).ConfigureAwait(false);
+            if (result is not null)
+            {
+                result.Actions ??= [];
+                result.MyTeam ??= [];
+                result.TheirTeam ??= [];
+            }
+
+            return result;
+        }
+
+        public Task<PostGameSnapshot> GetPostGameSnapshotAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return _httpService.GetAsync<PostGameSnapshot>(_postGame, null, cancellationToken);
+        }
+
+        public Task AcceptMatchAsync(CancellationToken cancellationToken)
+        {
+            return _httpService.PostAsync($"{_checkUrl}accept", null, cancellationToken);
+        }
+
+        public Task ReconnectGameAsync(CancellationToken cancellationToken)
+        {
+            return _httpService.PostAsync("lol-gameflow/v1/reconnect", null, cancellationToken);
         }
     }
 }

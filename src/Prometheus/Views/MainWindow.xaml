@@ -46,24 +46,24 @@
                         </Style>
                     </hc:SideMenu.Resources>
 
-                    <hc:SideMenuItem Command="{Binding HomeCommand}" Header="{DynamicResource Menu.Home}">
+                    <hc:SideMenuItem Command="{Binding HomeCommand}" Header="{DynamicResource Menu.Home}" IsSelected="{Binding IsHomeSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe609;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding CareerCommand}" Header="{DynamicResource Menu.Career}">
+                    <hc:SideMenuItem Command="{Binding CareerCommand}" Header="{DynamicResource Menu.Career}" IsSelected="{Binding IsCareerSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe604;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
-                    <hc:SideMenuItem Command="{Binding InventoryCommand}" Header="{DynamicResource Menu.Inventory}">
+                    <hc:SideMenuItem Command="{Binding InventoryCommand}" Header="{DynamicResource Menu.Inventory}" IsSelected="{Binding IsInventorySelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe607;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding SearchCommand}" Header="{DynamicResource Menu.Search}">
+                    <hc:SideMenuItem Command="{Binding SearchCommand}" Header="{DynamicResource Menu.Search}" IsSelected="{Binding IsSearchSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe60c;" />
                         </hc:SideMenuItem.Icon>
@@ -72,13 +72,14 @@
                     <hc:SideMenuItem
                         Command="{Binding MatchCommand}"
                         Header="{DynamicResource Menu.Match}"
-                        IsEnabled="True">
+                        IsEnabled="True"
+                        IsSelected="{Binding IsMatchSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe635;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding UtilityCommand}" Header="{DynamicResource Menu.Utility}">
+                    <hc:SideMenuItem Command="{Binding UtilityCommand}" Header="{DynamicResource Menu.Utility}" IsSelected="{Binding IsUtilitySelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe627;" />
                         </hc:SideMenuItem.Icon>
@@ -87,7 +88,8 @@
                     <hc:SideMenuItem
                         VerticalAlignment="Bottom"
                         Command="{Binding SettingCommand}"
-                        Header="{DynamicResource Menu.Setting}">
+                        Header="{DynamicResource Menu.Setting}"
+                        IsSelected="{Binding IsSettingSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe60a;" />
                         </hc:SideMenuItem.Icon>
@@ -95,10 +97,52 @@
                 </hc:SideMenu>
 
             </Grid>
-            <ContentControl
-                Grid.Column="1"
-                Margin="12"
-                prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
+            <Grid Grid.Column="1" Margin="12">
+                <ContentControl prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
+                <Border
+                    Panel.ZIndex="20"
+                    Margin="24,8"
+                    Padding="12,8"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    Background="{DynamicResource RegionBrush}"
+                    BorderBrush="{DynamicResource InfoBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Visibility="{Binding HasGlobalAlert, Converter={StaticResource Boolean2VisibilityConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="auto" />
+                            <ColumnDefinition Width="auto" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse
+                            Width="9"
+                            Height="9"
+                            Margin="0,0,10,0"
+                            VerticalAlignment="Center"
+                            Fill="{DynamicResource InfoBrush}" />
+                        <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            FontWeight="Bold"
+                            Text="{Binding GlobalAlertText}" />
+                        <Button
+                            Grid.Column="2"
+                            Margin="12,0,0,0"
+                            Command="{Binding OpenAlertCommand}"
+                            Content="{DynamicResource HomePage.Alert.Action}"
+                            Style="{DynamicResource ButtonPrimary}" />
+                        <Button
+                            Grid.Column="3"
+                            Margin="6,0,0,0"
+                            Command="{Binding DismissAlertCommand}"
+                            Content="×"
+                            Style="{DynamicResource ButtonIcon}" />
+                    </Grid>
+                </Border>
+            </Grid>
             <hc:NotifyIcon
                 Icon="../Resources/Prometheus_16.ico"
                 Text="Prometheus"

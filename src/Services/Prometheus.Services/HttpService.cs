@@ -1,94 +1,106 @@
-﻿using Prometheus.Services.Interfaces;
+using Newtonsoft.Json;
+using Prometheus.Services.Interfaces;
 using System.Collections.Generic;
 using System.Net.Http;
-using System.Net.Http.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Prometheus.Services
 {
     public class HttpService : HttpServiceBase, IHttpService
     {
-        public async Task<string> GetAsync(string url, IEnumerable<string> queryParameters)
+        public async Task<string> GetAsync(string url, IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default)
         {
             if (!_isInitialized)
             {
                 return default;
             }
-            var responseMessage = await GetHttpMessageAsync(url, queryParameters);
-            return await responseMessage.Content.ReadAsStringAsync();
+
+            using var responseMessage = await GetHttpMessageAsync(
+                url, queryParameters, cancellationToken).ConfigureAwait(false);
+            return await responseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<T> GetAsync<T>(string url, IEnumerable<string> queryParameters = null) where T : class, new()
+        public async Task<T> GetAsync<T>(string url, IEnumerable<string> queryParameters = null,
+            CancellationToken cancellationToken = default) where T : class, new()
         {
-            if (!_isInitialized)
-            {
-                return default;
-            }
-            var responseMessage = await GetHttpMessageAsync(url, queryParameters);
-            return await responseMessage.Content.ReadFromJsonAsync<T>();
+            var json = await GetAsync(url, queryParameters, cancellationToken).ConfigureAwait(false);
+            return string.IsNullOrWhiteSpace(json) ? default : JsonConvert.DeserializeObject<T>(json);
         }
 
-        public async Task<byte[]> GetByteArrayResponseAsync(HttpMethod httpMethod, string url, IEnumerable<string> queryParameters = null)
+        public async Task<byte[]> GetByteArrayResponseAsync(HttpMethod httpMethod, string url,
+            IEnumerable<string> queryParameters = null, CancellationToken cancellationToken = default)
         {
             if (!_isInitialized)
             {
                 return default;
             }
-            var relativeUrl = BuildRelativeUrl(url, queryParameters);
-            var requestMessage = new HttpRequestMessage(httpMethod, relativeUrl);
-            var responseMessage = await _httpClient.SendAsync(requestMessage);
+
+            using var requestMessage = CreateRequestMessage(httpMethod, url, queryParameters);
+            using var responseMessage = await _httpClient.SendAsync(requestMessage,
+                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             responseMessage.EnsureSuccessStatusCode();
-            return await responseMessage.Content.ReadAsByteArrayAsync();
+            return await responseMessage.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<string> PostAsync(string url, object body, IEnumerable<string> queryParameters)
+        public async Task<string> PostAsync(string url, object body,
+            IEnumerable<string> queryParameters = null, CancellationToken cancellationToken = default)
         {
             if (!_isInitialized)
             {
                 return default;
             }
-            var responseMessage = await PostHttpMessageAsync(url, body, queryParameters);
-            return await responseMessage.Content.ReadAsStringAsync();
+
+            using var responseMessage = await PostHttpMessageAsync(
+                url, body, queryParameters, cancellationToken).ConfigureAwait(false);
+            return await responseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<T> PostAsync<T>(string url, object body, IEnumerable<string> queryParameters = null) where T : class, new()
+        public async Task<T> PostAsync<T>(string url, object body,
+            IEnumerable<string> queryParameters = null, CancellationToken cancellationToken = default)
+            where T : class, new()
         {
-            if (!_isInitialized)
-            {
-                return default;
-            }
-            var responseMessage = await PostHttpMessageAsync(url, body, queryParameters);
-            return await responseMessage.Content.ReadFromJsonAsync<T>();
+            var json = await PostAsync(url, body, queryParameters, cancellationToken).ConfigureAwait(false);
+            return string.IsNullOrWhiteSpace(json) ? default : JsonConvert.DeserializeObject<T>(json);
         }
 
-        public async Task PostAsync(string url, object body)
+        public Task PostAsync(string url, object body)
+        {
+            return PostAsync(url, body, CancellationToken.None);
+        }
+
+        public async Task PostAsync(string url, object body, CancellationToken cancellationToken)
         {
             if (!_isInitialized)
             {
                 return;
             }
-            var response = await _httpClient.PostAsJsonAsync(url, body);
-            response.EnsureSuccessStatusCode();
+
+            using var responseMessage = await PostHttpMessageAsync(
+                url, body, null, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<string> SendAsync(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters)
+        public async Task<string> SendAsync(HttpMethod httpMethod, string url, object body,
+            IEnumerable<string> queryParameters = null, CancellationToken cancellationToken = default)
         {
             if (!_isInitialized)
             {
                 return default;
             }
-            var responseMessage = await SendHttpMessageAsync(httpMethod, url, body, queryParameters);
-            return await responseMessage.Content.ReadAsStringAsync();
+
+            using var responseMessage = await SendHttpMessageAsync(
+                httpMethod, url, body, queryParameters, cancellationToken).ConfigureAwait(false);
+            return await responseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<T> SendAsync<T>(HttpMethod httpMethod, string url, object body, IEnumerable<string> queryParameters = null) where T : class, new()
+        public async Task<T> SendAsync<T>(HttpMethod httpMethod, string url, object body,
+            IEnumerable<string> queryParameters = null, CancellationToken cancellationToken = default)
+            where T : class, new()
         {
-            if (!_isInitialized)
-            {
-                return default;
-            }
-            var responseMessage = await SendHttpMessageAsync(httpMethod, url, body, queryParameters);
-            return await responseMessage.Content.ReadFromJsonAsync<T>();
+            var json = await SendAsync(
+                httpMethod, url, body, queryParameters, cancellationToken).ConfigureAwait(false);
+            return string.IsNullOrWhiteSpace(json) ? default : JsonConvert.DeserializeObject<T>(json);
         }
     }
 }

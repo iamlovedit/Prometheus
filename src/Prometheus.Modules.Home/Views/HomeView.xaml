@@ -1,34 +1,335 @@
-﻿<UserControl
+<UserControl
     x:Class="Prometheus.Modules.Home.Views.HomeView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Home.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:HomeViewModel}"
-    d:DesignHeight="600"
-    d:DesignWidth="400"
+    d:DesignHeight="760"
+    d:DesignWidth="1080"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <hc:UniformSpacingPanel
-        VerticalAlignment="Center"
-        ItemHorizontalAlignment="Center"
-        ItemVerticalAlignment="Center"
-        Orientation="Vertical"
-        VerticalSpacing="24">
-        <TextBlock
-            FontSize="20"
-            FontWeight="Bold"
-            Text="{Binding ClientStatus}" />
-        <TextBlock Text="{DynamicResource HomePage.Developing}" />
-        <hc:UniformSpacingPanel
-            Orientation="Vertical"
-            VerticalSpacing="24"
-            Visibility="{Binding IsConnected, Converter={StaticResource Boolean2VisibilityReConverter}}">
-            <hc:LoadingCircle />
-            <TextBlock Text="{DynamicResource HomePage.Connecting}" />
-        </hc:UniformSpacingPanel>
-    </hc:UniformSpacingPanel>
+    <UserControl.Resources>
+        <Style x:Key="HomeCard" TargetType="{x:Type Border}">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+        </Style>
+        <Style x:Key="StagePill" TargetType="{x:Type Border}">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLobbyStage}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsQueueStage}" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsReadyStage}" Value="True">
+                    <Setter Property="Background" Value="#B8860B" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsChampionStage}" Value="True">
+                    <Setter Property="Background" Value="#6A4C93" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsGameStage}" Value="True">
+                    <Setter Property="Background" Value="#267A63" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="HomeCaption" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style x:Key="HomeTitle" TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource HomeCard}" Padding="14,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="170" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="9" Height="9" Margin="0,0,8,0" VerticalAlignment="Center">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="#909090" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                            <Setter Property="Fill" Value="#45B97C" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsError}" Value="True">
+                                            <Setter Property="Fill" Value="#D85C5C" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock FontWeight="Bold" Text="{Binding ConnectionStatus}" />
+                    </StackPanel>
+                    <TextBlock Margin="17,3,0,0" Style="{StaticResource HomeCaption}" Text="{Binding SyncStatus}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Orientation="Horizontal">
+                    <Border Style="{StaticResource StagePill}"><TextBlock Text="{DynamicResource HomePage.Stage.Lobby}" /></Border>
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource HomeCaption}" Text="›" />
+                    <Border Style="{StaticResource StagePill}"><TextBlock Text="{DynamicResource HomePage.Stage.Queue}" /></Border>
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource HomeCaption}" Text="›" />
+                    <Border Style="{StaticResource StagePill}"><TextBlock Text="{DynamicResource HomePage.Stage.Ready}" /></Border>
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource HomeCaption}" Text="›" />
+                    <Border Style="{StaticResource StagePill}"><TextBlock Text="{DynamicResource HomePage.Stage.Champion}" /></Border>
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource HomeCaption}" Text="›" />
+                    <Border Style="{StaticResource StagePill}"><TextBlock Text="{DynamicResource HomePage.Stage.Game}" /></Border>
+                </StackPanel>
+                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource HomeCaption}" Text="{Binding UpdatedText}" />
+                    <Button
+                        Margin="0,4,0,0"
+                        HorizontalAlignment="Right"
+                        Command="{Binding OpenClientCommand}"
+                        Content="{DynamicResource HomePage.OpenClient}"
+                        Style="{DynamicResource ButtonIcon}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="1*" />
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="360" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Style="{StaticResource HomeCard}" Clip="{x:Null}">
+                    <Grid Background="{DynamicResource RegionBrush}">
+                        <Image Source="{Binding HeroBackground}" Opacity="0.30" Stretch="UniformToFill" />
+                        <Rectangle>
+                            <Rectangle.Fill>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Offset="0" Color="#DD101116" />
+                                    <GradientStop Offset="0.65" Color="#66101116" />
+                                    <GradientStop Offset="1" Color="#DD101116" />
+                                </LinearGradientBrush>
+                            </Rectangle.Fill>
+                        </Rectangle>
+                        <Grid Margin="28,22">
+                            <StackPanel VerticalAlignment="Top">
+                                <TextBlock Foreground="White" FontSize="28" FontWeight="Bold" Text="{Binding PhaseTitle}" />
+                                <TextBlock Margin="0,8,0,0" Foreground="#E4E7EF" FontSize="14" Text="{Binding PhaseDescription}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock HorizontalAlignment="Center" Foreground="White" FontSize="44" FontWeight="Bold" Text="{Binding PhaseTimer}" />
+                                <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" Foreground="#D8DCE8" Text="{Binding PhaseDetail}" />
+                                <StackPanel Margin="0,18,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                                    <Button
+                                        MinWidth="132"
+                                        Command="{Binding PrimaryActionCommand}"
+                                        Content="{Binding PrimaryActionText}"
+                                        IsEnabled="{Binding CanPrimaryAction}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                    <Button
+                                        Margin="8,0,0,0"
+                                        Command="{Binding SecondaryActionCommand}"
+                                        Content="{Binding SecondaryActionText}"
+                                        IsEnabled="{Binding CanSecondaryAction}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                <TextBlock Foreground="#D8DCE8" Text="{Binding ErrorText}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="2" Style="{StaticResource HomeCard}" Padding="14">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="32" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <DockPanel>
+                            <TextBlock Style="{StaticResource HomeTitle}" Text="{Binding SummaryTitle}" />
+                            <Button
+                                HorizontalAlignment="Right"
+                                Command="{Binding OpenMatchCommand}"
+                                Content="{DynamicResource HomePage.OpenDetails}"
+                                Style="{DynamicResource ButtonIcon}" />
+                        </DockPanel>
+                        <Grid Grid.Row="1">
+                            <ListBox
+                                ItemsSource="{Binding RecentMatches}"
+                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                Style="{DynamicResource StackPanelVerticalListBox}"
+                                Visibility="{Binding ShowRecentMatches, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="0,3" Padding="8" Style="{StaticResource HomeCard}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="42" />
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="120" />
+                                                </Grid.ColumnDefinitions>
+                                                <Image Width="32" Height="32" Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                                                <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock FontWeight="Bold" Text="{Binding ResultText}" />
+                                                    <TextBlock Style="{StaticResource HomeCaption}" Text="{Binding GameMode}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                    <TextBlock HorizontalAlignment="Right" Text="{Binding KdaText}" />
+                                                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource HomeCaption}" Text="{Binding CreationText}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Grid Visibility="{Binding ShowTeamSummary, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Style="{StaticResource HomeCaption}" Text="{DynamicResource HomePage.MyTeam}" />
+                                    <ItemsControl ItemsSource="{Binding MyTeam}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,5">
+                                                    <Image Width="28" Height="28" Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DisplayName}" />
+                                                    <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Style="{StaticResource HomeCaption}" Text="{Binding Position}" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Style="{StaticResource HomeCaption}" Text="{DynamicResource HomePage.EnemyTeam}" />
+                                    <ItemsControl ItemsSource="{Binding TheirTeam}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,5">
+                                                    <Image Width="28" Height="28" Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="{Binding DisplayName}" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Style="{StaticResource HomeCaption}"
+                                Text="{Binding EmptySummaryText}"
+                                Visibility="{Binding ShowEmptySummary, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="208" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition Height="176" />
+                    <RowDefinition Height="12" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Style="{StaticResource HomeCard}" Padding="14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="76" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <hc:Gravatar Width="64" Height="64" Style="{StaticResource GravatarCircleImg}">
+                                <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
+                            </hc:Gravatar>
+                            <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center" Style="{StaticResource HomeCaption}" Text="{Binding SummonerLevel}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource HomeTitle}" Text="{Binding SummonerName}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Margin="0,3,0,10" Style="{StaticResource HomeCaption}" Text="{Binding SummonerTag}" />
+                            <StackPanel Orientation="Horizontal">
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Style="{StaticResource HomeCaption}" Text="{DynamicResource Career.Rank.Solo}" />
+                                    <TextBlock FontWeight="Bold" Text="{Binding SoloTierText}" />
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource HomeCaption}" Text="{DynamicResource Career.Rank.Flex}" />
+                                    <TextBlock FontWeight="Bold" Text="{Binding FlexTierText}" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Button
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Left"
+                                Command="{Binding OpenCareerCommand}"
+                                Content="{DynamicResource HomePage.ViewCareer}"
+                                Style="{DynamicResource ButtonIcon}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border Grid.Row="2" Style="{StaticResource HomeCard}" Padding="14">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource HomeTitle}" Text="{DynamicResource HomePage.Automation}" />
+                        <DockPanel Margin="0,12,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="{DynamicResource Utility.AutoAccept}" />
+                            <ToggleButton HorizontalAlignment="Right" IsChecked="{Binding AutoAccept}" Style="{DynamicResource ToggleButtonSwitch}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="{DynamicResource Utility.AutoReconnect}" />
+                            <ToggleButton HorizontalAlignment="Right" IsChecked="{Binding AutoReconnect}" Style="{DynamicResource ToggleButtonSwitch}" />
+                        </DockPanel>
+                        <TextBlock Margin="0,10,0,0" Style="{StaticResource HomeCaption}" Text="{Binding AutomationStatus}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Row="4" Style="{StaticResource HomeCard}" Padding="14">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource HomeTitle}" Text="{DynamicResource HomePage.QuickActions}" />
+                        <hc:SearchBar
+                            Margin="0,12,0,0"
+                            Height="34"
+                            hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
+                            hc:InfoElement.ShowClearButton="True"
+                            Command="{Binding SearchCommand}"
+                            CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+                            Style="{DynamicResource SearchBarPlus}" />
+                        <TextBlock Margin="0,7,0,12" Style="{StaticResource HomeCaption}" Text="{DynamicResource Search.SearchNameTips}" TextWrapping="Wrap" />
+                        <UniformGrid Columns="3">
+                            <Button Command="{Binding OpenCareerCommand}" Content="{DynamicResource Menu.Career}" Style="{DynamicResource ButtonIcon}" />
+                            <Button Command="{Binding OpenInventoryCommand}" Content="{DynamicResource Menu.Inventory}" Style="{DynamicResource ButtonIcon}" />
+                            <Button Command="{Binding OpenUtilityCommand}" Content="{DynamicResource Menu.Utility}" Style="{DynamicResource ButtonIcon}" />
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
 </UserControl>
