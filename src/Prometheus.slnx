@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/Modules/">
+    <Project Path="Prometheus.Modules.Home/Prometheus.Modules.Home.csproj" />
+    <Project Path="Prometheus.Modules.Inventory/Prometheus.Modules.Inventory.csproj" />
+    <Project Path="Prometheus.Modules.Match/Prometheus.Modules.Match.csproj" />
+    <Project Path="Prometheus.Modules.Search/Prometheus.Modules.Search.csproj" />
+    <Project Path="Prometheus.Modules.Setting/Prometheus.Modules.Setting.csproj" />
+    <Project Path="Prometheus.Modules.Summoner/Prometheus.Modules.Summoner.csproj" />
+    <Project Path="Prometheus.Modules.Utility/Prometheus.Modules.Utility.csproj" />
+  </Folder>
+  <Folder Name="/Services/">
+    <Project Path="Services/Prometheus.Services.Interfaces/Prometheus.Services.Interfaces.csproj" />
+    <Project Path="Services/Prometheus.Services/Prometheus.Services.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Prometheus.Modules.ModuleName.Tests/Prometheus.Modules.ModuleName.Tests.csproj" />
+  </Folder>
+  <Project Path="Prometheus.Core/Prometheus.Core.csproj" />
+  <Project Path="Prometheus.Shared/Prometheus.Shared.csproj" />
+  <Project Path="Prometheus.Updater/Prometheus.Updater.csproj" />
+  <Project Path="Prometheus/Prometheus.csproj" />
+</Solution>
