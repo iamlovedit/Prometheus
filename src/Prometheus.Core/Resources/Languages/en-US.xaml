@@ -155,7 +155,6 @@
     <sys:String x:Key="Career.Rank.Tier.HighestTier">Highest tier</sys:String>
     <sys:String x:Key="Career.Rank.Tier.PreviousSeasonEndTier">Previous season</sys:String>
 
-    <sys:String x:Key="Career.HighestMastery">Highest Champion Mastery</sys:String>
 
     <sys:String x:Key="Career.Match.Last20">Last 20 matches</sys:String>
     <sys:String x:Key="Career.Match.Wins">Wins</sys:String>

@@ -18,7 +18,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition Height="300" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
@@ -37,38 +37,6 @@
                         <Setter Property="Foreground" Value="White" />
                     </Style>
                 </Grid.Resources>
-                <hc:UniformSpacingPanel
-                    HorizontalSpacing="12"
-                    ItemVerticalAlignment="Center"
-                    Orientation="Horizontal">
-                    <StackPanel>
-                        <hc:Gravatar
-                            Width="92"
-                            Height="92"
-                            Style="{StaticResource GravatarCircleImg}">
-                            <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
-                        </hc:Gravatar>
-                        <TextBlock
-                            Margin="0,4,0,0"
-                            HorizontalAlignment="Center"
-                            Text="{Binding Summoner.SummonerLevel}" />
-                    </StackPanel>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock FontSize="24" FontWeight="Bold">
-                            <Run Text="{Binding Summoner.GameName}" />
-                            <Button
-                                VerticalAlignment="Center"
-                                hc:IconElement.Geometry="{DynamicResource CopyGeometry}"
-                                Command="{Binding CopyCommand}"
-                                ToolTip="{DynamicResource Career.Copy}" />
-                        </TextBlock>
-                        <TextBlock Margin="0,8,0,0">
-                            <Run Text="#" />
-                            <Run Text="{Binding Summoner.TagLine}" />
-                        </TextBlock>
-                    </StackPanel>
-
-                </hc:UniformSpacingPanel>
                 <Button
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top"
@@ -92,125 +60,144 @@
                         Command="{Binding RefreshCommand}"
                         ToolTip="{DynamicResource Career.Tips.Refresh}" />
                 </hc:SimpleStackPanel>
-                <hc:UniformSpacingPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                    <local:TierControl
-                        Tier="{Binding Solo.DisplayTier}"
-                        TierImage="{Binding SoloIcon}"
-                        TierType="{DynamicResource Career.Rank.Solo}" />
-                    <local:TierControl
-                        Tier="{Binding Flex.DisplayTier}"
-                        TierImage="{Binding FlexIcon}"
-                        TierType="{DynamicResource Career.Rank.Flex}" />
-                </hc:UniformSpacingPanel>
-                <hc:UniformSpacingPanel
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Bottom"
-                    HorizontalSpacing="20"
-                    ItemVerticalAlignment="Center"
-                    Orientation="Horizontal">
-                    <TextBlock FontWeight="Bold" Text="{DynamicResource Career.Match.Last20}" />
-                    <TextBlock FontWeight="Bold">
-                        <Run Text="{DynamicResource Career.Match.Wins}" />
-                        <Run Text=" " />
-                        <Run Foreground="Green" Text="{Binding Wins}" />
-                    </TextBlock>
-                    <TextBlock FontWeight="Bold">
-                        <Run Text="{DynamicResource Career.Match.Losses}" />
-                        <Run Text=" " />
-                        <Run Foreground="Red" Text="{Binding Losses}" />
-                    </TextBlock>
-                    <TextBlock FontWeight="Bold">
-                        <Run Text="{DynamicResource Career.Match.KDA}" />
-                        <Run Text=" " />
-                        <Run Text="{Binding KDA}" />
-                    </TextBlock>
-                </hc:UniformSpacingPanel>
+                <Grid VerticalAlignment="Bottom">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <hc:UniformSpacingPanel
+                            HorizontalSpacing="12"
+                            ItemVerticalAlignment="Center"
+                            Orientation="Horizontal">
+                            <StackPanel>
+                                <hc:Gravatar
+                                    Width="92"
+                                    Height="92"
+                                    Style="{StaticResource GravatarCircleImg}">
+                                    <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
+                                </hc:Gravatar>
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
+                                    Text="{Binding Summoner.SummonerLevel}" />
+                            </StackPanel>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock FontSize="24" FontWeight="Bold">
+                                    <Run Text="{Binding Summoner.GameName}" />
+                                    <Button
+                                        VerticalAlignment="Center"
+                                        hc:IconElement.Geometry="{DynamicResource CopyGeometry}"
+                                        Command="{Binding CopyCommand}"
+                                        ToolTip="{DynamicResource Career.Copy}" />
+                                </TextBlock>
+                                <TextBlock Margin="0,8,0,0">
+                                    <Run Text="#" />
+                                    <Run Text="{Binding Summoner.TagLine}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </hc:UniformSpacingPanel>
+                        <hc:UniformSpacingPanel
+                            Margin="0,16,0,0"
+                            HorizontalSpacing="20"
+                            ItemVerticalAlignment="Center"
+                            Orientation="Horizontal">
+                            <TextBlock FontWeight="Bold" Text="{DynamicResource Career.Match.Last20}" />
+                            <TextBlock FontWeight="Bold">
+                                <Run Text="{DynamicResource Career.Match.Wins}" />
+                                <Run Text=" " />
+                                <Run Foreground="Green" Text="{Binding Wins}" />
+                            </TextBlock>
+                            <TextBlock FontWeight="Bold">
+                                <Run Text="{DynamicResource Career.Match.Losses}" />
+                                <Run Text=" " />
+                                <Run Foreground="Red" Text="{Binding Losses}" />
+                            </TextBlock>
+                            <TextBlock FontWeight="Bold">
+                                <Run Text="{DynamicResource Career.Match.KDA}" />
+                                <Run Text=" " />
+                                <Run Text="{Binding KDA}" />
+                            </TextBlock>
+                        </hc:UniformSpacingPanel>
+                    </StackPanel>
+                    <hc:UniformSpacingPanel
+                        Grid.Column="1"
+                        Margin="24,0,0,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom">
+                        <local:TierControl
+                            Tier="{Binding Solo.DisplayTier}"
+                            TierImage="{Binding SoloIcon}"
+                            TierType="{DynamicResource Career.Rank.Solo}" />
+                        <local:TierControl
+                            Tier="{Binding Flex.DisplayTier}"
+                            TierImage="{Binding FlexIcon}"
+                            TierType="{DynamicResource Career.Rank.Flex}" />
+                    </hc:UniformSpacingPanel>
+                </Grid>
             </Grid>
         </Border>
         <Border
             Grid.Row="1"
             Margin="0,12,0,0"
             Style="{DynamicResource BackgroundBorder}">
-            <hc:UniformSpacingPanel
-                ItemHorizontalAlignment="Center"
-                Orientation="Vertical"
-                Spacing="12">
-                <DataGrid
-                    Height="88"
-                    AutoGenerateColumns="False"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    CanUserAddRows="False"
-                    CanUserReorderColumns="False"
-                    CanUserResizeColumns="False"
-                    CanUserResizeRows="False"
-                    CanUserSortColumns="False"
-                    ItemsSource="{Binding Ranks}"
-                    SelectionMode="Single"
-                    Style="{DynamicResource DataGrid.Small}">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding DisplayQueueType}"
-                            Header="{DynamicResource Career.Rank.Tier.QueueType}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding Count}"
-                            Header="{DynamicResource Career.Rank.Tier.Count}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding Wins}"
-                            Header="{DynamicResource Career.Rank.Tier.WinCount}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding Losses}"
-                            Header="{DynamicResource Career.Rank.Tier.LossCount}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding WinRate}"
-                            Header="{DynamicResource Career.Rank.Tier.WinRate}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="*"
-                            Binding="{Binding LeaguePoints}"
-                            Header="{DynamicResource Career.Rank.Tier.LeaguePoints}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="2*"
-                            Binding="{Binding DisplayHighestTier}"
-                            Header="{DynamicResource Career.Rank.Tier.HighestTier}"
-                            IsReadOnly="True" />
-                        <DataGridTextColumn
-                            Width="2*"
-                            Binding="{Binding DisplayPreviosHighestTier}"
-                            Header="{DynamicResource Career.Rank.Tier.PreviousSeasonEndTier}"
-                            IsReadOnly="True" />
-                    </DataGrid.Columns>
-                </DataGrid>
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    FontSize="15"
-                    FontWeight="Bold"
-                    Text="{DynamicResource Career.HighestMastery}" />
-                <hc:UniformSpacingPanel Orientation="Horizontal" Spacing="12">
-                    <local:MasteryControl
-                        ImageHeight="60"
-                        ImageWidth="60"
-                        Mastery="{Binding Mastery1}" />
-                    <local:MasteryControl
-                        ImageHeight="60"
-                        ImageWidth="60"
-                        Mastery="{Binding Mastery2}" />
-                    <local:MasteryControl
-                        ImageHeight="60"
-                        ImageWidth="60"
-                        Mastery="{Binding Mastery3}" />
-                </hc:UniformSpacingPanel>
-            </hc:UniformSpacingPanel>
+            <DataGrid
+                Height="88"
+                Margin="8"
+                AutoGenerateColumns="False"
+                Background="Transparent"
+                BorderThickness="0"
+                CanUserAddRows="False"
+                CanUserReorderColumns="False"
+                CanUserResizeColumns="False"
+                CanUserResizeRows="False"
+                CanUserSortColumns="False"
+                ItemsSource="{Binding Ranks}"
+                SelectionMode="Single"
+                Style="{DynamicResource DataGrid.Small}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding DisplayQueueType}"
+                        Header="{DynamicResource Career.Rank.Tier.QueueType}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding Count}"
+                        Header="{DynamicResource Career.Rank.Tier.Count}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding Wins}"
+                        Header="{DynamicResource Career.Rank.Tier.WinCount}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding Losses}"
+                        Header="{DynamicResource Career.Rank.Tier.LossCount}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding WinRate}"
+                        Header="{DynamicResource Career.Rank.Tier.WinRate}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="*"
+                        Binding="{Binding LeaguePoints}"
+                        Header="{DynamicResource Career.Rank.Tier.LeaguePoints}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="2*"
+                        Binding="{Binding DisplayHighestTier}"
+                        Header="{DynamicResource Career.Rank.Tier.HighestTier}"
+                        IsReadOnly="True" />
+                    <DataGridTextColumn
+                        Width="2*"
+                        Binding="{Binding DisplayPreviosHighestTier}"
+                        Header="{DynamicResource Career.Rank.Tier.PreviousSeasonEndTier}"
+                        IsReadOnly="True" />
+                </DataGrid.Columns>
+            </DataGrid>
         </Border>
         <Border
             Grid.RowSpan="2"
@@ -333,6 +320,7 @@
                     </ListBox.ItemTemplate>
                     <ListBox.ItemContainerStyle>
                         <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="ListBoxItem">
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             <Setter Property="Padding" Value="0" />
                         </Style>
                     </ListBox.ItemContainerStyle>

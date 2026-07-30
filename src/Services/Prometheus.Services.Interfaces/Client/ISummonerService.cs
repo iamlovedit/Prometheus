@@ -18,8 +18,6 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetBackdorpByIdAsync(long summonerId);
 
-        Task<List<ChampionMastery>> GetChampionMasteriesAsync(string puuid,int count);
-
         Task<List<Match>> GetMatchesAsync(string puuid, int start, int end);
     }
 }

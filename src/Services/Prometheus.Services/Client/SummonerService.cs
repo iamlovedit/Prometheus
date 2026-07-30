@@ -16,28 +16,6 @@ namespace Prometheus.Services.Client
             _httpService = httpService;
         }
 
-        public async Task<List<ChampionMastery>> GetChampionMasteriesAsync(string puuid, int count)
-        {
-            if (string.IsNullOrWhiteSpace(puuid) || count <= 0)
-            {
-                return [];
-            }
-
-            var json = await _httpService.GetAsync(
-                $"lol-champion-mastery/v1/{puuid}/champion-mastery/top",
-                [$"limit={count}"]);
-            if (string.IsNullOrWhiteSpace(json))
-            {
-                return [];
-            }
-
-            var response = JToken.Parse(json);
-            var masteries = response.Type == JTokenType.Array
-                ? response
-                : response["masteries"];
-            return masteries?.ToObject<List<ChampionMastery>>() ?? [];
-        }
-
         public async Task<string> GetBackdorpByIdAsync(long summonerId)
         {
             return await _httpService.GetAsync($"lol-collections/v1/inventories/{summonerId}/backdrop");

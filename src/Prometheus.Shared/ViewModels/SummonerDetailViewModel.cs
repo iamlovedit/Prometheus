@@ -9,7 +9,6 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
-using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -111,28 +110,6 @@ namespace Prometheus.Shared.ViewModels
                     SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
-                    try
-                    {
-                        var masteries = (await _summonerService.GetChampionMasteriesAsync(
-                            _summoner.Puuid, 3) ?? []).Take(3).ToList();
-                        foreach (var mastery in masteries)
-                        {
-                            mastery.ChampionIcon = await _gameResourceManager
-                                .GetChampoinIconByIdAsync(mastery.ChampionId);
-                        }
-
-                        Mastery1 = masteries.ElementAtOrDefault(0);
-                        Mastery2 = masteries.ElementAtOrDefault(1);
-                        Mastery3 = masteries.ElementAtOrDefault(2);
-                    }
-                    catch (Exception exception)
-                    {
-                        Log.Warning(exception, "Unable to load champion masteries for {Puuid}",
-                            _summoner.Puuid);
-                        Mastery1 = null;
-                        Mastery2 = null;
-                        Mastery3 = null;
-                    }
                 }
                 var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19);
                 if (matches != null)
@@ -266,27 +243,6 @@ namespace Prometheus.Shared.ViewModels
         {
             get { return _isPublic; }
             set { SetProperty(ref _isPublic, value); }
-        }
-
-        private ChampionMastery _mastry1;
-        public ChampionMastery Mastery1
-        {
-            get { return _mastry1; }
-            set { SetProperty(ref _mastry1, value); }
-        }
-
-        private ChampionMastery _mastery2;
-        public ChampionMastery Mastery2
-        {
-            get { return _mastery2; }
-            set { SetProperty(ref _mastery2, value); }
-        }
-
-        private ChampionMastery _mastery3;
-        public ChampionMastery Mastery3
-        {
-            get { return _mastery3; }
-            set { SetProperty(ref _mastery3, value); }
         }
 
         private Match _selectedMatch;
