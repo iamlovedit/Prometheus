@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,15 +37,19 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(string.Format(BackdropEndpoint, summonerId));
         }
 
-        public async Task<SummonerAccount> GetCurrentSummoner()
+        public async Task<SummonerAccount> GetCurrentSummoner(
+            CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync<SummonerAccount>(CurrentSummonerEndpoint);
+            return await _httpService.GetAsync<SummonerAccount>(CurrentSummonerEndpoint,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<string> GetRankStatsByPuuid(string puuid)
+        public async Task<string> GetRankStatsByPuuid(string puuid,
+            CancellationToken cancellationToken = default)
         {
             return await _httpService.GetAsync(string.Format(
-                RankedStatsEndpoint, Uri.EscapeDataString(puuid)));
+                RankedStatsEndpoint, Uri.EscapeDataString(puuid)),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<string> GetRecentMatchesByPuuid(string puuid)
@@ -61,18 +66,32 @@ namespace Prometheus.Services.Client
             ]);
         }
 
-        public async Task<SummonerAccount> SearchSummonerByPuuid(string puuid)
+        public async Task<SummonerAccount> SearchSummonerByPuuid(string puuid,
+            CancellationToken cancellationToken = default)
         {
             return await _httpService.GetAsync<SummonerAccount>(string.Format(
-                SummonerByPuuidEndpoint, Uri.EscapeDataString(puuid)));
+                SummonerByPuuidEndpoint, Uri.EscapeDataString(puuid)),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         public async Task<List<Match>> GetMatchesAsync(string puuid, int start, int end,
             CancellationToken cancellationToken = default)
         {
+            var result = await GetMatchesResultAsync(puuid, start, end, cancellationToken)
+                .ConfigureAwait(false);
+            return result.Matches as List<Match> ?? result.Matches?.ToList() ?? [];
+        }
+
+        public async Task<MatchHistoryQueryResult> GetMatchesResultAsync(string puuid,
+            int start, int end, CancellationToken cancellationToken = default)
+        {
             if (string.IsNullOrWhiteSpace(puuid) || start < 0 || end < start)
             {
-                return [];
+                return new MatchHistoryQueryResult
+                {
+                    Succeeded = false,
+                    Error = "The match-history query is invalid."
+                };
             }
 
             try
@@ -84,17 +103,38 @@ namespace Prometheus.Services.Client
                         $"endIndex={end}"
                     ], cancellationToken).ConfigureAwait(false);
 
-                return response?.Games?.Games ?? [];
+                if (response?.Games is null)
+                {
+                    return new MatchHistoryQueryResult
+                    {
+                        Succeeded = false,
+                        Error = "The match-history response is unavailable."
+                    };
+                }
+
+                return new MatchHistoryQueryResult
+                {
+                    Succeeded = true,
+                    Matches = response.Games.Games ?? []
+                };
             }
             catch (HttpRequestException exception)
             {
                 Log.Error(exception, "Unable to load LCU match history");
-                return [];
+                return new MatchHistoryQueryResult
+                {
+                    Succeeded = false,
+                    Error = "Unable to load match history."
+                };
             }
             catch (JsonException exception)
             {
                 Log.Error(exception, "Unable to parse LCU match history");
-                return [];
+                return new MatchHistoryQueryResult
+                {
+                    Succeeded = false,
+                    Error = "Unable to parse match history."
+                };
             }
         }
     }

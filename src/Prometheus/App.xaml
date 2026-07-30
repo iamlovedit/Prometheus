@@ -22,6 +22,7 @@
                         <ResourceDictionary Source="pack://application:,,,/Prometheus.Core;component/Resources/Languages/zh-CN.xaml" />
                     </ResourceDictionary.MergedDictionaries>
                 </ResourceDictionary>
+                <ResourceDictionary Source="pack://application:,,,/Prometheus.Core;component/Resources/Styles/PageLayout.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <FontFamily x:Key="Iconfont">
                 pack://application:,,,/Prometheus.Core;component/Resources/#iconfont

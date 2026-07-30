@@ -15,28 +15,10 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <Style x:Key="UtilityCard" TargetType="{x:Type Border}">
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-        </Style>
-        <Style x:Key="SectionTitle" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-        </Style>
-        <Style x:Key="FieldName" TargetType="{x:Type TextBlock}">
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-        </Style>
-        <Style x:Key="CaptionText" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
+        <Style x:Key="UtilityCard" BasedOn="{StaticResource PageCard}" TargetType="{x:Type Border}" />
+        <Style x:Key="SectionTitle" BasedOn="{StaticResource PageSectionTitle}" TargetType="{x:Type TextBlock}" />
+        <Style x:Key="FieldName" BasedOn="{StaticResource PageFieldTitle}" TargetType="{x:Type TextBlock}" />
+        <Style x:Key="CaptionText" BasedOn="{StaticResource PageCaption}" TargetType="{x:Type TextBlock}" />
         <local:DivisionConverter x:Key="DivisionConverter" />
         <local:ReDivisionConverter x:Key="ReDivisionConverter" />
         <local:TierShowConverter x:Key="TierShowConverter" />
@@ -49,18 +31,11 @@
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Border
-            Padding="18,0"
-            Background="{DynamicResource RegionBrush}"
-            Style="{DynamicResource BackgroundBorder}">
+        <Border Style="{DynamicResource PageHeaderCard}">
             <StackPanel VerticalAlignment="Center">
+                <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Menu.Utility}" />
                 <TextBlock
-                    FontSize="22"
-                    FontWeight="Bold"
-                    Text="{DynamicResource Menu.Utility}" />
-                <TextBlock
-                    Margin="0,4,0,0"
-                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Style="{DynamicResource PageDescription}"
                     Text="{DynamicResource Utility.Description}" />
             </StackPanel>
         </Border>

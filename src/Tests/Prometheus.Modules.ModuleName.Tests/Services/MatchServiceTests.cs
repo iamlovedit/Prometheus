@@ -142,6 +142,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 
             context.Service = new MatchService(context.LeagueClient.Object,
                 context.HttpService.Object, context.GameService.Object,
+                context.SummonerService.Object, context.GameResourceManager.Object,
                 context.AutomationSettings.Object);
             return context;
         }
@@ -153,6 +154,10 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             public Mock<IHttpService> HttpService { get; } = new();
 
             public Mock<IGameService> GameService { get; } = new();
+
+            public Mock<ISummonerService> SummonerService { get; } = new();
+
+            public Mock<IGameResourceManager> GameResourceManager { get; } = new();
 
             public Mock<IGameAutomationSettings> AutomationSettings { get; } = new();
 

@@ -1,0 +1,165 @@
+using Prism.Mvvm;
+using Prometheus.Core.Models;
+using System.Collections.ObjectModel;
+
+namespace Prometheus.Modules.Match.ViewModels
+{
+    public sealed class RecentMatchResultViewModel : BindableBase
+    {
+        private bool _isWin;
+
+        public bool IsWin
+        {
+            get => _isWin;
+            set => SetProperty(ref _isWin, value);
+        }
+    }
+
+    /// <summary>
+    /// Bindable row projected from one <see cref="LiveMatchPlayerSnapshot"/>.
+    /// Instances are replaced when a newer live-match snapshot is published.
+    /// </summary>
+    public sealed class LiveMatchPlayerViewModel : BindableBase
+    {
+        private string _championIcon;
+        private string _spell1Icon;
+        private string _spell2Icon;
+        private string _displayName;
+        private string _positionText;
+        private string _rankText;
+        private string _recentRecordText;
+        private string _kdaText;
+        private string _statusText;
+        private bool _isLocalPlayer;
+        private bool _isHidden;
+        private bool _isPlaceholder;
+        private bool _isLoading;
+        private bool _hasError;
+        private bool _hasPerformanceData;
+        private bool _canOpenProfile;
+        private LiveMatchPlayerDataState _dataState;
+        private string _puuid = string.Empty;
+        private SummonerAccount _summoner;
+
+        public LiveMatchPlayerViewModel()
+        {
+            RecentResults = [];
+        }
+
+        public string ChampionIcon
+        {
+            get => _championIcon;
+            set => SetProperty(ref _championIcon, value);
+        }
+
+        public string Spell1Icon
+        {
+            get => _spell1Icon;
+            set => SetProperty(ref _spell1Icon, value);
+        }
+
+        public string Spell2Icon
+        {
+            get => _spell2Icon;
+            set => SetProperty(ref _spell2Icon, value);
+        }
+
+        public string DisplayName
+        {
+            get => _displayName;
+            set => SetProperty(ref _displayName, value);
+        }
+
+        public string PositionText
+        {
+            get => _positionText;
+            set => SetProperty(ref _positionText, value);
+        }
+
+        public string RankText
+        {
+            get => _rankText;
+            set => SetProperty(ref _rankText, value);
+        }
+
+        public string RecentRecordText
+        {
+            get => _recentRecordText;
+            set => SetProperty(ref _recentRecordText, value);
+        }
+
+        public string KdaText
+        {
+            get => _kdaText;
+            set => SetProperty(ref _kdaText, value);
+        }
+
+        public string StatusText
+        {
+            get => _statusText;
+            set => SetProperty(ref _statusText, value);
+        }
+
+        public ObservableCollection<RecentMatchResultViewModel> RecentResults { get; }
+
+        public bool IsLocalPlayer
+        {
+            get => _isLocalPlayer;
+            set => SetProperty(ref _isLocalPlayer, value);
+        }
+
+        public bool IsHidden
+        {
+            get => _isHidden;
+            set => SetProperty(ref _isHidden, value);
+        }
+
+        public bool IsPlaceholder
+        {
+            get => _isPlaceholder;
+            set => SetProperty(ref _isPlaceholder, value);
+        }
+
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set => SetProperty(ref _isLoading, value);
+        }
+
+        public bool HasError
+        {
+            get => _hasError;
+            set => SetProperty(ref _hasError, value);
+        }
+
+        public bool HasPerformanceData
+        {
+            get => _hasPerformanceData;
+            set => SetProperty(ref _hasPerformanceData, value);
+        }
+
+        public bool CanOpenProfile
+        {
+            get => _canOpenProfile;
+            set => SetProperty(ref _canOpenProfile, value);
+        }
+
+        public LiveMatchPlayerDataState DataState
+        {
+            get => _dataState;
+            set => SetProperty(ref _dataState, value);
+        }
+
+        public string Puuid
+        {
+            get => _puuid;
+            set => SetProperty(ref _puuid, value);
+        }
+
+        public SummonerAccount Summoner
+        {
+            get => _summoner;
+            set => SetProperty(ref _summoner, value);
+        }
+    }
+}

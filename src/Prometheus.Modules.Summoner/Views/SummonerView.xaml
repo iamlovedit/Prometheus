@@ -14,5 +14,10 @@
     d:DesignWidth="800"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <ContentControl prism:RegionManager.RegionName="{x:Static core:RegionNames.SummonerContent}" />
+    <ContentControl
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        HorizontalContentAlignment="Stretch"
+        VerticalContentAlignment="Stretch"
+        prism:RegionManager.RegionName="{x:Static core:RegionNames.SummonerContent}" />
 </UserControl>

@@ -15,6 +15,19 @@ namespace Prometheus.Core.Models
         public List<Match> Games { get; set; } = [];
     }
 
+    /// <summary>
+    /// Distinguishes a successful empty match history from an unavailable or
+    /// malformed LCU response for live-match enrichment.
+    /// </summary>
+    public class MatchHistoryQueryResult
+    {
+        public bool Succeeded { get; set; }
+
+        public IReadOnlyList<Match> Matches { get; set; } = Array.Empty<Match>();
+
+        public string Error { get; set; } = string.Empty;
+    }
+
     public class Match
     {
         public long GameId { get; set; }

@@ -52,6 +52,12 @@ namespace Prometheus.Core.Models
     /// </summary>
     public class LiveMatchSnapshot
     {
+        /// <summary>
+        /// Monotonically increasing publication version. Consumers can use it
+        /// to discard event callbacks that arrive after a newer snapshot.
+        /// </summary>
+        public long Version { get; set; }
+
         public ConnectionState ConnectionState { get; set; } = ConnectionState.Disconnected;
 
         public GameflowPhase GameflowPhase { get; set; } = GameflowPhase.Unknown;
@@ -70,6 +76,11 @@ namespace Prometheus.Core.Models
         public ChampionSelectSnapshot ChampionSelect { get; set; }
 
         public PostGameSnapshot PostGame { get; set; }
+
+        /// <summary>
+        /// Service-owned, progressively enriched roster for the live match.
+        /// </summary>
+        public LiveMatchRosterSnapshot Roster { get; set; }
 
         public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -111,9 +122,91 @@ namespace Prometheus.Core.Models
         public LiveMatchSnapshot Snapshot { get; }
     }
 
+    public enum LiveMatchPlayerDataState
+    {
+        Placeholder,
+        Hidden,
+        Loading,
+        Loaded,
+        Unavailable,
+        Error
+    }
+
+    /// <summary>
+    /// A five-versus-five roster assembled and enriched exclusively by
+    /// <c>MatchService</c>. The two lists are replaced as a unit on every
+    /// publication.
+    /// </summary>
+    public class LiveMatchRosterSnapshot
+    {
+        public long GameId { get; set; }
+
+        public GameflowPhase SourcePhase { get; set; } = GameflowPhase.Unknown;
+
+        public string Signature { get; set; } = string.Empty;
+
+        public bool IsResolving { get; set; }
+
+        public IReadOnlyList<LiveMatchPlayerSnapshot> MyTeam { get; set; } =
+            Array.Empty<LiveMatchPlayerSnapshot>();
+
+        public IReadOnlyList<LiveMatchPlayerSnapshot> TheirTeam { get; set; } =
+            Array.Empty<LiveMatchPlayerSnapshot>();
+    }
+
+    public class LiveMatchPlayerSnapshot
+    {
+        public int Slot { get; set; }
+
+        public long CellId { get; set; }
+
+        public int ChampionId { get; set; }
+
+        public int Spell1Id { get; set; }
+
+        public int Spell2Id { get; set; }
+
+        public string ChampionIcon { get; set; } = string.Empty;
+
+        public string Spell1Icon { get; set; } = string.Empty;
+
+        public string Spell2Icon { get; set; } = string.Empty;
+
+        public string Puuid { get; set; } = string.Empty;
+
+        public string Position { get; set; } = string.Empty;
+
+        public string DisplayName { get; set; } = string.Empty;
+
+        public bool IsLocalPlayer { get; set; }
+
+        public bool IsHidden { get; set; }
+
+        public bool IsPlaceholder { get; set; }
+
+        public LiveMatchPlayerDataState DataState { get; set; } =
+            LiveMatchPlayerDataState.Placeholder;
+
+        public SummonerAccount Summoner { get; set; }
+
+        public Rank SoloRank { get; set; }
+
+        public int RecentWins { get; set; }
+
+        public int RecentLosses { get; set; }
+
+        public int RecentMatchCount { get; set; }
+
+        public double AverageKda { get; set; }
+
+        public IReadOnlyList<bool> RecentResults { get; set; } = Array.Empty<bool>();
+
+        public string Error { get; set; } = string.Empty;
+    }
+
     // The following DTOs deliberately contain only the small, stable subset
-    // consumed by the UI.  The LCU payloads contain many identity and internal
-    // fields which are intentionally not modelled or queried by the service.
+    // consumed by the UI, including the identity and visibility fields needed
+    // to progressively enrich live-match player details.
 
     public class GameflowSessionSnapshot
     {
@@ -175,6 +268,22 @@ namespace Prometheus.Core.Models
         public int ChampionId { get; set; }
 
         public string AssignedPosition { get; set; } = string.Empty;
+
+        public string SelectedPosition { get; set; } = string.Empty;
+
+        public string Puuid { get; set; } = string.Empty;
+
+        public long SummonerId { get; set; }
+
+        public string SummonerName { get; set; } = string.Empty;
+
+        public int ProfileIconId { get; set; }
+
+        public int Spell1Id { get; set; }
+
+        public int Spell2Id { get; set; }
+
+        public int TeamId { get; set; }
     }
 
     public class LobbySnapshot
@@ -372,13 +481,29 @@ namespace Prometheus.Core.Models
 
         public int ChampionId { get; set; }
 
+        public int ChampionPickIntent { get; set; }
+
         public int SelectedSkinId { get; set; }
 
         public string AssignedPosition { get; set; } = string.Empty;
 
+        public string NameVisibilityType { get; set; } = string.Empty;
+
+        public string ObfuscatedPuuid { get; set; } = string.Empty;
+
+        public long ObfuscatedSummonerId { get; set; }
+
+        public string Puuid { get; set; } = string.Empty;
+
         public int Spell1Id { get; set; }
 
         public int Spell2Id { get; set; }
+
+        public long SummonerId { get; set; }
+
+        public int Team { get; set; }
+
+        public int WardSkinId { get; set; }
 
         public int PickTurn { get; set; }
     }

@@ -16,6 +16,63 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
     public class SummonerServiceTests
     {
         [Fact]
+        public async Task GetCurrentSummoner_WhenTokenProvided_ForwardsCancellationToken()
+        {
+            var httpService = new Mock<IHttpService>();
+            var cancellationToken = new CancellationTokenSource().Token;
+            var expected = new SummonerAccount { Puuid = "current-puuid" };
+            httpService.Setup(service => service.GetAsync<SummonerAccount>(
+                    "lol-summoner/v1/current-summoner", null, cancellationToken))
+                .ReturnsAsync(expected);
+            var service = new SummonerService(httpService.Object);
+
+            var result = await service.GetCurrentSummoner(cancellationToken);
+
+            Assert.Same(expected, result);
+            httpService.Verify(service => service.GetAsync<SummonerAccount>(
+                "lol-summoner/v1/current-summoner", null, cancellationToken), Times.Once);
+        }
+
+        [Fact]
+        public async Task SearchSummonerByPuuid_WhenTokenProvided_ForwardsCancellationToken()
+        {
+            var httpService = new Mock<IHttpService>();
+            var cancellationToken = new CancellationTokenSource().Token;
+            var expected = new SummonerAccount { Puuid = "player/puuid" };
+            httpService.Setup(service => service.GetAsync<SummonerAccount>(
+                    "lol-summoner/v2/summoners/puuid/player%2Fpuuid", null,
+                    cancellationToken))
+                .ReturnsAsync(expected);
+            var service = new SummonerService(httpService.Object);
+
+            var result = await service.SearchSummonerByPuuid("player/puuid", cancellationToken);
+
+            Assert.Same(expected, result);
+            httpService.Verify(service => service.GetAsync<SummonerAccount>(
+                "lol-summoner/v2/summoners/puuid/player%2Fpuuid", null,
+                cancellationToken), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetRankStatsByPuuid_WhenTokenProvided_ForwardsCancellationToken()
+        {
+            var httpService = new Mock<IHttpService>();
+            var cancellationToken = new CancellationTokenSource().Token;
+            httpService.Setup(service => service.GetAsync(
+                    "lol-ranked/v1/ranked-stats/player%2Fpuuid", null,
+                    cancellationToken))
+                .ReturnsAsync("ranked-stats");
+            var service = new SummonerService(httpService.Object);
+
+            var result = await service.GetRankStatsByPuuid("player/puuid", cancellationToken);
+
+            Assert.Equal("ranked-stats", result);
+            httpService.Verify(service => service.GetAsync(
+                "lol-ranked/v1/ranked-stats/player%2Fpuuid", null,
+                cancellationToken), Times.Once);
+        }
+
+        [Fact]
         public async Task GetMatchesAsync_WhenResponseContainsGames_ReturnsRequestedPage()
         {
             var httpService = new Mock<IHttpService>();
@@ -70,6 +127,43 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             var result = await service.GetMatchesAsync("test-puuid", 0, 19);
 
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task GetMatchesResultAsync_WhenHistoryIsEmpty_ReturnsSuccessfulResult()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
+                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new MatchHistoryResponse
+                {
+                    Games = new MatchHistoryPage { Games = [] }
+                });
+            var service = new SummonerService(httpService.Object);
+
+            var result = await service.GetMatchesResultAsync("test-puuid", 0, 19);
+
+            Assert.True(result.Succeeded);
+            Assert.Empty(result.Matches);
+            Assert.Empty(result.Error);
+        }
+
+        [Fact]
+        public async Task GetMatchesResultAsync_WhenLcuRequestFails_PreservesFailure()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
+                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException("LCU unavailable"));
+            var service = new SummonerService(httpService.Object);
+
+            var result = await service.GetMatchesResultAsync("test-puuid", 0, 19);
+
+            Assert.False(result.Succeeded);
+            Assert.Empty(result.Matches);
+            Assert.NotEmpty(result.Error);
         }
 
         [Fact]

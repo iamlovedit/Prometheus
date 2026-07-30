@@ -20,10 +20,7 @@
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Border
-            Padding="18,0"
-            Background="{DynamicResource RegionBrush}"
-            Style="{DynamicResource BackgroundBorder}">
+        <Border Style="{DynamicResource PageHeaderCard}">
             <Grid>
                 <Grid Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityReConverter}}">
                     <Grid.ColumnDefinitions>
@@ -31,13 +28,9 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
+                        <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Setting.Title}" />
                         <TextBlock
-                            FontSize="22"
-                            FontWeight="Bold"
-                            Text="{DynamicResource Setting.Title}" />
-                        <TextBlock
-                            Margin="0,4,0,0"
-                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Style="{DynamicResource PageDescription}"
                             Text="{DynamicResource Setting.Description}" />
                     </StackPanel>
                     <Button
@@ -65,13 +58,9 @@
                         Style="{DynamicResource ButtonPrimary}"
                         ToolTip="{DynamicResource Setting.Diagnostics.Back}" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Setting.Diagnostics}" />
                         <TextBlock
-                            FontSize="22"
-                            FontWeight="Bold"
-                            Text="{DynamicResource Setting.Diagnostics}" />
-                        <TextBlock
-                            Margin="0,4,0,0"
-                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Style="{DynamicResource PageDescription}"
                             Text="{DynamicResource Setting.Diagnostics.Description}" />
                     </StackPanel>
                 </Grid>

@@ -14,27 +14,10 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <Style x:Key="SettingCard" TargetType="{x:Type Border}">
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
-        </Style>
-        <Style x:Key="SectionTitle" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-        </Style>
-        <Style x:Key="SettingName" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-        </Style>
-        <Style x:Key="CaptionText" TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
+        <Style x:Key="SettingCard" BasedOn="{StaticResource PageCard}" TargetType="{x:Type Border}" />
+        <Style x:Key="SectionTitle" BasedOn="{StaticResource PageSectionTitle}" TargetType="{x:Type TextBlock}" />
+        <Style x:Key="SettingName" BasedOn="{StaticResource PageFieldTitle}" TargetType="{x:Type TextBlock}" />
+        <Style x:Key="CaptionText" BasedOn="{StaticResource PageCaption}" TargetType="{x:Type TextBlock}" />
         <Style x:Key="ThemeChoiceItem" TargetType="{x:Type ListBoxItem}">
             <Setter Property="Margin" Value="0,0,8,0" />
             <Setter Property="Padding" Value="0" />
@@ -64,13 +47,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="MetricCard" TargetType="{x:Type Border}">
-            <Setter Property="Padding" Value="12" />
-            <Setter Property="Background" Value="{DynamicResource MainContentForegroundDrawingBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-        </Style>
+        <Style x:Key="MetricCard" BasedOn="{StaticResource PageMetricCard}" TargetType="{x:Type Border}" />
         <Style x:Key="SettingToggleSwitch" TargetType="{x:Type ToggleButton}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="24" />
