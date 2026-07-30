@@ -28,3 +28,14 @@ Tests use xUnit, Moq, and Coverlet. Add tests in `src/Tests/<Project>.Tests/`, n
 ## Commit & Pull Request Guidelines
 
 Recent history favors short imperative subjects such as `Add ...`, `Refactor ...`, and `Update ...`. Keep each commit focused and describe the concrete change. Pull requests should include a summary, linked issue when applicable, build/test results, and screenshots or GIFs for XAML or theme changes. Note localization updates and keep `en-US.xaml` and `zh-CN.xaml` aligned. Never commit credentials, League Client tokens, logs, or generated `bin/` and `obj/` content.
+
+## Mandatory Workflow
+
+**CRITICAL**: Before analyzing requirements, planning, modifying code, or writing tests:
+
+1. Read `specs/README.md` first
+2. Read all specs relevant to your task based on the index in `specs/README.md`
+3. If the task spans multiple modules, read all corresponding specs
+4. The `specs/` directory is the source of truth for implementation behavior and acceptance criteria
+5. If a user request conflicts with a spec, point out the conflict and ask for confirmation — never silently ignore specs
+6. After implementation, verify code and tests against the acceptance criteria in the relevant specs
