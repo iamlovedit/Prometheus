@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Management" Version="8.0.0" />
-    <PackageReference Include="Websocket.Client" Version="5.1.2" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="System.Management" />
+    <PackageReference Include="Websocket.Client" />
   </ItemGroup>
 
   <ItemGroup>
