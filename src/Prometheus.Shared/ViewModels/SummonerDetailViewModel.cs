@@ -71,7 +71,7 @@ namespace Prometheus.Shared.ViewModels
                     var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
                     if (!string.IsNullOrEmpty(jsonValue))
                     {
-                        skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
+                        skinId = JObject.Parse(jsonValue)["backgroundSkinId"]?.ToObject<int>()??0;
                     }
                 }
                 else
