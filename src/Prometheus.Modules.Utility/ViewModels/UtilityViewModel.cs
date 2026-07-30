@@ -53,22 +53,47 @@ namespace Prometheus.Modules.Utility.ViewModels
 
         private readonly IResourceService _resourceService;
         private readonly IGameService _gameService;
+        private readonly IProfilePresentationSettings _profileSettings;
 
         public UtilityViewModel(
             IRegionManager regionManager,
             IResourceService resourceService,
-            IGameService gameService)
+            IGameService gameService,
+            IProfilePresentationSettings profileSettings)
             : base(regionManager)
         {
             _resourceService = resourceService;
             _gameService = gameService;
+            _profileSettings = profileSettings;
+
+            _selectedStatusIndex = FindIndex(
+                _statusMap, _profileSettings.OnlineStatus, -1);
+            Status = _profileSettings.StatusMessage ?? string.Empty;
+
+            if (_profileSettings.QueueType.HasValue &&
+                _profileSettings.Tier.HasValue &&
+                _profileSettings.Division.HasValue)
+            {
+                _selectedModeIndex = FindIndex(
+                    _queueMap, _profileSettings.QueueType.Value, 0);
+                _selectedTierIndex = FindIndex(
+                    _tierMap, _profileSettings.Tier.Value, 0);
+                _selectedDivisionIndex = FindIndex(
+                    _divisionMap, _profileSettings.Division.Value, -1);
+            }
         }
 
         private int _selectedStatusIndex = -1;
         public int SelectedStatusIndex
         {
             get => _selectedStatusIndex;
-            set => SetProperty(ref _selectedStatusIndex, value);
+            set
+            {
+                if (SetProperty(ref _selectedStatusIndex, value))
+                {
+                    UpdateOnlineStatusAsync().Observe("Updating League online status");
+                }
+            }
         }
 
         private int _selectedModeIndex;
@@ -133,11 +158,6 @@ namespace Prometheus.Modules.Utility.ViewModels
             _confirmStatusCommand ??= new DelegateCommand(() =>
                 UpdateStatusMessageAsync().Observe("Updating League chat status message"));
 
-        private DelegateCommand _chatStatusChangedCommand;
-        public DelegateCommand ChatStatusChangedCommand =>
-            _chatStatusChangedCommand ??= new DelegateCommand(() =>
-                UpdateOnlineStatusAsync().Observe("Updating League online status"));
-
         private DelegateCommand _createLobbyCommand;
         public DelegateCommand CreateLobbyCommand =>
             _createLobbyCommand ??= new DelegateCommand(() =>
@@ -152,7 +172,9 @@ namespace Prometheus.Modules.Utility.ViewModels
         {
             try
             {
-                await _gameService.SetStatusAsync(Status ?? string.Empty);
+                var statusMessage = Status ?? string.Empty;
+                await _gameService.SetStatusAsync(statusMessage);
+                _profileSettings.SaveStatusMessage(statusMessage);
             }
             catch (Exception exception)
             {
@@ -170,6 +192,7 @@ namespace Prometheus.Modules.Utility.ViewModels
             try
             {
                 await _gameService.SetOnlineStatusAsync(status);
+                _profileSettings.SaveOnlineStatus(status);
             }
             catch (Exception exception)
             {
@@ -211,11 +234,28 @@ namespace Prometheus.Modules.Utility.ViewModels
             try
             {
                 await _gameService.SetChatTierAsync(queue, tier, division);
+                _profileSettings.SaveTier(queue, tier, division);
             }
             catch (Exception exception)
             {
                 Growl.Error(exception.Message);
             }
+        }
+
+        private static int FindIndex<T>(
+            IReadOnlyDictionary<int, T> map,
+            T value,
+            int defaultIndex)
+        {
+            foreach (var item in map)
+            {
+                if (EqualityComparer<T>.Default.Equals(item.Value, value))
+                {
+                    return item.Key;
+                }
+            }
+
+            return defaultIndex;
         }
     }
 }

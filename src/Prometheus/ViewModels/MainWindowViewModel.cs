@@ -30,6 +30,7 @@ namespace Prometheus.ViewModels
         private readonly IClientService _clientService;
         private readonly IClientListener _clientListener;
         private readonly IResourceService _resourceService;
+        private readonly IProfilePresentationStartupService _profilePresentationStartupService;
 
         private GameflowPhase _lastAlertPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
@@ -41,7 +42,8 @@ namespace Prometheus.ViewModels
             IMatchService matchService,
             IClientService clientService,
             IClientListener clientListener,
-            IResourceService resourceService)
+            IResourceService resourceService,
+            IProfilePresentationStartupService profilePresentationStartupService)
         {
             _regionManager = regionManager;
             _eventAggregator = eventAggregator;
@@ -50,6 +52,7 @@ namespace Prometheus.ViewModels
             _clientService = clientService;
             _clientListener = clientListener;
             _resourceService = resourceService;
+            _profilePresentationStartupService = profilePresentationStartupService;
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Subscribe(HandleNavigateMenu);
@@ -96,6 +99,7 @@ namespace Prometheus.ViewModels
         {
             try
             {
+                _profilePresentationStartupService.Start();
                 await _matchService.StartAsync();
             }
             catch (Exception exception)
@@ -176,6 +180,7 @@ namespace Prometheus.ViewModels
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(HandleLanguageChanged);
             try
             {
+                _profilePresentationStartupService.Stop();
                 await _matchService.StopAsync();
                 _clientListener.Close();
             }

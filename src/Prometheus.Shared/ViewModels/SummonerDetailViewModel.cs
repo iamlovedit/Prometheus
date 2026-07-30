@@ -6,14 +6,12 @@ using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
-using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
@@ -50,12 +48,7 @@ namespace Prometheus.Shared.ViewModels
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
             _dialogService = containerExtension.Resolve<IDialogService>();
         }
-        public override void OnNavigatedTo(NavigationContext navigationContext)
-        {
-            OnNavigatedToAsync(navigationContext).Observe("Loading summoner details");
-        }
-
-        private async Task OnNavigatedToAsync(NavigationContext navigationContext)
+        public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
             if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
             {
@@ -71,7 +64,7 @@ namespace Prometheus.Shared.ViewModels
                     var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
                     if (!string.IsNullOrEmpty(jsonValue))
                     {
-                        skinId = JObject.Parse(jsonValue)["backgroundSkinId"]?.ToObject<int>()??0;
+                        skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
                     }
                 }
                 else
@@ -99,29 +92,21 @@ namespace Prometheus.Shared.ViewModels
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
                 }
-                var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19) ?? [];
-                var displayMatches = matches
-                    .Where(match => match?.Participants?.FirstOrDefault()?.Stats is not null)
-                    .ToList();
-                var participants = displayMatches
-                    .Select(match => match.Participants[0])
-                    .ToList();
-
-                Wins = participants.Count(participant => participant.Stats.Win);
-                Losses = participants.Count - Wins;
-                var killed = participants.Sum(participant => participant.Stats.Kills);
-                var deaths = participants.Sum(participant => participant.Stats.Deaths);
-                var assists = participants.Sum(participant => participant.Stats.Assists);
-                KDA = $"{killed}/{deaths}/{assists}";
-
-                var iconTasks = participants.Select(async participant =>
+                var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19);
+                if (matches != null)
                 {
-                    participant.ChampionIcon = await _gameResourceManager
-                        .GetChampoinIconByIdAsync(participant.ChampionId);
-                });
-                await Task.WhenAll(iconTasks);
-                RecentMatches = CollectionViewSource.GetDefaultView(displayMatches) as ListCollectionView;
-                IsLoading = false;
+                    Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
+                    var killed = matches.Sum(m => m.Participants[0].Stats.Kills);
+                    var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
+                    var assists = matches.Sum(m => m.Participants[0].Stats.Assists);
+                    KDA = $"{killed}/{deaths}/{assists}";
+                    matches.ForEach(async m =>
+                    {
+                        m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
+                    });
+                    RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
+                    IsLoading = false;
+                }
             }
         }
 
@@ -140,6 +125,7 @@ namespace Prometheus.Shared.ViewModels
             set
             {
                 SetProperty(ref _wins, value);
+                Losses = 20 - value;
             }
         }
 
@@ -336,19 +322,9 @@ namespace Prometheus.Shared.ViewModels
         private DelegateCommand _backMeCommand;
         public DelegateCommand BackMeCommand =>
             _backMeCommand ?? (_backMeCommand = new DelegateCommand(ExecuteBackMeCommand));
-        void ExecuteBackMeCommand()
-        {
-            ExecuteBackMeCommandAsync().Observe("Loading the current summoner");
-        }
-
-        private async Task ExecuteBackMeCommandAsync()
+        async void ExecuteBackMeCommand()
         {
             var summoner = await _summonerService.GetCurrentSummoner();
-            if (summoner is null)
-            {
-                return;
-            }
-
             var parameters = new NavigationParameters()
             {
                 {ParameterNames.CanEdit,true},

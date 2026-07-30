@@ -17,6 +17,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.Views;
 using Prometheus.Views;
 using Serilog;
+using Serilog.Formatting.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,6 +34,8 @@ namespace Prometheus
 {
     public partial class App : PrismApplication
     {
+        private const int RetainedLogFileCount = 14;
+
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
@@ -53,10 +56,12 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IResourceService, ResourceService>();
             containerRegistry.RegisterSingleton<IClientService, ClientService>();
             containerRegistry.RegisterSingleton<IGameService, GameService>();
+            containerRegistry.RegisterSingleton<IProfilePresentationSettings, ProfilePresentationSettings>();
             containerRegistry.RegisterSingleton<IGameResourceManager, GameResourceManager>();
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
             containerRegistry.RegisterSingleton<IGameAutomationSettings, GameAutomationSettings>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
+            containerRegistry.RegisterSingleton<IProfilePresentationStartupService, ProfilePresentationStartupService>();
             containerRegistry.RegisterSingleton<ILeagueClient, LeagueClient>();
             containerRegistry.RegisterInstance<ILogHistoryService>(_logHistory);
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
@@ -116,16 +121,34 @@ namespace Prometheus
             }
             else
             {
+                var logDirectory = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Prometheus",
+                    "Logs");
+                Directory.CreateDirectory(logDirectory);
+
                 _logHistory = new LogHistoryService(1000);
                 Log.Logger = new LoggerConfiguration()
-                    .WriteTo.File("log-.txt",
+                    .WriteTo.File(new JsonFormatter(renderMessage: true),
+                        Path.Combine(logDirectory, "prometheus-.jsonl"),
                         rollingInterval: RollingInterval.Day,
-                        outputTemplate:
-                        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                        retainedFileCountLimit: RetainedLogFileCount)
                     .WriteTo.Sink(_logHistory.Sink)
                     .CreateLogger();
                 RegisterExceptionHandlers();
                 base.OnStartup(e);
+            }
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            try
+            {
+                base.OnExit(e);
+            }
+            finally
+            {
+                Log.CloseAndFlush();
             }
         }
 
