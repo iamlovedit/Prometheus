@@ -26,6 +26,8 @@
 
         public const string SettingSystemView = "SettingSystemView";
 
+        public const string SettingLogView = "SettingLogView";
+
         public const string SearchContent = "SearchContent";
 
         public const string SummonerContent = "SummonerContent";
