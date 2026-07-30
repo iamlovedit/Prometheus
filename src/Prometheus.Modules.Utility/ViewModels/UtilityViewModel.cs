@@ -5,9 +5,6 @@ using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Prometheus.Modules.Utility.ViewModels
 {

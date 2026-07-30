@@ -1,4 +1,4 @@
-﻿using HandyControl.Data;
+using HandyControl.Data;
 using Microsoft.Win32;
 using Prism.Commands;
 using Prism.Ioc;
@@ -8,14 +8,8 @@ using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Data;
 namespace Prometheus.Modules.Inventory.ViewModels
 {
     public class InventoryViewModel : RegionViewModelBase

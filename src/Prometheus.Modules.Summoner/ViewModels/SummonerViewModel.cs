@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Ioc;
@@ -10,9 +10,6 @@ using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {

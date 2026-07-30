@@ -1,9 +1,5 @@
 using Newtonsoft.Json;
 using Prometheus.Services.Interfaces;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Prometheus.Services
 {

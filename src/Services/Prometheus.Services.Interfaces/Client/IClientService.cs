@@ -1,5 +1,3 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
 {

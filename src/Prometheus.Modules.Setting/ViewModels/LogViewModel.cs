@@ -4,12 +4,10 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows;
-using System.Windows.Data;
 using System.Windows.Threading;
 
 namespace Prometheus.Modules.Setting.ViewModels

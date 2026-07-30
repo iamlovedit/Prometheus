@@ -1,15 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Newtonsoft.Json;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Web;
 
 namespace Prometheus.Services.Client

@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+using Prism.Commands;
 using Prism.Ioc;
 using Prism.Regions;
 using Prometheus.Core;
@@ -7,10 +7,6 @@ using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Team = Prometheus.Shared.Models.Team;
 
 namespace Prometheus.Shared.ViewModels

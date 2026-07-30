@@ -13,8 +13,6 @@ using Prometheus.Modules.Summoner;
 using Prometheus.Modules.Utility;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace Prometheus.ViewModels

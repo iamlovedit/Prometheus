@@ -1,4 +1,3 @@
-﻿using System.Windows.Controls;
 
 namespace Prometheus.Modules.Match.Views
 {

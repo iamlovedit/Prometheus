@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+using Prism.Commands;
 using Prism.Ioc;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
@@ -6,12 +6,7 @@ using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Data;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {

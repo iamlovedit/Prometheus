@@ -4,12 +4,6 @@ using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.Services

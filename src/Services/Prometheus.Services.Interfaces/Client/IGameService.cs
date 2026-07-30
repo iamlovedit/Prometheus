@@ -1,6 +1,4 @@
 using Prometheus.Core.Models;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Prometheus.Services.Interfaces.Client
 {

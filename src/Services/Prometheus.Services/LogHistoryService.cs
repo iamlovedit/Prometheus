@@ -2,8 +2,6 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Serilog.Core;
 using Serilog.Events;
-using System;
-using System.Collections.Generic;
 
 namespace Prometheus.Services
 {

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using Prism.Commands;
 using Prism.Ioc;
 using Prism.Regions;
@@ -7,13 +7,7 @@ using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Linq;
 using System.Windows;
-using System.Windows.Data;
 
 namespace Prometheus.Shared.ViewModels
 {

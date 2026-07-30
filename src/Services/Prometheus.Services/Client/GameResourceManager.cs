@@ -1,16 +1,10 @@
-﻿using Prism.Ioc;
+using Prism.Ioc;
 using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using Serilog.Core;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 
 namespace Prometheus.Services.Client
 {

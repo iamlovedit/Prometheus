@@ -1,7 +1,4 @@
-﻿using Prometheus.Core.Models;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+using Prometheus.Core.Models;
 
 namespace Prometheus.Services.Interfaces.Client
 {

@@ -1,8 +1,6 @@
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
-using System;
-using System.Threading.Tasks;
 
 namespace Prometheus.Services.Client
 {

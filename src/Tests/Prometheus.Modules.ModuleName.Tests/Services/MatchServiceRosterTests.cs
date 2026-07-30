@@ -3,12 +3,7 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 using MatchModel = Prometheus.Core.Models.Match;
 

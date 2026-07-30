@@ -2,8 +2,6 @@ using Moq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.Services

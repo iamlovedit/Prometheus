@@ -1,5 +1,4 @@
-﻿using Prism.Regions;
-using System;
+using Prism.Regions;
 
 namespace Prometheus.Core.Mvvm
 {

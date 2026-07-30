@@ -1,4 +1,4 @@
-﻿using Prism.DryIoc;
+using Prism.DryIoc;
 using Prism.Ioc;
 using Prism.Modularity;
 using Prometheus.Core;
@@ -18,15 +18,9 @@ using Prometheus.Shared.Views;
 using Prometheus.Views;
 using Serilog;
 using Serilog.Formatting.Json;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 

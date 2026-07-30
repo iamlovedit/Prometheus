@@ -1,7 +1,5 @@
 using Prometheus.Core.Models;
 using Prometheus.Services.Client;
-using System;
-using System.IO;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.Services

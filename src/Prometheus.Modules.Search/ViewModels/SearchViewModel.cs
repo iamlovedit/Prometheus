@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+using Prism.Commands;
 using Prism.Events;
 using Prism.Regions;
 using Prometheus.Core;
@@ -6,8 +6,6 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
-using System;
-using System.Net.Http;
 
 namespace Prometheus.Modules.Search.ViewModels
 {

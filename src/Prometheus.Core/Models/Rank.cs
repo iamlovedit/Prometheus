@@ -1,6 +1,5 @@
-﻿using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json;
-using System;
 using System.Reflection;
 
 namespace Prometheus.Core.Models

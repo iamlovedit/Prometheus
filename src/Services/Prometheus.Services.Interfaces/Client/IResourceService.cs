@@ -1,4 +1,3 @@
-﻿using System;
 
 namespace Prometheus.Services.Interfaces.Client
 {

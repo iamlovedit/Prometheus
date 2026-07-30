@@ -1,7 +1,6 @@
 using Prometheus.Modules.Setting.ViewModels;
 using System.Collections.Specialized;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Threading;
 
 namespace Prometheus.Modules.Setting.Views

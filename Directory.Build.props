@@ -1,9 +1,12 @@
 <Project>
   <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+
     <!-- Update this version for each product release. -->
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
   </PropertyGroup>
+
 </Project>

@@ -1,0 +1,13 @@
+<Project>
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseWPF)' == 'true'">
+    <Using Include="System.Windows.Controls" />
+    <Using Include="System.Windows.Data" />
+    <Using Include="System.Windows.Input" />
+    <Using Include="System.Windows.Media" />
+  </ItemGroup>
+</Project>

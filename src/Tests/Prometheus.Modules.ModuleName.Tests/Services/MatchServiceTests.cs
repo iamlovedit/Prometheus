@@ -3,10 +3,6 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Client;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.Services

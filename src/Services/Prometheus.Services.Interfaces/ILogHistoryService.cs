@@ -1,6 +1,4 @@
 using Prometheus.Core.Models;
-using System;
-using System.Collections.Generic;
 
 namespace Prometheus.Services.Interfaces
 {

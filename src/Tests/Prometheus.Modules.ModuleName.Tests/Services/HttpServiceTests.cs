@@ -1,5 +1,4 @@
 using Prometheus.Services;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.Services

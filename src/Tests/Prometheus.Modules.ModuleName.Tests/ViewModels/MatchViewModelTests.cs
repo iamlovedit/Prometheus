@@ -5,11 +5,6 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Modules.Match.ViewModels;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.ViewModels

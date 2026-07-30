@@ -2,15 +2,9 @@ using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net.Security;
 using System.Net.WebSockets;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Prometheus.Services.Client
 {

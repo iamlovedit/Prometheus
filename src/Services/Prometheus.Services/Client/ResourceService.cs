@@ -2,8 +2,6 @@ using Microsoft.Win32;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
-using System;
-using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 

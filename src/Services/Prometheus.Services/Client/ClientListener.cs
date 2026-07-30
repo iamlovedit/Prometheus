@@ -1,12 +1,9 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.WebSockets;
 using System.Reactive.Linq;
-using System.Threading.Tasks;
 using Websocket.Client;
 
 namespace Prometheus.Services.Client

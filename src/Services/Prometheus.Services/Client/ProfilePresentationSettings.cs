@@ -1,7 +1,5 @@
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
-using System;
-using System.IO;
 using System.Text.Json;
 
 namespace Prometheus.Services.Client

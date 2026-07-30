@@ -1,6 +1,5 @@
-﻿using Prometheus.Shared.Models;
+using Prometheus.Shared.Models;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace Prometheus.Shared.Views
 {

@@ -4,7 +4,6 @@ using Prometheus.Core.Models;
 using Prometheus.Modules.Setting.Properties;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
-using System;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
