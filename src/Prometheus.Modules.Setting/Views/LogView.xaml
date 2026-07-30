@@ -12,7 +12,7 @@
     d:DesignWidth="640"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <Grid Margin="12">
+    <Grid Margin="0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -21,10 +21,13 @@
         <hc:UniformSpacingPanel
             Grid.Row="0"
             HorizontalSpacing="10"
+            ItemVerticalAlignment="Center"
             Orientation="Horizontal"
             VerticalAlignment="Center">
             <TextBox
                 Width="220"
+                Height="34"
+                VerticalContentAlignment="Center"
                 hc:InfoElement.Placeholder="{DynamicResource Setting.Log.Search}"
                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
             <TextBlock
@@ -33,6 +36,8 @@
                 Text="{DynamicResource Setting.Log.MinimumLevel}" />
             <ComboBox
                 Width="130"
+                Height="34"
+                VerticalContentAlignment="Center"
                 SelectedIndex="{Binding MinimumLevelIndex}">
                 <ComboBoxItem Content="{DynamicResource Setting.Log.Level.All}" />
                 <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Verbose}" />
@@ -43,9 +48,13 @@
                 <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Fatal}" />
             </ComboBox>
             <ToggleButton
+                Height="34"
+                VerticalContentAlignment="Center"
                 IsChecked="{Binding AutoScroll}"
                 Content="{DynamicResource Setting.Log.AutoScroll}" />
             <ToggleButton
+                Height="34"
+                VerticalContentAlignment="Center"
                 IsChecked="{Binding IsPaused}"
                 >
                 <TextBlock>
@@ -62,6 +71,8 @@
                 </TextBlock>
             </ToggleButton>
             <Button
+                Height="34"
+                VerticalContentAlignment="Center"
                 Command="{Binding ClearCommand}"
                 Content="{DynamicResource Setting.Log.Clear}"
                 IsEnabled="{Binding HasAnyEntries}"

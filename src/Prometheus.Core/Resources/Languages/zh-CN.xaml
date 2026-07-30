@@ -33,6 +33,7 @@
     <sys:String x:Key="Setting.Diagnostics.Description">查看当前会话日志并排查运行问题</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Summary">查看客户端连接、应用版本和当前会话日志</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Open">查看日志与诊断</sys:String>
+    <sys:String x:Key="Setting.Diagnostics.Back">返回设置</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Client">英雄联盟客户端</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Version">应用版本</sys:String>
     <sys:String x:Key="Setting.Diagnostics.LogEntries">当前会话日志</sys:String>

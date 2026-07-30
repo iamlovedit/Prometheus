@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Setting.ViewModels"
@@ -53,12 +54,16 @@
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
                     <Button
+                        Width="36"
+                        Height="36"
                         Margin="0,0,14,0"
+                        hc:IconElement.Height="16"
+                        hc:IconElement.Width="16"
                         VerticalAlignment="Center"
+                        hc:IconElement.Geometry="{StaticResource BackGeometry}"
                         Command="{Binding OpenOverviewCommand}"
-                        Content="&#x2190;"
-                        FontSize="18"
-                        Style="{DynamicResource ButtonIcon}" />
+                        Style="{DynamicResource ButtonPrimary}"
+                        ToolTip="{DynamicResource Setting.Diagnostics.Back}" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock
                             FontSize="22"
@@ -75,6 +80,8 @@
 
         <ContentControl
             Grid.Row="2"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
             prism:RegionManager.RegionName="{x:Static core:RegionNames.SettingContentRegion}" />
     </Grid>
 </UserControl>

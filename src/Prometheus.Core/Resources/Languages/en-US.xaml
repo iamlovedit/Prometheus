@@ -33,6 +33,7 @@
     <sys:String x:Key="Setting.Diagnostics.Description">Inspect session logs and troubleshoot runtime problems</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Summary">Review client connectivity, app version, and session logs</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Open">View logs and diagnostics</sys:String>
+    <sys:String x:Key="Setting.Diagnostics.Back">Back to settings</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Client">League Client</sys:String>
     <sys:String x:Key="Setting.Diagnostics.Version">Application version</sys:String>
     <sys:String x:Key="Setting.Diagnostics.LogEntries">Session log entries</sys:String>

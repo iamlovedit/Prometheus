@@ -71,6 +71,101 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="8" />
         </Style>
+        <Style x:Key="SettingToggleSwitch" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <ControlTemplate.Resources>
+                            <Storyboard x:Key="CheckedStoryboard">
+                                <DoubleAnimation
+                                    Storyboard.TargetName="ThumbTransform"
+                                    Storyboard.TargetProperty="X"
+                                    To="16"
+                                    Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation
+                                    Storyboard.TargetName="CheckedTrack"
+                                    Storyboard.TargetProperty="Opacity"
+                                    To="1"
+                                    Duration="0:0:0.2" />
+                            </Storyboard>
+                            <Storyboard x:Key="UncheckedStoryboard">
+                                <DoubleAnimation
+                                    Storyboard.TargetName="ThumbTransform"
+                                    Storyboard.TargetProperty="X"
+                                    To="0"
+                                    Duration="0:0:0.2">
+                                    <DoubleAnimation.EasingFunction>
+                                        <CubicEase EasingMode="EaseInOut" />
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                                <DoubleAnimation
+                                    Storyboard.TargetName="CheckedTrack"
+                                    Storyboard.TargetProperty="Opacity"
+                                    To="0"
+                                    Duration="0:0:0.2" />
+                            </Storyboard>
+                        </ControlTemplate.Resources>
+                        <Grid
+                            x:Name="SwitchRoot"
+                            Background="Transparent"
+                            SnapsToDevicePixels="True">
+                            <Border
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12" />
+                            <Border
+                                x:Name="CheckedTrack"
+                                Background="{DynamicResource PrimaryBrush}"
+                                CornerRadius="12"
+                                Opacity="0" />
+                            <Border
+                                Width="22"
+                                Height="22"
+                                Margin="1"
+                                HorizontalAlignment="Left"
+                                Background="White"
+                                CornerRadius="11"
+                                Effect="{DynamicResource EffectShadow2}">
+                                <Border.RenderTransform>
+                                    <TranslateTransform x:Name="ThumbTransform" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard Storyboard="{StaticResource CheckedStoryboard}" />
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard Storyboard="{StaticResource UncheckedStoryboard}" />
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="SwitchRoot" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="SwitchRoot" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="SwitchRoot" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer
@@ -321,7 +416,7 @@
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 IsChecked="{Binding AutoAccept, Mode=TwoWay}"
-                                Style="{DynamicResource ToggleButtonSwitch}" />
+                                Style="{StaticResource SettingToggleSwitch}" />
                         </Grid>
 
                         <Border
@@ -344,7 +439,7 @@
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
                                 IsChecked="{Binding AutoReconnect, Mode=TwoWay}"
-                                Style="{DynamicResource ToggleButtonSwitch}" />
+                                Style="{StaticResource SettingToggleSwitch}" />
                         </Grid>
 
                         <TextBlock
