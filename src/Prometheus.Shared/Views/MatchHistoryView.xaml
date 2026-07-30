@@ -4,7 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
-    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:Prometheus.Shared.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
@@ -41,57 +40,11 @@
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition /><RowDefinition Height="12" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Career.MatchHistory.List}" />
-                    <ListBox
+                    <local:MatchList
                         Grid.Row="2"
-                        HorizontalContentAlignment="Stretch"
                         ItemsSource="{Binding Matches}"
                         SelectedItem="{Binding SelectedMatch}"
-                        Style="{DynamicResource StackPanelVerticalListBox}">
-                        <i:Interaction.Triggers>
-                            <i:EventTrigger EventName="SelectionChanged">
-                                <prism:InvokeCommandAction
-                                    Command="{Binding MatchChangedCommand}"
-                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBox}}, Path=SelectedItem}" />
-                            </i:EventTrigger>
-                        </i:Interaction.Triggers>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <Border
-                                    MinHeight="64"
-                                    Margin="0,0,0,8"
-                                    Padding="8"
-                                    Background="{DynamicResource MainContentForegroundDrawingBrush}"
-                                    BorderBrush="{DynamicResource BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="8">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="44" /><ColumnDefinition Width="10" /><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <hc:Gravatar Width="42" Height="42" Style="{StaticResource GravatarCircleImg}"><Image Source="{Binding Participants[0].ChampionIcon}" /></hc:Gravatar>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                            <TextBlock FontWeight="SemiBold" Text="{Binding GameMode}" />
-                                            <TextBlock Margin="0,4,0,0" Style="{DynamicResource PageCaption}" Text="{Binding CreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
-                                        </StackPanel>
-                                        <hc:SimplePanel Grid.Column="3" Margin="8,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock Foreground="ForestGreen" FontWeight="SemiBold" Text="{DynamicResource Career.Match.Victory}" Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                                            <TextBlock Foreground="OrangeRed" FontWeight="SemiBold" Text="{DynamicResource Career.Match.Defeated}" Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
-                                        </hc:SimplePanel>
-                                    </Grid>
-                                </Border>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                        <ListBox.ItemContainerStyle>
-                            <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}">
-                                <Setter Property="Padding" Value="0" />
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Cursor" Value="Hand" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
-                    </ListBox>
+                        SelectionChangedCommand="{Binding MatchChangedCommand}" />
                     <Grid Grid.Row="4">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition /><ColumnDefinition Width="36" /></Grid.ColumnDefinitions>
                         <Button

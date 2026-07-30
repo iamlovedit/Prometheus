@@ -8,6 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Shared.ViewModels"
+    xmlns:views="clr-namespace:Prometheus.Shared.Views"
     d:DataContext="{d:DesignInstance Type=viewmodels:SummonerDetailViewModel}"
     d:DesignHeight="760"
     d:DesignWidth="1080"
@@ -104,73 +105,6 @@
                     </Grid>
                 </Grid>
             </Border>
-        </DataTemplate>
-        <DataTemplate x:Key="RecentMatchTemplate">
-            <Button
-                Height="52"
-                Margin="0,0,0,6"
-                Padding="6,4"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                VerticalContentAlignment="Stretch"
-                hc:BorderElement.CornerRadius="8"
-                Background="{DynamicResource MainContentForegroundDrawingBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="1"
-                Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Path=DataContext.MatchDetailCommand}"
-                CommandParameter="{Binding}"
-                Style="{DynamicResource ButtonBaseStyle}">
-                <Button.Template>
-                    <ControlTemplate TargetType="{x:Type Button}">
-                        <Border
-                            Padding="{TemplateBinding Padding}"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <hc:Gravatar Width="40" Height="40" Style="{StaticResource GravatarCircleImg}">
-                                    <Image Source="{Binding Participants[0].ChampionIcon}" Stretch="UniformToFill" />
-                                </hc:Gravatar>
-                                <StackPanel
-                                    Grid.Column="1"
-                                    Margin="8,0,0,0"
-                                    VerticalAlignment="Center">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding GameMode}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}" Text="{Binding CreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
-                                </StackPanel>
-                                <hc:SimplePanel
-                                    Grid.Column="2"
-                                    Margin="6,0,0,0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Center">
-                                    <TextBlock
-                                        FontWeight="SemiBold"
-                                        Foreground="ForestGreen"
-                                        Text="{DynamicResource Career.Match.Victory}"
-                                        Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                                    <TextBlock
-                                        FontWeight="SemiBold"
-                                        Foreground="OrangeRed"
-                                        Text="{DynamicResource Career.Match.Defeated}"
-                                        Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
-                                </hc:SimplePanel>
-                            </Grid>
-                        </Border>
-                    </ControlTemplate>
-                </Button.Template>
-            </Button>
-            <DataTemplate.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Cursor" Value="Hand" />
-                </Trigger>
-            </DataTemplate.Triggers>
         </DataTemplate>
     </UserControl.Resources>
     <Grid Margin="4">
@@ -399,24 +333,10 @@
                             Panel.ZIndex="1"
                             Style="{DynamicResource LoadingBaseStyle}"
                             Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                        <ListBox
-                            HorizontalContentAlignment="Stretch"
-                            VerticalContentAlignment="Stretch"
-                            BorderThickness="0"
-                            ItemTemplate="{StaticResource RecentMatchTemplate}"
+                        <views:MatchList
                             ItemsSource="{Binding RecentMatches}"
-                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto"
-                            Style="{DynamicResource StackPanelVerticalListBox}"
-                            Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}">
-                            <ListBox.ItemContainerStyle>
-                                <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}">
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="HorizontalAlignment" Value="Stretch" />
-                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                        </ListBox>
+                            ItemCommand="{Binding MatchDetailCommand}"
+                            Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}" />
                     </Grid>
                 </Grid>
             </Border>

@@ -1,0 +1,82 @@
+<UserControl
+    x:Class="Prometheus.Shared.Views.MatchList"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:hc="https://handyorg.github.io/handycontrol">
+    <UserControl.Resources>
+        <DataTemplate x:Key="MatchTemplate">
+            <Border
+                MinHeight="52"
+                Padding="6,4"
+                Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <hc:Gravatar Width="40" Height="40" Style="{StaticResource GravatarCircleImg}">
+                        <Image Source="{Binding Participants[0].ChampionIcon}" Stretch="UniformToFill" />
+                    </hc:Gravatar>
+                    <StackPanel
+                        Grid.Column="1"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding GameMode}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}" Text="{Binding CreationDate, StringFormat='{}{0:yyyy/MM/dd}'}" />
+                    </StackPanel>
+                    <hc:SimplePanel
+                        Grid.Column="2"
+                        Margin="6,0,0,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="ForestGreen"
+                            Text="{DynamicResource Career.Match.Victory}"
+                            Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Foreground="OrangeRed"
+                            Text="{DynamicResource Career.Match.Defeated}"
+                            Visibility="{Binding Participants[0].Stats.Win, Converter={StaticResource Boolean2VisibilityReConverter}}" />
+                    </hc:SimplePanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+    <ListBox
+        x:Name="MatchListBox"
+        HorizontalContentAlignment="Stretch"
+        VerticalContentAlignment="Stretch"
+        BorderThickness="0"
+        ItemTemplate="{StaticResource MatchTemplate}"
+        ItemsSource="{Binding ItemsSource, ElementName=Root}"
+        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+        ScrollViewer.VerticalScrollBarVisibility="Auto"
+        SelectedItem="{Binding SelectedItem, ElementName=Root, Mode=TwoWay}"
+        SelectionChanged="OnSelectionChanged"
+        Style="{DynamicResource StackPanelVerticalListBox}">
+        <ListBox.ItemContainerStyle>
+            <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <EventSetter Event="PreviewMouseLeftButtonUp" Handler="OnItemPreviewMouseLeftButtonUp" />
+                <EventSetter Event="PreviewKeyDown" Handler="OnItemPreviewKeyDown" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Cursor" Value="Hand" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </ListBox.ItemContainerStyle>
+    </ListBox>
+</UserControl>
