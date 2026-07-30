@@ -184,7 +184,7 @@ namespace Prometheus.Modules.Inventory.ViewModels
             {
                 return;
             }
-            var id = _selectedChampion.Id * 1000;
+            var id = _selectedChampion.Id;
             if (_skinsCache.TryGetValue(id, out var skins))
             {
                 Skins = skins;

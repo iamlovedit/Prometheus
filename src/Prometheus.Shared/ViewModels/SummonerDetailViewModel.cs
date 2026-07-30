@@ -9,6 +9,7 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -110,14 +111,28 @@ namespace Prometheus.Shared.ViewModels
                     SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
-                    var masteries = await _summonerService.GetChampionMasteriesAsync(_summoner.Puuid, 3);
-                    masteries.ForEach(async m =>
+                    try
                     {
-                        m.ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.ChampionId);
-                    });
-                    Mastery1 = masteries[0];
-                    Mastery2 = masteries[1];
-                    Mastery3 = masteries[2];
+                        var masteries = (await _summonerService.GetChampionMasteriesAsync(
+                            _summoner.Puuid, 3) ?? []).Take(3).ToList();
+                        foreach (var mastery in masteries)
+                        {
+                            mastery.ChampionIcon = await _gameResourceManager
+                                .GetChampoinIconByIdAsync(mastery.ChampionId);
+                        }
+
+                        Mastery1 = masteries.ElementAtOrDefault(0);
+                        Mastery2 = masteries.ElementAtOrDefault(1);
+                        Mastery3 = masteries.ElementAtOrDefault(2);
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.Warning(exception, "Unable to load champion masteries for {Puuid}",
+                            _summoner.Puuid);
+                        Mastery1 = null;
+                        Mastery2 = null;
+                        Mastery3 = null;
+                    }
                 }
                 var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19);
                 if (matches != null)

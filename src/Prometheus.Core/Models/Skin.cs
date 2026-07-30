@@ -2,6 +2,11 @@
 
 namespace Prometheus.Core.Models
 {
+    public class ChampionSkins
+    {
+        public List<Skin> Skins { get; set; } = [];
+    }
+
     public class SkinBasic
     {
         public int Id { get; set; }
@@ -74,4 +79,3 @@ namespace Prometheus.Core.Models
         public string Small { get; set; }
     }
 }
-

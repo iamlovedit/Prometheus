@@ -12,8 +12,6 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<List<ChampionSummary>> GetChampionSummarysAsync();
 
-        Task<Dictionary<string, Skin>> GetSkinsAsync();
-
         Task<List<Spell>> GetSpellsAsync();
 
         Task<List<ProfileIcon>> GetProfileIconsAsync();

@@ -16,11 +16,13 @@ namespace Prometheus.Services.Client
 {
     public class GameResourceManager : IGameResourceManager
     {
+        private const int DefaultBackgroundSkinId = 157000;
+
         private readonly IHttpService _httpService;
         private readonly IContainerExtension _containerExtension;
+        private readonly Dictionary<int, List<Skin>> _skinsByChampion = [];
         private List<Equipment> _equipments;
         private List<Spell> _spells;
-        private Dictionary<string, Skin> _skinMap;
         private List<Perk> _perks;
 
         public GameResourceManager(IHttpService httpService, IContainerExtension containerExtension)
@@ -41,11 +43,6 @@ namespace Prometheus.Services.Client
         public async Task<List<ChampionSummary>> GetChampionSummarysAsync()
         {
             return await _httpService.GetAsync<List<ChampionSummary>>("lol-game-data/assets/v1/champion-summary.json");
-        }
-
-        public async Task<Dictionary<string, Skin>> GetSkinsAsync()
-        {
-            return await _httpService.GetAsync<Dictionary<string, Skin>>("lol-game-data/assets/v1/skins.json");
         }
 
         public async Task<string> GetProfileIconByIdAsync(int id)
@@ -168,26 +165,44 @@ namespace Prometheus.Services.Client
 
         public async Task<string> GetBackgroundSkinByIdAsync(int skinId)
         {
+            if (skinId <= 0)
+            {
+                skinId = DefaultBackgroundSkinId;
+            }
+
             var directory = GetDirectory(ParameterNames.Skins);
             var skinPath = Path.Combine(directory, $"{skinId}.jpg");
-            if (!File.Exists(skinPath))
+            if (File.Exists(skinPath))
             {
-                if (_skinMap is null)
-                {
-                    _skinMap = await GetSkinsAsync();
-                }
-                if (_skinMap.TryGetValue(skinId.ToString(), out var skin))
+                return skinPath;
+            }
+
+            try
+            {
+                var championId = skinId / 1000;
+                var skins = await GetChampionSkinsAsync(championId);
+                var skin = skins.FirstOrDefault(item => item.Id == skinId);
+                if (skin is not null)
                 {
                     await DownloadAsync(skin.SplashPath, skinPath);
                     return skinPath;
                 }
-                else
+
+                if (skinId != DefaultBackgroundSkinId)
                 {
-                    skinId = 157000; //default Yasuo  hasaki!
-                    return await GetBackgroundSkinByIdAsync(skinId);
+                    return await GetBackgroundSkinByIdAsync(DefaultBackgroundSkinId);
                 }
             }
-            return skinPath;
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load background skin {SkinId}", skinId);
+                if (skinId != DefaultBackgroundSkinId)
+                {
+                    return await GetBackgroundSkinByIdAsync(DefaultBackgroundSkinId);
+                }
+            }
+
+            return default;
         }
 
         public async Task<string> GetPerkIconByIdAsync(int perkId)
@@ -225,30 +240,49 @@ namespace Prometheus.Services.Client
 
         public async Task<List<SkinBasic>> GetSkinsByChampionIdAsync(int championId)
         {
-            if (_skinMap is null)
+            if (championId <= 0)
             {
-                _skinMap = await GetSkinsAsync();
+                return [];
             }
-            var maxId = championId + 999;
-            var skins = new List<SkinBasic>();
-            foreach (var key in _skinMap.Keys)
+
+            try
             {
-                if (int.TryParse(key, out var keyInt))
+                var championSkins = await GetChampionSkinsAsync(championId);
+                var skins = new List<SkinBasic>();
+                foreach (var skin in championSkins)
                 {
-                    if (keyInt >= championId && keyInt <= maxId)
+                    var uri = await GetBackgroundSkinByIdAsync(skin.Id);
+                    if (!string.IsNullOrEmpty(uri))
                     {
-                        if (_skinMap.TryGetValue(key, out var skin))
+                        skins.Add(new SkinBasic()
                         {
-                            skins.Add(new SkinBasic()
-                            {
-                                Id = skin.Id,
-                                Name = skin.Name,
-                                Uri = await GetBackgroundSkinByIdAsync(skin.Id)
-                            });
-                        }
+                            Id = skin.Id,
+                            Name = skin.Name,
+                            Uri = uri
+                        });
                     }
                 }
+
+                return skins;
             }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load skins for champion {ChampionId}", championId);
+                return [];
+            }
+        }
+
+        private async Task<List<Skin>> GetChampionSkinsAsync(int championId)
+        {
+            if (_skinsByChampion.TryGetValue(championId, out var skins))
+            {
+                return skins;
+            }
+
+            var champion = await _httpService.GetAsync<ChampionSkins>(
+                $"lol-game-data/assets/v1/champions/{championId}.json");
+            skins = champion?.Skins ?? [];
+            _skinsByChampion[championId] = skins;
             return skins;
         }
     }
