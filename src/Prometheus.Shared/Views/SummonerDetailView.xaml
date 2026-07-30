@@ -71,16 +71,70 @@
                             ItemVerticalAlignment="Center"
                             Orientation="Horizontal">
                             <StackPanel>
-                                <hc:Gravatar
-                                    Width="92"
-                                    Height="92"
-                                    Style="{StaticResource GravatarCircleImg}">
-                                    <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
-                                </hc:Gravatar>
-                                <TextBlock
-                                    Margin="0,4,0,0"
-                                    HorizontalAlignment="Center"
-                                    Text="{Binding Summoner.SummonerLevel}" />
+                                <Grid Width="104" Height="104">
+                                    <Grid.ToolTip>
+                                        <StackPanel>
+                                            <TextBlock Foreground="{DynamicResource PrimaryTextBrush}">
+                                                <Run Text="{DynamicResource Career.Experience.Progress}" />
+                                                <Run Text=": " />
+                                                <Run Text="{Binding Summoner.PercentCompleteForNextLevel}" />
+                                                <Run Text="%" />
+                                            </TextBlock>
+                                            <TextBlock Foreground="{DynamicResource PrimaryTextBrush}">
+                                                <Run Text="{DynamicResource Career.Experience.Earned}" />
+                                                <Run Text=": " />
+                                                <Run Text="{Binding Summoner.XpSinceLastLevel}" />
+                                            </TextBlock>
+                                            <TextBlock Foreground="{DynamicResource PrimaryTextBrush}">
+                                                <Run Text="{DynamicResource Career.Experience.Remaining}" />
+                                                <Run Text=": " />
+                                                <Run Text="{Binding Summoner.XpUntilNextLevel}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid.ToolTip>
+                                    <hc:CircleProgressBar
+                                        Width="104"
+                                        Height="104"
+                                        ArcThickness="4"
+                                        Background="#40FFFFFF"
+                                        Foreground="{DynamicResource InfoBrush}"
+                                        IsHitTestVisible="False"
+                                        Maximum="100"
+                                        Minimum="0"
+                                        RenderTransformOrigin="0.5,0.5"
+                                        ShowText="False"
+                                        Value="{Binding Summoner.PercentCompleteForNextLevel, Mode=OneWay}">
+                                        <hc:CircleProgressBar.RenderTransform>
+                                            <RotateTransform Angle="180" />
+                                        </hc:CircleProgressBar.RenderTransform>
+                                    </hc:CircleProgressBar>
+                                    <hc:Gravatar
+                                        Width="92"
+                                        Height="92"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource GravatarCircleImg}">
+                                        <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
+                                    </hc:Gravatar>
+                                    <Border
+                                        MinWidth="34"
+                                        Height="22"
+                                        Padding="7,0"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Bottom"
+                                        Panel.ZIndex="2"
+                                        Background="#D91C1C1C"
+                                        BorderBrush="{DynamicResource InfoBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="11">
+                                        <TextBlock
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            FontWeight="SemiBold"
+                                            Foreground="White"
+                                            Text="{Binding Summoner.SummonerLevel}" />
+                                    </Border>
+                                </Grid>
                             </StackPanel>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock FontSize="24" FontWeight="Bold">
