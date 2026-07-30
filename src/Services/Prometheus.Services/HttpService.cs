@@ -19,6 +19,11 @@ namespace Prometheus.Services
 
             using var responseMessage = await GetHttpMessageAsync(
                 url, queryParameters, cancellationToken).ConfigureAwait(false);
+            if (responseMessage is null)
+            {
+                return default;
+            }
+
             return await responseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -37,8 +42,14 @@ namespace Prometheus.Services
                 return default;
             }
 
-            using var requestMessage = CreateRequestMessage(httpMethod, url, queryParameters);
-            using var responseMessage = await _httpClient.SendAsync(requestMessage,
+            if (!TryCreateRequestMessage(httpMethod, url, queryParameters, null, false,
+                    out var client, out var requestMessage))
+            {
+                return default;
+            }
+
+            using var request = requestMessage;
+            using var responseMessage = await client.SendAsync(requestMessage,
                 HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             responseMessage.EnsureSuccessStatusCode();
             return await responseMessage.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
@@ -54,6 +65,11 @@ namespace Prometheus.Services
 
             using var responseMessage = await PostHttpMessageAsync(
                 url, body, queryParameters, cancellationToken).ConfigureAwait(false);
+            if (responseMessage is null)
+            {
+                return default;
+            }
+
             return await responseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
 
@@ -91,6 +107,11 @@ namespace Prometheus.Services
 
             using var responseMessage = await SendHttpMessageAsync(
                 httpMethod, url, body, queryParameters, cancellationToken).ConfigureAwait(false);
+            if (responseMessage is null)
+            {
+                return default;
+            }
+
             return await responseMessage.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         }
 

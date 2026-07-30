@@ -1,35 +1,43 @@
 using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
+using Serilog;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Security.Authentication;
+using System.Net.Security;
+using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using WebSocketSharp;
 
 namespace Prometheus.Services.Client
 {
     /// <summary>
-    /// Owns one restartable websocket lifecycle.  A single retry loop survives
-    /// unexpected disconnects and is cancelled deterministically by StopAsync.
+    /// Owns one restartable LCU websocket lifecycle. The receive loop uses the
+    /// framework ClientWebSocket implementation so every receive continuation is
+    /// asynchronous and cannot recursively consume the native TLS thread stack.
     /// </summary>
     public class LeagueClient : ILeagueClient
     {
+        private const int ReceiveBufferSize = 16 * 1024;
+        private const int MaximumMessageSize = 16 * 1024 * 1024;
+
         private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(1);
 
         private readonly IClientService _clientService;
         private readonly object _stateSync = new();
+        private readonly object _connectionTransitionSync = new();
         private readonly object _subscriptionsSync = new();
         private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
         private readonly Dictionary<string, List<Action<OnWebsocketEventArgs>>> _eventsMap = [];
 
-        private WebSocket _socketConnection;
+        private ClientWebSocket _socketConnection;
         private CancellationTokenSource _lifetimeCts;
         private Task _retryLoop;
         private TaskCompletionSource<bool> _firstAttempt;
-        private TaskCompletionSource<bool> _disconnectedSignal = CreateSignal();
         private bool _connected;
         private bool _stopping;
 
@@ -152,62 +160,62 @@ namespace Prometheus.Services.Client
 
         public async Task StopAsync(CancellationToken cancellationToken)
         {
-            Task retryLoop;
-            WebSocket socket;
-            bool notifyDisconnected;
-
             await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                lock (_stateSync)
+                Task retryLoop;
+                ClientWebSocket socket;
+                CancellationTokenSource lifetimeCts;
+                bool notifyDisconnected;
+
+                lock (_connectionTransitionSync)
                 {
-                    _stopping = true;
-                    notifyDisconnected = _connected;
-                    _connected = false;
-                    socket = _socketConnection;
-                    _socketConnection = null;
-                    _disconnectedSignal.TrySetResult(true);
+                    lock (_stateSync)
+                    {
+                        _stopping = true;
+                        notifyDisconnected = _connected;
+                        _connected = false;
+                        socket = _socketConnection;
+                        _socketConnection = null;
+                    }
                 }
 
-                _lifetimeCts?.Cancel();
+                lifetimeCts = _lifetimeCts;
+                lifetimeCts?.Cancel();
                 _firstAttempt?.TrySetResult(false);
                 retryLoop = _retryLoop;
+
+                await CloseSocketAsync(socket, CancellationToken.None).ConfigureAwait(false);
+
+                if (retryLoop is not null)
+                {
+                    try
+                    {
+                        await retryLoop.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (lifetimeCts?.IsCancellationRequested == true)
+                    {
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.Warning(exception,
+                            "The League client websocket loop failed while stopping");
+                    }
+                }
+
+                _retryLoop = null;
+                _firstAttempt = null;
+                _lifetimeCts = null;
+                lifetimeCts?.Dispose();
+
+                if (notifyDisconnected)
+                {
+                    InvokeSafely(OnDisconnected);
+                }
             }
             finally
             {
                 _lifecycleGate.Release();
-            }
-
-            if (socket is not null)
-            {
-                DetachSocket(socket);
-                try
-                {
-                    if (socket.IsAlive)
-                    {
-                        socket.Close(CloseStatusCode.Normal);
-                    }
-                }
-                catch (WebSocketException)
-                {
-                }
-            }
-
-            if (retryLoop is not null)
-            {
-                try
-                {
-                    await retryLoop.WaitAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (_lifetimeCts?.IsCancellationRequested == true
-                                                        && !cancellationToken.IsCancellationRequested)
-                {
-                }
-            }
-
-            if (notifyDisconnected)
-            {
-                InvokeSafely(OnDisconnected);
             }
         }
 
@@ -218,35 +226,29 @@ namespace Prometheus.Services.Client
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var connected = false;
+                    ClientWebSocket socket = null;
                     try
                     {
-                        connected = TryConnect(cancellationToken);
+                        socket = await TryConnectAsync(cancellationToken).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         break;
                     }
-                    catch (Exception)
+                    catch (Exception exception)
                     {
-                        connected = false;
+                        Log.Debug(exception, "Unable to connect to the League client websocket");
                     }
 
                     if (isFirstAttempt)
                     {
-                        _firstAttempt.TrySetResult(connected);
+                        _firstAttempt.TrySetResult(socket is not null);
                         isFirstAttempt = false;
                     }
 
-                    if (connected)
+                    if (socket is not null)
                     {
-                        Task disconnectedTask;
-                        lock (_stateSync)
-                        {
-                            disconnectedTask = _disconnectedSignal.Task;
-                        }
-
-                        await disconnectedTask.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        await ReceiveLoopSafelyAsync(socket, cancellationToken).ConfigureAwait(false);
                     }
 
                     if (!cancellationToken.IsCancellationRequested)
@@ -258,19 +260,26 @@ namespace Prometheus.Services.Client
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
             }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "The League client websocket loop stopped unexpectedly");
+            }
             finally
             {
                 _firstAttempt?.TrySetResult(false);
             }
         }
 
-        private bool TryConnect(CancellationToken cancellationToken)
+        private async Task<ClientWebSocket> TryConnectAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (Connected)
+            lock (_stateSync)
             {
-                return true;
+                if (_connected)
+                {
+                    return _socketConnection;
+                }
             }
 
             var processId = _clientService.GetClientProcessId();
@@ -280,57 +289,65 @@ namespace Prometheus.Services.Client
                 !argsMap.TryGetValue("--remoting-auth-token", out var token) ||
                 string.IsNullOrWhiteSpace(port) || string.IsNullOrWhiteSpace(token))
             {
-                return false;
+                return null;
             }
 
-            var socket = new WebSocket($"wss://127.0.0.1:{port}/", "wamp");
-            socket.SetCredentials("riot", token, true);
-            socket.SslConfiguration.EnabledSslProtocols = SslProtocols.Tls12;
-            socket.SslConfiguration.ServerCertificateValidationCallback = (a, b, c, d) => true;
-            socket.OnMessage += HandleMessageReceived;
-            socket.OnClose += HandleDisconnected;
+            var uri = new Uri($"wss://127.0.0.1:{port}/", UriKind.Absolute);
+            var socket = CreateSocket(uri, token);
 
             lock (_stateSync)
             {
                 if (_stopping || cancellationToken.IsCancellationRequested)
                 {
-                    DetachSocket(socket);
-                    return false;
+                    socket.Dispose();
+                    return null;
                 }
 
                 _socketConnection = socket;
-                _disconnectedSignal = CreateSignal();
             }
 
             try
             {
-                socket.Connect();
+                await socket.ConnectAsync(uri, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!socket.IsAlive)
+                if (socket.State != WebSocketState.Open)
                 {
                     CleanupFailedSocket(socket);
-                    return false;
+                    return null;
                 }
 
-                socket.Send("[5, \"OnJsonApiEvent\"]");
+                await SendTextAsync(socket, "[5, \"OnJsonApiEvent\"]", cancellationToken)
+                    .ConfigureAwait(false);
 
-                lock (_stateSync)
+                var accepted = false;
+                lock (_connectionTransitionSync)
                 {
-                    if (_stopping || cancellationToken.IsCancellationRequested ||
-                        !ReferenceEquals(_socketConnection, socket))
+                    lock (_stateSync)
                     {
-                        CleanupFailedSocket(socket);
-                        return false;
+                        if (!_stopping && !cancellationToken.IsCancellationRequested &&
+                            ReferenceEquals(_socketConnection, socket))
+                        {
+                            ProcessId = processId;
+                            Port = port;
+                            Token = token;
+                            _connected = true;
+                            accepted = true;
+                        }
                     }
 
-                    ProcessId = processId;
-                    Port = port;
-                    Token = token;
-                    _connected = true;
+                    if (accepted)
+                    {
+                        InvokeSafely(OnConnected);
+                    }
                 }
 
-                InvokeSafely(OnConnected);
-                return true;
+                if (!accepted)
+                {
+                    CleanupFailedSocket(socket);
+                    return null;
+                }
+
+                return socket;
             }
             catch
             {
@@ -339,44 +356,119 @@ namespace Prometheus.Services.Client
             }
         }
 
-        private void CleanupFailedSocket(WebSocket socket)
+        private static ClientWebSocket CreateSocket(Uri uri, string token)
         {
-            bool clear;
-            lock (_stateSync)
-            {
-                clear = ReferenceEquals(_socketConnection, socket);
-                if (clear)
-                {
-                    _socketConnection = null;
-                    _connected = false;
-                    _disconnectedSignal.TrySetResult(true);
-                }
-            }
+            var socket = new ClientWebSocket();
+            socket.Options.AddSubProtocol("wamp");
+            socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+            var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"riot:{token}"));
+            socket.Options.SetRequestHeader("Authorization", $"Basic {credentials}");
+            socket.Options.RemoteCertificateValidationCallback = (_, _, _, errors) =>
+                uri.IsLoopback || errors == SslPolicyErrors.None;
+            return socket;
+        }
 
-            DetachSocket(socket);
+        private async Task ReceiveLoopSafelyAsync(ClientWebSocket socket,
+            CancellationToken cancellationToken)
+        {
             try
             {
-                if (socket.IsAlive)
-                {
-                    socket.Close(CloseStatusCode.Normal);
-                }
+                await ReceiveLoopAsync(socket, cancellationToken).ConfigureAwait(false);
             }
-            catch (WebSocketException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+            }
+            catch (WebSocketException exception)
+            {
+                Log.Debug(exception, "League client websocket disconnected");
+            }
+            catch (IOException exception)
+            {
+                Log.Debug(exception, "League client TLS stream disconnected");
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unexpected League client websocket receive failure");
+            }
+            finally
+            {
+                HandleDisconnected(socket);
             }
         }
 
-        private void HandleMessageReceived(object sender, MessageEventArgs args)
+        private async Task ReceiveLoopAsync(ClientWebSocket socket,
+            CancellationToken cancellationToken)
         {
-            if (!args.IsText)
+            var buffer = new byte[ReceiveBufferSize];
+            while (!cancellationToken.IsCancellationRequested &&
+                   socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
             {
-                return;
+                using var message = new MemoryStream();
+                long receivedLength = 0;
+                var discardMessage = false;
+                WebSocketReceiveResult result;
+                do
+                {
+                    result = await socket.ReceiveAsync(
+                            new ArraySegment<byte>(buffer), cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        return;
+                    }
+
+                    if (result.MessageType == WebSocketMessageType.Text && result.Count > 0)
+                    {
+                        receivedLength += result.Count;
+                        if (!discardMessage && receivedLength <= MaximumMessageSize)
+                        {
+                            message.Write(buffer, 0, result.Count);
+                        }
+                        else
+                        {
+                            discardMessage = true;
+                        }
+                    }
+                }
+                while (!result.EndOfMessage);
+
+                if (discardMessage)
+                {
+                    Log.Warning(
+                        "Ignored an oversized League client websocket message ({MessageSize} bytes; limit {MessageSizeLimit} bytes)",
+                        receivedLength, MaximumMessageSize);
+                    continue;
+                }
+
+                if (result.MessageType == WebSocketMessageType.Text)
+                {
+                    HandleMessageReceived(Encoding.UTF8.GetString(message.GetBuffer(),
+                        0, checked((int)message.Length)));
+                }
+            }
+        }
+
+        private void CleanupFailedSocket(ClientWebSocket socket)
+        {
+            lock (_stateSync)
+            {
+                if (ReferenceEquals(_socketConnection, socket))
+                {
+                    _socketConnection = null;
+                    _connected = false;
+                }
             }
 
+            AbortAndDispose(socket);
+        }
+
+        private void HandleMessageReceived(string data)
+        {
             OnWebsocketEventArgs eventArgs;
             try
             {
-                var payload = JArray.Parse(args.Data);
+                var payload = JArray.Parse(data);
                 if (payload.Count != 3 || payload[0].ToObject<byte>() != 8 ||
                     payload[1].ToObject<string>() != "OnJsonApiEvent")
                 {
@@ -410,21 +502,20 @@ namespace Prometheus.Services.Client
                 {
                     subscriber(eventArgs);
                 }
-                catch
+                catch (Exception exception)
                 {
-                    // One observer must not prevent the remaining observers
-                    // from receiving the LCU event.
+                    Log.Warning(exception,
+                        "A League client websocket subscriber failed for {Uri}", eventArgs.Uri);
                 }
             }
         }
 
-        private void HandleDisconnected(object sender, CloseEventArgs args)
+        private void HandleDisconnected(ClientWebSocket socket)
         {
-            var socket = sender as WebSocket;
             var notify = false;
             lock (_stateSync)
             {
-                if (socket is not null && !ReferenceEquals(socket, _socketConnection))
+                if (!ReferenceEquals(socket, _socketConnection))
                 {
                     return;
                 }
@@ -432,24 +523,80 @@ namespace Prometheus.Services.Client
                 notify = _connected && !_stopping;
                 _connected = false;
                 _socketConnection = null;
-                _disconnectedSignal.TrySetResult(true);
             }
 
-            if (socket is not null)
-            {
-                DetachSocket(socket);
-            }
-
+            AbortAndDispose(socket);
             if (notify)
             {
                 InvokeSafely(OnDisconnected);
             }
         }
 
-        private void DetachSocket(WebSocket socket)
+        private static Task SendTextAsync(ClientWebSocket socket, string message,
+            CancellationToken cancellationToken)
         {
-            socket.OnMessage -= HandleMessageReceived;
-            socket.OnClose -= HandleDisconnected;
+            var bytes = Encoding.UTF8.GetBytes(message);
+            return socket.SendAsync(new ArraySegment<byte>(bytes),
+                WebSocketMessageType.Text, true, cancellationToken);
+        }
+
+        private static async Task CloseSocketAsync(ClientWebSocket socket,
+            CancellationToken cancellationToken)
+        {
+            if (socket is null)
+            {
+                return;
+            }
+
+            try
+            {
+                if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
+                {
+                    using var closeCts = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken);
+                    closeCts.CancelAfter(CloseTimeout);
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure,
+                            string.Empty, closeCts.Token)
+                        .ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (WebSocketException)
+            {
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (InvalidOperationException)
+            {
+            }
+            catch (IOException)
+            {
+            }
+            finally
+            {
+                AbortAndDispose(socket);
+            }
+        }
+
+        private static void AbortAndDispose(ClientWebSocket socket)
+        {
+            if (socket is null)
+            {
+                return;
+            }
+
+            try
+            {
+                socket.Abort();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+
+            socket.Dispose();
         }
 
         private static TaskCompletionSource<bool> CreateSignal()
@@ -470,8 +617,9 @@ namespace Prometheus.Services.Client
                 {
                     handler();
                 }
-                catch
+                catch (Exception exception)
                 {
+                    Log.Warning(exception, "A League client lifecycle observer failed");
                 }
             }
         }
@@ -489,8 +637,9 @@ namespace Prometheus.Services.Client
                 {
                     handler(value);
                 }
-                catch
+                catch (Exception exception)
                 {
+                    Log.Warning(exception, "A League client websocket observer failed");
                 }
             }
         }

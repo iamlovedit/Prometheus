@@ -9,6 +9,12 @@ namespace Prometheus.Services.Interfaces
     {
         void Initialize(int port, string token);
 
+        /// <summary>
+        /// Clears the active LCU connection. Subsequent requests return their default value
+        /// until the service is initialized again.
+        /// </summary>
+        void Reset();
+
         bool IsInitialized { get; }
 
         Task<T> GetAsync<T>(string url, IEnumerable<string> queryParameters = null,

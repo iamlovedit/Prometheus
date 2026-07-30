@@ -6,6 +6,7 @@ using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
@@ -79,7 +80,12 @@ namespace Prometheus.Modules.Inventory.ViewModels
             }
         }
 
-        public async override void OnNavigatedTo(NavigationContext navigationContext)
+        public override void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            OnNavigatedToAsync().Observe("Loading inventory data");
+        }
+
+        private async Task OnNavigatedToAsync()
         {
             if (_championsSummary is null)
             {
@@ -150,7 +156,12 @@ namespace Prometheus.Modules.Inventory.ViewModels
         private DelegateCommand<FunctionEventArgs<int>> _pageChangedCommand;
         public DelegateCommand<FunctionEventArgs<int>> PageChangedCommand =>
             _pageChangedCommand ?? (_pageChangedCommand = new DelegateCommand<FunctionEventArgs<int>>(ExecutePageChangedCommand));
-        async void ExecutePageChangedCommand(FunctionEventArgs<int> parameter)
+        void ExecutePageChangedCommand(FunctionEventArgs<int> parameter)
+        {
+            ExecutePageChangedCommandAsync(parameter).Observe("Loading inventory profile icons");
+        }
+
+        private async Task ExecutePageChangedCommandAsync(FunctionEventArgs<int> parameter)
         {
             IsLoading = true;
             ProfileIcons.Clear();
@@ -178,7 +189,12 @@ namespace Prometheus.Modules.Inventory.ViewModels
         private DelegateCommand _selctionChangeCommand;
         public DelegateCommand SelectionChangedCommand =>
             _selctionChangeCommand ?? (_selctionChangeCommand = new DelegateCommand(ExecuteSelectionChangedCommand));
-        async void ExecuteSelectionChangedCommand()
+        void ExecuteSelectionChangedCommand()
+        {
+            ExecuteSelectionChangedCommandAsync().Observe("Loading champion skins");
+        }
+
+        private async Task ExecuteSelectionChangedCommandAsync()
         {
             if (_selectedChampion is null)
             {
@@ -228,6 +244,12 @@ namespace Prometheus.Modules.Inventory.ViewModels
 
         private void CalculatePageCount(int pageSize)
         {
+            if (_allIcons is null || pageSize <= 0)
+            {
+                PageCount = 0;
+                return;
+            }
+
             if (_allIcons.Count % pageSize == 0)
             {
                 PageCount = _allIcons.Count / pageSize;

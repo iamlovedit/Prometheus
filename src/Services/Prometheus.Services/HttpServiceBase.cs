@@ -13,6 +13,8 @@ namespace Prometheus.Services
 {
     public abstract class HttpServiceBase
     {
+        private static readonly TimeSpan RetiredClientLifetime = TimeSpan.FromSeconds(11);
+
         private readonly object _initializationSync = new();
         private AuthenticationHeaderValue _authorization;
         private Uri _authenticatedBaseAddress;
@@ -96,85 +98,149 @@ namespace Prometheus.Services
                 _isInitialized = true;
             }
 
-            oldClient?.Dispose();
+            RetireClient(oldClient);
+        }
+
+        public virtual void Reset()
+        {
+            HttpClient oldClient;
+            lock (_initializationSync)
+            {
+                oldClient = _httpClient;
+                _httpClient = null;
+                _authenticatedBaseAddress = null;
+                _authorization = null;
+                _isInitialized = false;
+            }
+
+            RetireClient(oldClient);
         }
 
         protected virtual async Task<HttpResponseMessage> GetHttpMessageAsync(string url,
             IEnumerable<string> queryParameters, CancellationToken cancellationToken)
         {
-            var request = CreateRequestMessage(HttpMethod.Get, url, queryParameters);
-            var response = await _httpClient.SendAsync(request,
+            if (!TryCreateRequestMessage(HttpMethod.Get, url, queryParameters, null, false,
+                    out var client, out var request))
+            {
+                return null;
+            }
+
+            using (request)
+            {
+                var response = await client.SendAsync(request,
                 HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            return response;
+                response.EnsureSuccessStatusCode();
+                return response;
+            }
         }
 
         protected virtual async Task<HttpResponseMessage> PostHttpMessageAsync(string url, object body,
             IEnumerable<string> queryParameters, CancellationToken cancellationToken)
         {
-            var request = CreateRequestMessage(HttpMethod.Post, url, queryParameters, body, true);
-            var response = await _httpClient.SendAsync(request,
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            return response;
+            if (!TryCreateRequestMessage(HttpMethod.Post, url, queryParameters, body, true,
+                    out var client, out var request))
+            {
+                return null;
+            }
+
+            using (request)
+            {
+                var response = await client.SendAsync(request,
+                    HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                return response;
+            }
         }
 
         protected virtual async Task<HttpResponseMessage> SendHttpMessageAsync(HttpMethod httpMethod,
             string url, object body, IEnumerable<string> queryParameters,
             CancellationToken cancellationToken)
         {
-            var request = CreateRequestMessage(httpMethod, url, queryParameters, body, true);
-            var response = await _httpClient.SendAsync(request,
-                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            return response;
+            if (!TryCreateRequestMessage(httpMethod, url, queryParameters, body, true,
+                    out var client, out var request))
+            {
+                return null;
+            }
+
+            using (request)
+            {
+                var response = await client.SendAsync(request,
+                    HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                return response;
+            }
         }
 
-        protected HttpRequestMessage CreateRequestMessage(HttpMethod httpMethod, string url,
-            IEnumerable<string> queryParameters = null, object body = null, bool includeBody = false)
+        protected bool TryCreateRequestMessage(HttpMethod httpMethod, string url,
+            IEnumerable<string> queryParameters, object body, bool includeBody,
+            out HttpClient client, out HttpRequestMessage request)
         {
-            if (!_isInitialized || _httpClient is null)
+            lock (_initializationSync)
             {
-                throw new InvalidOperationException("The HTTP service has not been initialized.");
-            }
+                if (!_isInitialized || _httpClient is null)
+                {
+                    client = null;
+                    request = null;
+                    return false;
+                }
 
-            var target = BuildRelativeUrl(url, queryParameters);
-            var request = new HttpRequestMessage(httpMethod, target);
-            if (includeBody)
-            {
-                request.Content = new StringContent(
-                    JsonConvert.SerializeObject(body), Encoding.UTF8, _jsonType);
-            }
+                client = _httpClient;
+                var baseAddress = _authenticatedBaseAddress;
+                var authorization = _authorization;
+                var target = BuildRelativeUrl(url, queryParameters);
+                request = new HttpRequestMessage(httpMethod, target);
+                if (includeBody)
+                {
+                    request.Content = new StringContent(
+                        JsonConvert.SerializeObject(body), Encoding.UTF8, _jsonType);
+                }
 
-            var effectiveUri = ResolveEffectiveUri(target);
-            if (ShouldAuthenticate(effectiveUri))
-            {
-                request.Headers.Authorization = _authorization;
-            }
+                var effectiveUri = ResolveEffectiveUri(target, baseAddress);
+                if (ShouldAuthenticate(effectiveUri, baseAddress))
+                {
+                    request.Headers.Authorization = authorization;
+                }
 
-            return request;
+                return true;
+            }
         }
 
-        private Uri ResolveEffectiveUri(string target)
+        private static Uri ResolveEffectiveUri(string target, Uri baseAddress)
         {
             if (Uri.TryCreate(target, UriKind.Absolute, out var absoluteUri))
             {
                 return absoluteUri;
             }
 
-            return new Uri(_authenticatedBaseAddress, target);
+            return new Uri(baseAddress, target);
         }
 
-        private bool ShouldAuthenticate(Uri requestUri)
+        private static bool ShouldAuthenticate(Uri requestUri, Uri authenticatedBaseAddress)
         {
-            if (requestUri is null || _authenticatedBaseAddress is null || !requestUri.IsLoopback)
+            if (requestUri is null || authenticatedBaseAddress is null || !requestUri.IsLoopback)
             {
                 return false;
             }
 
-            return string.Equals(requestUri.Scheme, _authenticatedBaseAddress.Scheme,
+            return string.Equals(requestUri.Scheme, authenticatedBaseAddress.Scheme,
                        StringComparison.OrdinalIgnoreCase)
-                   && requestUri.Port == _authenticatedBaseAddress.Port;
+                   && requestUri.Port == authenticatedBaseAddress.Port;
+        }
+
+        private static void RetireClient(HttpClient client)
+        {
+            if (client is null)
+            {
+                return;
+            }
+
+            _ = DisposeRetiredClientAsync(client);
+        }
+
+        private static async Task DisposeRetiredClientAsync(HttpClient client)
+        {
+            await Task.Delay(RetiredClientLifetime).ConfigureAwait(false);
+            client.Dispose();
         }
     }
 }

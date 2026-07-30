@@ -4,11 +4,13 @@ using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Models;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Data;
 
 namespace Prometheus.Modules.Summoner.ViewModels
@@ -37,9 +39,19 @@ namespace Prometheus.Modules.Summoner.ViewModels
 
         }
 
-        public async void OnDialogOpened(IDialogParameters parameters)
+        public void OnDialogOpened(IDialogParameters parameters)
+        {
+            OnDialogOpenedAsync().Observe("Loading champion backgrounds");
+        }
+
+        private async Task OnDialogOpenedAsync()
         {
             var allChampions = await _gameResourceManager.GetChampionSummarysAsync();
+            if (allChampions is null)
+            {
+                return;
+            }
+
             var champions = new List<ChampionSummary>();
             foreach (var champion in allChampions)
             {
@@ -103,7 +115,12 @@ namespace Prometheus.Modules.Summoner.ViewModels
         private DelegateCommand _selctionChangeCommand;
         public DelegateCommand SelectionChangedCommand =>
             _selctionChangeCommand ?? (_selctionChangeCommand = new DelegateCommand(ExecuteSelectionChangedCommand));
-        async void ExecuteSelectionChangedCommand()
+        void ExecuteSelectionChangedCommand()
+        {
+            ExecuteSelectionChangedCommandAsync().Observe("Loading champion background skins");
+        }
+
+        private async Task ExecuteSelectionChangedCommandAsync()
         {
             if (_selectedChampion is null)
             {
@@ -117,7 +134,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
             else
             {
                 Skins = await _gameResourceManager.GetSkinsByChampionIdAsync(id);
-                _skinsCache.Add(id, _skins);
+                _skinsCache[id] = _skins;
             }
         }
 
@@ -125,8 +142,18 @@ namespace Prometheus.Modules.Summoner.ViewModels
         private DelegateCommand _comfirmCommand;
         public DelegateCommand ComfirmCommand =>
             _comfirmCommand ?? (_comfirmCommand = new DelegateCommand(ExecuteComfirmCommand));
-        async void ExecuteComfirmCommand()
+        void ExecuteComfirmCommand()
         {
+            ExecuteComfirmCommandAsync().Observe("Applying the selected champion background");
+        }
+
+        private async Task ExecuteComfirmCommandAsync()
+        {
+            if (_selectedSkin is null)
+            {
+                return;
+            }
+
             if (_isSync)
             {
                 await _gameResourceManager.SetBackgroundSkinId(_selectedSkin.Id);
@@ -135,7 +162,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
             {
                 {ParameterNames.SelectedSkinUri,_selectedSkin.Uri }
             };
-            RequestClose.Invoke(new DialogResult(ButtonResult.OK, parameters));
+            RequestClose?.Invoke(new DialogResult(ButtonResult.OK, parameters));
         }
 
         private string _keyword;

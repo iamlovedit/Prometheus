@@ -191,6 +191,11 @@ namespace Prometheus.Services.Client
                 phaseError = FormatError("gameflow-phase", exception);
             }
 
+            if (!_leagueClient.Connected || !_httpService.IsInitialized)
+            {
+                return;
+            }
+
             // A websocket phase change that happened while the GET was in
             // flight is newer than the HTTP response.  Never transition back.
             lock (_stateSync)
@@ -270,6 +275,7 @@ namespace Prometheus.Services.Client
             phaseCts?.Cancel();
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
+            _httpService.Reset();
 
             await _leagueClient.StopAsync(cancellationToken).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(acceptTask).ConfigureAwait(false);
@@ -404,11 +410,28 @@ namespace Prometheus.Services.Client
 
                 // Connected is not published until this succeeds.
                 _httpService.Initialize(port, _leagueClient.Token);
+                if (!_leagueClient.Connected)
+                {
+                    _httpService.Reset();
+                    return;
+                }
+
                 _initializedConnection = connectionId;
 
                 PublishSnapshot(snapshot =>
                 {
                     var next = CopySnapshot(snapshot);
+                    if (!_leagueClient.Connected || !_httpService.IsInitialized)
+                    {
+                        next.ConnectionState = ConnectionState.Reconnecting;
+                        next.DataQuality = snapshot.DataQuality == DataQuality.Unknown
+                            ? DataQuality.Unknown
+                            : DataQuality.Stale;
+                        next.Error = "The League client disconnected; reconnecting.";
+                        next.Errors = [next.Error];
+                        return next;
+                    }
+
                     next.ConnectionState = ConnectionState.Connected;
                     next.DataQuality = snapshot.DataQuality == DataQuality.Stale
                         ? DataQuality.Partial
@@ -450,6 +473,7 @@ namespace Prometheus.Services.Client
             phaseCts?.Cancel();
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
+            _httpService.Reset();
 
             PublishSnapshot(snapshot =>
             {
@@ -561,7 +585,8 @@ namespace Prometheus.Services.Client
             await _refreshGate.WaitAsync(token).ConfigureAwait(false);
             try
             {
-                if (!IsCurrentPhase(context))
+                if (!IsCurrentPhase(context) || !_leagueClient.Connected ||
+                    !_httpService.IsInitialized)
                 {
                     return;
                 }
@@ -583,7 +608,8 @@ namespace Prometheus.Services.Client
                 await Task.WhenAll(sessionTask, lobbyTask, matchmakingTask,
                     readyCheckTask, championSelectTask, postGameTask).ConfigureAwait(false);
 
-                if (!IsCurrentPhase(context))
+                if (!IsCurrentPhase(context) || !_leagueClient.Connected ||
+                    !_httpService.IsInitialized)
                 {
                     return;
                 }

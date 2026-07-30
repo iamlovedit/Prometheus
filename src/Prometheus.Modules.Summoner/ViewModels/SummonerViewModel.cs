@@ -8,9 +8,11 @@ using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Prometheus.Modules.Summoner.ViewModels
 {
@@ -33,7 +35,6 @@ namespace Prometheus.Modules.Summoner.ViewModels
         public SummonerViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IContainerExtension containerExtension) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
-            _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
             _resourceService = containerExtension.Resolve<IResourceService>();
             _summonerService = containerExtension.Resolve<ISummonerService>();
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
@@ -45,20 +46,12 @@ namespace Prometheus.Modules.Summoner.ViewModels
             });
         }
 
-        private void OnConnectHandler(bool isConnected)
+        public override void OnNavigatedTo(NavigationContext navigationContext)
         {
-            if (isConnected)
-            {
-                //TODO:UpDate Summoner 
-            }
-            else
-            {
-                //TODO:Clear Summoner
-                RegionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
-            }
+            OnNavigatedToAsync(navigationContext).Observe("Loading the summoner page");
         }
 
-        public override async void OnNavigatedTo(NavigationContext navigationContext)
+        private async Task OnNavigatedToAsync(NavigationContext navigationContext)
         {
             if (_summoner is null)
             {
@@ -84,7 +77,8 @@ namespace Prometheus.Modules.Summoner.ViewModels
                     var parameters = new NavigationParameters
                         {
                             {ParameterNames.Summoner,_summoner},
-                            {ParameterNames.CanEdit,_summoner.Puuid==currentSummoner.Puuid}
+                            {ParameterNames.CanEdit,currentSummoner is not null &&
+                                _summoner.Puuid==currentSummoner.Puuid}
                         };
                     RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
                 }

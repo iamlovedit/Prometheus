@@ -13,11 +13,6 @@ namespace Prometheus.Core.Events
 
     }
 
-    public class ConnectLCUEvent : PubSubEvent<bool>
-    {
-
-    }
-
     public class LanguageSwitchedEvent : PubSubEvent
     {
 

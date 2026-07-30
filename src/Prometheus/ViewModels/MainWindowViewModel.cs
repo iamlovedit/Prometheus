@@ -32,7 +32,6 @@ namespace Prometheus.ViewModels
         private readonly IResourceService _resourceService;
 
         private GameflowPhase _lastAlertPhase = GameflowPhase.Unknown;
-        private bool? _lastConnected;
         private MenuName _currentMenu = MenuName.Home;
 
         public MainWindowViewModel(
@@ -193,13 +192,6 @@ namespace Prometheus.ViewModels
 
         private void ApplySnapshot(LiveMatchSnapshot snapshot)
         {
-            var connected = snapshot.ConnectionState == ConnectionState.Connected;
-            if (_lastConnected != connected)
-            {
-                _lastConnected = connected;
-                _eventAggregator.GetEvent<ConnectLCUEvent>().Publish(connected);
-            }
-
             var phase = snapshot.GameflowPhase;
             if (phase is GameflowPhase.ReadyCheck or GameflowPhase.ChampSelect)
             {

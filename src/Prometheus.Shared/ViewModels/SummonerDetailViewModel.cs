@@ -1,19 +1,19 @@
 ﻿using Newtonsoft.Json.Linq;
 using Prism.Commands;
-using Prism.Events;
 using Prism.Ioc;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using Prometheus.Core;
-using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
@@ -23,7 +23,6 @@ namespace Prometheus.Shared.ViewModels
     {
         private readonly ISummonerService _summonerService;
         private readonly IGameResourceManager _gameResourceManager;
-        private readonly IEventAggregator _eventAggregator;
         private readonly IDialogService _dialogService;
         private readonly IResourceService _resourceService;
         //private readonly static Dictionary<Tier, string> _tierIconReosourceMap = new()
@@ -39,10 +38,8 @@ namespace Prometheus.Shared.ViewModels
         //    { Tier.GRANDMASTER,"Career.Rank.Tier.Grandmaster"},
         //    { Tier.CHALLENGER,"Career.Rank.Tier.Challenger"},
         //};
-        public SummonerDetailViewModel(IRegionManager regionManager, IEventAggregator eventAggregator, IContainerExtension containerExtension) : base(regionManager)
+        public SummonerDetailViewModel(IRegionManager regionManager, IContainerExtension containerExtension) : base(regionManager)
         {
-            _eventAggregator = eventAggregator;
-            _eventAggregator.GetEvent<ConnectLCUEvent>().Subscribe(OnConnectHandler);
             _resourceService = containerExtension.Resolve<IResourceService>();
             //_eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(() =>
             //{
@@ -53,21 +50,12 @@ namespace Prometheus.Shared.ViewModels
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
             _dialogService = containerExtension.Resolve<IDialogService>();
         }
-        private void OnConnectHandler(bool isConnected)
+        public override void OnNavigatedTo(NavigationContext navigationContext)
         {
-
-            if (isConnected)
-            {
-                //TODO:UpDate Summoner 
-            }
-            else
-            {
-                //TODO:Clear Summoner
-                RegionManager.RequestNavigate(RegionNames.ContentRegion, RegionNames.HomeView);
-            }
+            OnNavigatedToAsync(navigationContext).Observe("Loading summoner details");
         }
 
-        public override async void OnNavigatedTo(NavigationContext navigationContext)
+        private async Task OnNavigatedToAsync(NavigationContext navigationContext)
         {
             if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
             {
@@ -119,10 +107,15 @@ namespace Prometheus.Shared.ViewModels
                     var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
                     var assists = matches.Sum(m => m.Participants[0].Stats.Assists);
                     KDA = $"{killed}/{deaths}/{assists}";
-                    matches.ForEach(async m =>
-                    {
-                        m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
-                    });
+                    var iconTasks = matches
+                        .Where(match => match.Participants?.Count > 0)
+                        .Select(async match =>
+                        {
+                            var participant = match.Participants[0];
+                            participant.ChampionIcon = await _gameResourceManager
+                                .GetChampoinIconByIdAsync(participant.ChampionId);
+                        });
+                    await Task.WhenAll(iconTasks);
                     RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
                     IsLoading = false;
                 }
@@ -341,9 +334,19 @@ namespace Prometheus.Shared.ViewModels
         private DelegateCommand _backMeCommand;
         public DelegateCommand BackMeCommand =>
             _backMeCommand ?? (_backMeCommand = new DelegateCommand(ExecuteBackMeCommand));
-        async void ExecuteBackMeCommand()
+        void ExecuteBackMeCommand()
+        {
+            ExecuteBackMeCommandAsync().Observe("Loading the current summoner");
+        }
+
+        private async Task ExecuteBackMeCommandAsync()
         {
             var summoner = await _summonerService.GetCurrentSummoner();
+            if (summoner is null)
+            {
+                return;
+            }
+
             var parameters = new NavigationParameters()
             {
                 {ParameterNames.CanEdit,true},

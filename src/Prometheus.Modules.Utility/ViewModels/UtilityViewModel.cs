@@ -3,9 +3,11 @@ using Prism.Commands;
 using Prism.Regions;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Prometheus.Modules.Utility.ViewModels
 {
@@ -62,7 +64,7 @@ namespace Prometheus.Modules.Utility.ViewModels
             _gameService = gameService;
             _automationSettings = automationSettings;
             _automationSettings.Changed += HandleAutomationChanged;
-            Initialize();
+            InitializeAsync().Observe("Loading League client installation data");
         }
 
         private string _installtionPath;
@@ -72,7 +74,7 @@ namespace Prometheus.Modules.Utility.ViewModels
             set { SetProperty(ref _installtionPath, value); }
         }
 
-        private async void Initialize()
+        private async Task InitializeAsync()
         {
             InstalltionPath = await _clientService.GetInstallLocation();
         }
@@ -162,7 +164,12 @@ namespace Prometheus.Modules.Utility.ViewModels
         private DelegateCommand _statusComfirmStatus;
         public DelegateCommand StatusComfirmStatus =>
             _statusComfirmStatus ?? (_statusComfirmStatus = new DelegateCommand(ExecuteStatusComfirmStatus));
-        async void ExecuteStatusComfirmStatus()
+        void ExecuteStatusComfirmStatus()
+        {
+            ExecuteStatusComfirmStatusAsync().Observe("Updating League chat status message");
+        }
+
+        private async Task ExecuteStatusComfirmStatusAsync()
         {
             try
             {
@@ -178,7 +185,12 @@ namespace Prometheus.Modules.Utility.ViewModels
         private DelegateCommand _chatStausChangedCommand;
         public DelegateCommand ChatStatusChangedCommand =>
             _chatStausChangedCommand ?? (_chatStausChangedCommand = new DelegateCommand(ExecuteChatStatusChangedCommand));
-        async void ExecuteChatStatusChangedCommand()
+        void ExecuteChatStatusChangedCommand()
+        {
+            ExecuteChatStatusChangedCommandAsync().Observe("Updating League online status");
+        }
+
+        private async Task ExecuteChatStatusChangedCommandAsync()
         {
             await _gameService.SetOnlineStatusAsync(_statusMap[_selectedStatusIndex]);
         }
@@ -186,7 +198,12 @@ namespace Prometheus.Modules.Utility.ViewModels
         private DelegateCommand _createLobbyCommand;
         public DelegateCommand CreateLobbyCommand =>
             _createLobbyCommand ?? (_createLobbyCommand = new DelegateCommand(ExecuteCreateLobbyCommand));
-        async void ExecuteCreateLobbyCommand()
+        void ExecuteCreateLobbyCommand()
+        {
+            ExecuteCreateLobbyCommandAsync().Observe("Creating a practice lobby");
+        }
+
+        private async Task ExecuteCreateLobbyCommandAsync()
         {
             if (string.IsNullOrEmpty(LobbyName))
             {
@@ -216,7 +233,12 @@ namespace Prometheus.Modules.Utility.ViewModels
         private DelegateCommand _tierComfirmCommand;
         public DelegateCommand TierComfirmCommand =>
             _tierComfirmCommand ?? (_tierComfirmCommand = new DelegateCommand(ExecuteComfirmCommand));
-        async void ExecuteComfirmCommand()
+        void ExecuteComfirmCommand()
+        {
+            ExecuteComfirmCommandAsync().Observe("Updating displayed League rank");
+        }
+
+        private async Task ExecuteComfirmCommandAsync()
         {
             await _gameService.SetChatTierAsync(_ququeMap[_selectedModeIndex], _tierMap[_selectedTierIndex], _divsionMap[_selectedDivisionIndex]);
         }

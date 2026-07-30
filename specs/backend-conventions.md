@@ -97,7 +97,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 ```
 
 - 公共 HTTPS（外部数据源）必须走正常证书校验，禁止全局 `return true`。
-- WebSocket 侧（`WebSocketSharp`）目前为 `Tls12` + 全放行回调；因目标恒为 `wss://127.0.0.1`，可接受，但新代码应沿用 HTTP 侧的 loopback 限定思路。
+- WebSocket 侧使用 .NET `ClientWebSocket`；证书回调仅允许 loopback 目标放宽校验，非 loopback 目标仍必须通过正常证书校验，禁止全局放行。
 
 ### 3.3 保密要求
 
