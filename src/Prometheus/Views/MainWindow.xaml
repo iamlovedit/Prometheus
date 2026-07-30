@@ -1,5 +1,6 @@
 ﻿<hc:Window
     x:Class="Prometheus.Views.MainWindow"
+    x:Name="RootWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
@@ -144,9 +145,53 @@
                 </Border>
             </Grid>
             <hc:NotifyIcon
+                x:Name="TrayIcon"
                 Icon="../Resources/Prometheus_16.ico"
-                Text="Prometheus"
-                Visibility="Visible" />
+                MouseDoubleClick="TrayIcon_MouseDoubleClick"
+                Text="{Binding TrayToolTip}"
+                Visibility="Visible">
+                <hc:NotifyIcon.ContextContent>
+                    <ContextMenu DataContext="{Binding DataContext, ElementName=RootWindow}">
+                        <MenuItem
+                            Header="{Binding TrayClientStatus}"
+                            IsEnabled="False" />
+                        <MenuItem
+                            Header="{Binding TrayGameflowStatus}"
+                            IsEnabled="False" />
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding ShowMainWindowCommand}"
+                            Header="{DynamicResource Tray.ShowMainWindow}" />
+                        <MenuItem
+                            Command="{Binding OpenMatchFromTrayCommand}"
+                            Header="{DynamicResource Tray.OpenMatch}"
+                            IsEnabled="{Binding IsTrayMatchAvailable}" />
+                        <MenuItem
+                            Command="{Binding AcceptReadyCheckFromTrayCommand}"
+                            Header="{DynamicResource HomePage.Action.Accept}"
+                            Visibility="{Binding IsTrayReadyCheckAvailable, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        <Separator />
+                        <MenuItem Header="{DynamicResource Tray.Automation}">
+                            <MenuItem
+                                Header="{DynamicResource Setting.Automation.AutoAccept}"
+                                IsCheckable="True"
+                                IsChecked="{Binding IsTrayAutoAcceptEnabled, Mode=TwoWay}" />
+                            <MenuItem
+                                Header="{DynamicResource Setting.Automation.AutoReconnect}"
+                                IsCheckable="True"
+                                IsChecked="{Binding IsTrayAutoReconnectEnabled, Mode=TwoWay}" />
+                        </MenuItem>
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding OpenSettingsFromTrayCommand}"
+                            Header="{DynamicResource Menu.Setting}" />
+                        <Separator />
+                        <MenuItem
+                            Click="ExitApplication_Click"
+                            Header="{DynamicResource Tray.Exit}" />
+                    </ContextMenu>
+                </hc:NotifyIcon.ContextContent>
+            </hc:NotifyIcon>
         </Grid>
     </Border>
 </hc:Window>

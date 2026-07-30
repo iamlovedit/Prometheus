@@ -9,6 +9,13 @@
     <sys:String x:Key="Menu.Inventory">Inventory</sys:String>
     <sys:String x:Key="Menu.Utility">Utility</sys:String>
     <sys:String x:Key="Menu.Setting">Setting</sys:String>
+    <sys:String x:Key="Tray.ClientStatus">League Client: {0}</sys:String>
+    <sys:String x:Key="Tray.GameflowStatus">Game: {0}</sys:String>
+    <sys:String x:Key="Tray.GameflowUnavailable">Unavailable</sys:String>
+    <sys:String x:Key="Tray.ShowMainWindow">Show Prometheus</sys:String>
+    <sys:String x:Key="Tray.OpenMatch">View live match</sys:String>
+    <sys:String x:Key="Tray.Automation">Game assistance</sys:String>
+    <sys:String x:Key="Tray.Exit">Exit Prometheus</sys:String>
     <sys:String x:Key="Setting.Title">Settings</sys:String>
     <sys:String x:Key="Setting.Description">Manage Prometheus appearance, game assistance, and diagnostics</sys:String>
     <sys:String x:Key="Setting.Personalization">Personalization</sys:String>

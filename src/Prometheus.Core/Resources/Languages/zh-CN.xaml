@@ -9,6 +9,13 @@
     <sys:String x:Key="Menu.Inventory">藏品</sys:String>
     <sys:String x:Key="Menu.Utility">实用工具</sys:String>
     <sys:String x:Key="Menu.Setting">设置</sys:String>
+    <sys:String x:Key="Tray.ClientStatus">英雄联盟客户端：{0}</sys:String>
+    <sys:String x:Key="Tray.GameflowStatus">游戏状态：{0}</sys:String>
+    <sys:String x:Key="Tray.GameflowUnavailable">不可用</sys:String>
+    <sys:String x:Key="Tray.ShowMainWindow">显示 Prometheus</sys:String>
+    <sys:String x:Key="Tray.OpenMatch">查看实时对局</sys:String>
+    <sys:String x:Key="Tray.Automation">游戏辅助</sys:String>
+    <sys:String x:Key="Tray.Exit">退出 Prometheus</sys:String>
     <sys:String x:Key="Setting.Title">设置</sys:String>
     <sys:String x:Key="Setting.Description">管理 Prometheus 的外观、游戏辅助和诊断信息</sys:String>
     <sys:String x:Key="Setting.Personalization">个性化</sys:String>

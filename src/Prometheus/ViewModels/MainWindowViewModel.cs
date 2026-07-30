@@ -29,6 +29,7 @@ namespace Prometheus.ViewModels
         private readonly IClientListener _clientListener;
         private readonly IResourceService _resourceService;
         private readonly IProfilePresentationStartupService _profilePresentationStartupService;
+        private readonly IGameAutomationSettings _automationSettings;
 
         private GameflowPhase _lastAlertPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
@@ -41,7 +42,8 @@ namespace Prometheus.ViewModels
             IClientService clientService,
             IClientListener clientListener,
             IResourceService resourceService,
-            IProfilePresentationStartupService profilePresentationStartupService)
+            IProfilePresentationStartupService profilePresentationStartupService,
+            IGameAutomationSettings automationSettings)
         {
             _regionManager = regionManager;
             _eventAggregator = eventAggregator;
@@ -51,13 +53,17 @@ namespace Prometheus.ViewModels
             _clientListener = clientListener;
             _resourceService = resourceService;
             _profilePresentationStartupService = profilePresentationStartupService;
+            _automationSettings = automationSettings;
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
+            _automationSettings.Changed += HandleAutomationSettingsChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Subscribe(HandleNavigateMenu);
             _eventAggregator.GetEvent<SearchSummonerEvent>().Subscribe(HandleSearchSummoner);
             _eventAggregator.GetEvent<TitleChangeEvent>().Subscribe(HandleTitleChange);
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(HandleLanguageChanged);
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(HandleWindowClosing);
+
+            UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
         }
 
         private string _title = PrometheusTitle;
@@ -88,6 +94,65 @@ namespace Prometheus.ViewModels
         public bool IsMatchSelected => _currentMenu == MenuName.Match;
         public bool IsUtilitySelected => _currentMenu == MenuName.Utility;
         public bool IsSettingSelected => _currentMenu == MenuName.Setting;
+
+        private string _trayClientStatus;
+        public string TrayClientStatus
+        {
+            get => _trayClientStatus;
+            private set => SetProperty(ref _trayClientStatus, value);
+        }
+
+        private string _trayGameflowStatus;
+        public string TrayGameflowStatus
+        {
+            get => _trayGameflowStatus;
+            private set => SetProperty(ref _trayGameflowStatus, value);
+        }
+
+        private string _trayToolTip = PrometheusTitle;
+        public string TrayToolTip
+        {
+            get => _trayToolTip;
+            private set => SetProperty(ref _trayToolTip, value);
+        }
+
+        private bool _isTrayMatchAvailable;
+        public bool IsTrayMatchAvailable
+        {
+            get => _isTrayMatchAvailable;
+            private set => SetProperty(ref _isTrayMatchAvailable, value);
+        }
+
+        private bool _isTrayReadyCheckAvailable;
+        public bool IsTrayReadyCheckAvailable
+        {
+            get => _isTrayReadyCheckAvailable;
+            private set => SetProperty(ref _isTrayReadyCheckAvailable, value);
+        }
+
+        public bool IsTrayAutoAcceptEnabled
+        {
+            get => _automationSettings.AutoAcceptReadyCheck;
+            set
+            {
+                if (_automationSettings.AutoAcceptReadyCheck != value)
+                {
+                    _automationSettings.AutoAcceptReadyCheck = value;
+                }
+            }
+        }
+
+        public bool IsTrayAutoReconnectEnabled
+        {
+            get => _automationSettings.AutoReconnect;
+            set
+            {
+                if (_automationSettings.AutoReconnect != value)
+                {
+                    _automationSettings.AutoReconnect = value;
+                }
+            }
+        }
 
         private DelegateCommand _loadedCommand;
         public DelegateCommand LoadedCommand =>
@@ -134,6 +199,22 @@ namespace Prometheus.ViewModels
         public DelegateCommand SettingCommand =>
             _settingCommand ??= new DelegateCommand(() => Navigate(MenuName.Setting));
 
+        private DelegateCommand _showMainWindowCommand;
+        public DelegateCommand ShowMainWindowCommand =>
+            _showMainWindowCommand ??= new DelegateCommand(ShowMainWindow);
+
+        private DelegateCommand _openMatchFromTrayCommand;
+        public DelegateCommand OpenMatchFromTrayCommand =>
+            _openMatchFromTrayCommand ??= new DelegateCommand(() => OpenTrayView(MenuName.Match));
+
+        private DelegateCommand _openSettingsFromTrayCommand;
+        public DelegateCommand OpenSettingsFromTrayCommand =>
+            _openSettingsFromTrayCommand ??= new DelegateCommand(() => OpenTrayView(MenuName.Setting));
+
+        private DelegateCommand _acceptReadyCheckFromTrayCommand;
+        public DelegateCommand AcceptReadyCheckFromTrayCommand =>
+            _acceptReadyCheckFromTrayCommand ??= new DelegateCommand(ExecuteAcceptReadyCheckFromTray);
+
         private DelegateCommand _openAlertCommand;
         public DelegateCommand OpenAlertCommand =>
             _openAlertCommand ??= new DelegateCommand(() =>
@@ -167,11 +248,13 @@ namespace Prometheus.ViewModels
         {
             UpdateAlertText(_matchService.Current?.GameflowPhase ?? GameflowPhase.Unknown);
             UpdateWindowTitle(_currentMenu);
+            UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
         }
 
         private async void HandleWindowClosing()
         {
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
+            _automationSettings.Changed -= HandleAutomationSettingsChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Unsubscribe(HandleNavigateMenu);
             _eventAggregator.GetEvent<SearchSummonerEvent>().Unsubscribe(HandleSearchSummoner);
             _eventAggregator.GetEvent<TitleChangeEvent>().Unsubscribe(HandleTitleChange);
@@ -195,6 +278,7 @@ namespace Prometheus.ViewModels
 
         private void ApplySnapshot(LiveMatchSnapshot snapshot)
         {
+            UpdateTrayState(snapshot);
             var phase = snapshot.GameflowPhase;
             if (phase is GameflowPhase.ReadyCheck or GameflowPhase.ChampSelect)
             {
@@ -210,6 +294,27 @@ namespace Prometheus.ViewModels
             {
                 _lastAlertPhase = phase;
                 HasGlobalAlert = false;
+            }
+        }
+
+        private void HandleAutomationSettingsChanged(object sender, EventArgs e)
+        {
+            Dispatch(() =>
+            {
+                RaisePropertyChanged(nameof(IsTrayAutoAcceptEnabled));
+                RaisePropertyChanged(nameof(IsTrayAutoReconnectEnabled));
+            });
+        }
+
+        private async void ExecuteAcceptReadyCheckFromTray()
+        {
+            try
+            {
+                await _matchService.AcceptReadyCheckAsync();
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to accept ready check from the tray");
             }
         }
 
@@ -261,6 +366,89 @@ namespace Prometheus.ViewModels
                     UpdateWindowTitle(menuName);
                 },
                 parameters);
+        }
+
+        private void OpenTrayView(MenuName menuName)
+        {
+            ShowMainWindow();
+            Navigate(menuName);
+        }
+
+        private static void ShowMainWindow()
+        {
+            var mainWindow = Application.Current?.MainWindow;
+            if (mainWindow is null)
+            {
+                return;
+            }
+
+            if (!mainWindow.IsVisible)
+            {
+                mainWindow.Show();
+            }
+
+            if (mainWindow.WindowState == WindowState.Minimized)
+            {
+                mainWindow.WindowState = WindowState.Normal;
+            }
+
+            mainWindow.Activate();
+        }
+
+        private void UpdateTrayState(LiveMatchSnapshot snapshot)
+        {
+            var connectionText = Text(GetConnectionStatusKey(snapshot.ConnectionState));
+            TrayClientStatus = string.Format(Text("Tray.ClientStatus"), connectionText);
+            TrayGameflowStatus = string.Format(
+                Text("Tray.GameflowStatus"),
+                GetTrayGameflowText(snapshot));
+            TrayToolTip = $"{PrometheusTitle} · {connectionText}";
+            IsTrayMatchAvailable = snapshot.ConnectionState == ConnectionState.Connected &&
+                                   snapshot.GameflowPhase == GameflowPhase.ChampSelect;
+            IsTrayReadyCheckAvailable = snapshot.ConnectionState == ConnectionState.Connected &&
+                                        snapshot.GameflowPhase == GameflowPhase.ReadyCheck &&
+                                        !string.Equals(
+                                            snapshot.ReadyCheck?.PlayerResponse,
+                                            "Accepted",
+                                            StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string GetTrayGameflowText(LiveMatchSnapshot snapshot)
+        {
+            if (snapshot.ConnectionState != ConnectionState.Connected)
+            {
+                return Text("Tray.GameflowUnavailable");
+            }
+
+            var key = snapshot.GameflowPhase switch
+            {
+                GameflowPhase.None => "HomePage.Phase.Idle.Title",
+                GameflowPhase.Lobby => "HomePage.Phase.Lobby.Title",
+                GameflowPhase.Matchmaking => "HomePage.Phase.Matchmaking.Title",
+                GameflowPhase.ReadyCheck => "HomePage.Phase.Ready.Title",
+                GameflowPhase.ChampSelect => "HomePage.Phase.Champion.Title",
+                GameflowPhase.GameStart or GameflowPhase.InProgress => "HomePage.Phase.InGame.Title",
+                GameflowPhase.Reconnect => "HomePage.Phase.Reconnect.Title",
+                GameflowPhase.WaitingForStats or GameflowPhase.PreEndOfGame or GameflowPhase.EndOfGame =>
+                    "HomePage.Phase.PostGameLoading.Title",
+                GameflowPhase.TerminatedInError => "HomePage.Phase.Error.Title",
+                _ => "HomePage.Phase.Unknown.Title"
+            };
+
+            return Text(key);
+        }
+
+        private static string GetConnectionStatusKey(ConnectionState connectionState)
+        {
+            return connectionState switch
+            {
+                ConnectionState.Connected => "Setting.Connection.Connected",
+                ConnectionState.Connecting => "Setting.Connection.Connecting",
+                ConnectionState.Reconnecting => "Setting.Connection.Reconnecting",
+                ConnectionState.Stopping => "Setting.Connection.Stopping",
+                ConnectionState.Error => "Setting.Connection.Error",
+                _ => "Setting.Connection.Disconnected"
+            };
         }
 
         private void EnsureModuleLoaded(MenuName menuName)
