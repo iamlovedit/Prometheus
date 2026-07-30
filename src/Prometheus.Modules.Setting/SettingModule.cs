@@ -23,6 +23,7 @@ namespace Prometheus.Modules.Setting
             RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingGenericView);
             RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingPreferenceView);
             RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingSystemView);
+            RegionManager.RegisterViewWithRegion(RegionNames.SettingTabRegion, RegionNames.SettingLogView);
 
             var languageIndex = Settings.Default.LanguageIndex;
             if (languageIndex == -1)
@@ -51,6 +52,7 @@ namespace Prometheus.Modules.Setting
             containerRegistry.RegisterForNavigation<GenericView>(RegionNames.SettingGenericView);
             containerRegistry.RegisterForNavigation<SystemView>(RegionNames.SettingSystemView);
             containerRegistry.RegisterForNavigation<PreferenceView>(RegionNames.SettingPreferenceView);
+            containerRegistry.RegisterForNavigation<LogView>(RegionNames.SettingLogView);
         }
     }
 }

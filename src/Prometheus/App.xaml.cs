@@ -22,9 +22,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Prometheus
 {
@@ -36,6 +39,7 @@ namespace Prometheus
         [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        private LogHistoryService _logHistory;
 
         protected override Window CreateShell()
         {
@@ -54,6 +58,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IGameAutomationSettings, GameAutomationSettings>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
             containerRegistry.RegisterSingleton<ILeagueClient, LeagueClient>();
+            containerRegistry.RegisterInstance<ILogHistoryService>(_logHistory);
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
             containerRegistry.RegisterDialogWindow<DialogWindow>();
@@ -111,13 +116,72 @@ namespace Prometheus
             }
             else
             {
-                Log.Logger = new LoggerConfiguration().WriteTo.File("log-.txt",
+                _logHistory = new LogHistoryService(1000);
+                Log.Logger = new LoggerConfiguration()
+                    .WriteTo.File("log-.txt",
                         rollingInterval: RollingInterval.Day,
                         outputTemplate:
                         "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                    .WriteTo.Sink(_logHistory.Sink)
                     .CreateLogger();
+                RegisterExceptionHandlers();
                 base.OnStartup(e);
             }
+        }
+
+        private void RegisterExceptionHandlers()
+        {
+            DispatcherUnhandledException += HandleDispatcherUnhandledException;
+            TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
+            AppDomain.CurrentDomain.UnhandledException += HandleUnhandledException;
+        }
+
+        private static void HandleDispatcherUnhandledException(object sender,
+            DispatcherUnhandledExceptionEventArgs args)
+        {
+            if (IsRecoverableClientFailure(args.Exception))
+            {
+                Log.Warning(args.Exception,
+                    "Recovered from an unhandled League client transport failure on the UI thread");
+                args.Handled = true;
+                return;
+            }
+
+            Log.Fatal(args.Exception, "Unhandled UI thread exception");
+        }
+
+        private static void HandleUnobservedTaskException(object sender,
+            UnobservedTaskExceptionEventArgs args)
+        {
+            Log.Error(args.Exception, "Unobserved background task exception");
+            args.SetObserved();
+        }
+
+        private static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs args)
+        {
+            if (args.ExceptionObject is Exception exception)
+            {
+                Log.Fatal(exception, "Unhandled application exception");
+            }
+        }
+
+        private static bool IsRecoverableClientFailure(Exception exception)
+        {
+            if (exception is AggregateException aggregateException)
+            {
+                var innerExceptions = aggregateException.Flatten().InnerExceptions;
+                return innerExceptions.Count > 0 && innerExceptions.All(IsRecoverableClientFailure);
+            }
+
+            for (var current = exception; current is not null; current = current.InnerException)
+            {
+                if (current is HttpRequestException or OperationCanceledException or ObjectDisposedException)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

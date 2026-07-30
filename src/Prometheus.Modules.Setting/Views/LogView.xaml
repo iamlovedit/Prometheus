@@ -1,0 +1,186 @@
+<UserControl
+    x:Class="Prometheus.Modules.Setting.Views.LogView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:viewmodels="clr-namespace:Prometheus.Modules.Setting.ViewModels"
+    d:DataContext="{d:DesignInstance Type=viewmodels:LogViewModel}"
+    d:DesignHeight="600"
+    d:DesignWidth="640"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <hc:UniformSpacingPanel
+            Grid.Row="0"
+            HorizontalSpacing="10"
+            Orientation="Horizontal"
+            VerticalAlignment="Center">
+            <TextBox
+                Width="220"
+                hc:InfoElement.Placeholder="{DynamicResource Setting.Log.Search}"
+                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+            <ComboBox
+                Width="130"
+                SelectedIndex="{Binding MinimumLevelIndex}">
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.All}" />
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Verbose}" />
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Debug}" />
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Information}" />
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Warning}" />
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Error}" />
+                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Fatal}" />
+            </ComboBox>
+            <ToggleButton
+                IsChecked="{Binding AutoScroll}"
+                Content="{DynamicResource Setting.Log.AutoScroll}" />
+            <ToggleButton
+                IsChecked="{Binding IsPaused}"
+                Content="{DynamicResource Setting.Log.Pause}" />
+            <Button
+                Command="{Binding ClearCommand}"
+                Content="{DynamicResource Setting.Log.Clear}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Text="{Binding CountText}" />
+        </hc:UniformSpacingPanel>
+
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Border
+                Background="{DynamicResource RegionBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="6">
+                <ListBox
+                    x:Name="LogList"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ItemsSource="{Binding Entries}"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    Visibility="{Binding IsNotEmpty, Converter={StaticResource Boolean2VisibilityConverter}}"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="8,2" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Margin="0,0,10,0"
+                                    VerticalAlignment="Top"
+                                    FontFamily="Consolas"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource SecondaryTextBrush}"
+                                    Text="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Top"
+                                    FontFamily="Consolas"
+                                    FontWeight="Bold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Level}" Value="Verbose">
+                                                    <Setter Property="Text" Value="VRB" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource ThirdlyTextBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                    <Setter Property="Text" Value="DBG" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="Information">
+                                                    <Setter Property="Text" Value="INF" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                                    <Setter Property="Text" Value="WRN" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                    <Setter Property="Text" Value="ERR" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="Fatal">
+                                                    <Setter Property="Text" Value="FTL" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock
+                                        FontFamily="Consolas"
+                                        Text="{Binding Message}"
+                                        TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                                        <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Level}" Value="Fatal">
+                                                        <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock
+                                        Margin="0,2,0,0"
+                                        FontFamily="Consolas"
+                                        FontSize="11"
+                                        Foreground="{DynamicResource DangerBrush}"
+                                        Text="{Binding Exception}"
+                                        TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Exception}" Value="{x:Null}">
+                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Text="{DynamicResource Setting.Log.Empty}"
+                Visibility="{Binding IsEmpty, Converter={StaticResource Boolean2VisibilityConverter}}" />
+        </Grid>
+    </Grid>
+</UserControl>

@@ -12,6 +12,20 @@
     <sys:String x:Key="Setting.Generic">通用</sys:String>
     <sys:String x:Key="Setting.Preference">偏好</sys:String>
     <sys:String x:Key="Setting.System">系统</sys:String>
+    <sys:String x:Key="Setting.Log">日志</sys:String>
+    <sys:String x:Key="Setting.Log.Search">搜索日志</sys:String>
+    <sys:String x:Key="Setting.Log.Level.All">全部</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Verbose">详细</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Debug">调试</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Information">信息</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Warning">警告</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Error">错误</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Fatal">严重</sys:String>
+    <sys:String x:Key="Setting.Log.AutoScroll">自动滚动</sys:String>
+    <sys:String x:Key="Setting.Log.Pause">暂停</sys:String>
+    <sys:String x:Key="Setting.Log.Clear">清空</sys:String>
+    <sys:String x:Key="Setting.Log.Empty">暂无日志</sys:String>
+    <sys:String x:Key="Setting.Log.Count">显示 {0} / {1} 条</sys:String>
     <sys:String x:Key="Setting.Language">语言</sys:String>
     <sys:String x:Key="Setting.Language.CH">简体中文</sys:String>
     <sys:String x:Key="Setting.Language.EN">English</sys:String>
@@ -143,6 +157,9 @@
     <sys:String x:Key="Career.Tips.BackMe">回到我的生涯</sys:String>
     <sys:String x:Key="Career.Tips.SetSkin">设置生涯皮肤</sys:String>
     <sys:String x:Key="Career.Tips.Refresh">刷新</sys:String>
+    <sys:String x:Key="Career.Experience.Progress">升级进度</sys:String>
+    <sys:String x:Key="Career.Experience.Earned">本级已获得经验</sys:String>
+    <sys:String x:Key="Career.Experience.Remaining">距离下一级经验</sys:String>
 
     <sys:String x:Key="Career.Rank.Tier.QueueType">类型</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Count">场次</sys:String>

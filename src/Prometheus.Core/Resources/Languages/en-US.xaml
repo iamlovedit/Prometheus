@@ -12,6 +12,20 @@
     <sys:String x:Key="Setting.Generic">Generic</sys:String>
     <sys:String x:Key="Setting.Preference">Preference</sys:String>
     <sys:String x:Key="Setting.System">System</sys:String>
+    <sys:String x:Key="Setting.Log">Log</sys:String>
+    <sys:String x:Key="Setting.Log.Search">Search logs</sys:String>
+    <sys:String x:Key="Setting.Log.Level.All">All</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Verbose">Verbose</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Debug">Debug</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Information">Information</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Warning">Warning</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Error">Error</sys:String>
+    <sys:String x:Key="Setting.Log.Level.Fatal">Fatal</sys:String>
+    <sys:String x:Key="Setting.Log.AutoScroll">Auto-scroll</sys:String>
+    <sys:String x:Key="Setting.Log.Pause">Pause</sys:String>
+    <sys:String x:Key="Setting.Log.Clear">Clear</sys:String>
+    <sys:String x:Key="Setting.Log.Empty">No log entries yet</sys:String>
+    <sys:String x:Key="Setting.Log.Count">Showing {0} of {1}</sys:String>
     <sys:String x:Key="Setting.Personalization">Personalization</sys:String>
     <sys:String x:Key="Setting.Appearance">Appearance</sys:String>
     <sys:String x:Key="Setting.Language">Language</sys:String>
@@ -144,6 +158,9 @@
     <sys:String x:Key="Career.Tips.BackMe">Back me</sys:String>
     <sys:String x:Key="Career.Tips.SetSkin">Set skin</sys:String>
     <sys:String x:Key="Career.Tips.Refresh">Refresh</sys:String>
+    <sys:String x:Key="Career.Experience.Progress">Level progress</sys:String>
+    <sys:String x:Key="Career.Experience.Earned">XP earned at this level</sys:String>
+    <sys:String x:Key="Career.Experience.Remaining">XP to next level</sys:String>
 
     <sys:String x:Key="Career.Rank.Tier.QueueType">Queue</sys:String>
     <sys:String x:Key="Career.Rank.Tier.Count">Count</sys:String>
