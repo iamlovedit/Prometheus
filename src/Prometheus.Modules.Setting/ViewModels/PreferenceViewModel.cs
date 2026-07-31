@@ -1,9 +1,15 @@
+#nullable enable
+
+using Prism.Commands;
 using Prism.Events;
+using Prism.Services.Dialogs;
+using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Modules.Setting.Properties;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Services.Interfaces.Updates;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
@@ -15,6 +21,8 @@ namespace Prometheus.Modules.Setting.ViewModels
         private readonly IGameAutomationSettings _automationSettings;
         private readonly IMatchService _matchService;
         private readonly ILogHistoryService _logHistory;
+        private readonly IUpdateService _updateService;
+        private readonly IDialogService _dialogService;
 
         protected override string TitleResourceKey { get; set; } = "Setting.Personalization";
 
@@ -23,12 +31,16 @@ namespace Prometheus.Modules.Setting.ViewModels
             IResourceService resourceService,
             IGameAutomationSettings automationSettings,
             IMatchService matchService,
-            ILogHistoryService logHistory)
+            ILogHistoryService logHistory,
+            IUpdateService updateService,
+            IDialogService dialogService)
             : base(eventAggregator, resourceService)
         {
             _automationSettings = automationSettings;
             _matchService = matchService;
             _logHistory = logHistory;
+            _updateService = updateService;
+            _dialogService = dialogService;
 
             _selectedLanguageIndex = Settings.Default.LanguageIndex;
             _selectedThemeIndex = Settings.Default.ThemeIndex;
@@ -38,12 +50,17 @@ namespace Prometheus.Modules.Setting.ViewModels
             ApplicationVersion = GetApplicationVersion();
             LogCapacity = logHistory.Capacity;
             RefreshConnectionStatus();
+            RefreshUpdateState();
+            CheckForUpdatesCommand = new DelegateCommand(CheckForUpdates,
+                () => !IsUpdateBusy);
 
             automationSettings.Changed += HandleAutomationChanged;
             matchService.SnapshotChanged += HandleSnapshotChanged;
             logHistory.EntryLogged += HandleLogChanged;
             logHistory.Cleared += HandleLogChanged;
+            updateService.StateChanged += HandleUpdateStateChanged;
             EventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(RefreshConnectionStatus);
+            EventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(RefreshUpdateState);
         }
 
         private int _selectedLanguageIndex;
@@ -143,13 +160,51 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         public string ApplicationVersion { get; }
 
+        public DelegateCommand CheckForUpdatesCommand { get; }
+
+        private string _updateStatus = string.Empty;
+        public string UpdateStatus
+        {
+            get => _updateStatus;
+            private set => SetProperty(ref _updateStatus, value);
+        }
+
+        private double _updateProgress;
+        public double UpdateProgress
+        {
+            get => _updateProgress;
+            private set => SetProperty(ref _updateProgress, value);
+        }
+
+        private string? _updateErrorMessage;
+        public string? UpdateErrorMessage
+        {
+            get => _updateErrorMessage;
+            private set => SetProperty(ref _updateErrorMessage, value);
+        }
+
+        private bool _isUpdateBusy;
+        public bool IsUpdateBusy
+        {
+            get => _isUpdateBusy;
+            private set
+            {
+                if (SetProperty(ref _isUpdateBusy, value))
+                {
+                    CheckForUpdatesCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
         public override void Destroy()
         {
             _automationSettings.Changed -= HandleAutomationChanged;
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _logHistory.EntryLogged -= HandleLogChanged;
             _logHistory.Cleared -= HandleLogChanged;
+            _updateService.StateChanged -= HandleUpdateStateChanged;
             EventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(RefreshConnectionStatus);
+            EventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(RefreshUpdateState);
             base.Destroy();
         }
 
@@ -170,6 +225,40 @@ namespace Prometheus.Modules.Setting.ViewModels
         private void HandleLogChanged(object sender, EventArgs args)
         {
             Dispatch(() => LogCount = _logHistory.GetSnapshot().Count);
+        }
+
+        private void HandleUpdateStateChanged(object sender, UpdateStateChangedEventArgs args)
+        {
+            Dispatch(RefreshUpdateState);
+        }
+
+        private async void CheckForUpdates()
+        {
+            var update = await _updateService.CheckAsync(true);
+            if (update is not null)
+            {
+                Dispatch(() => _dialogService.ShowDialog(RegionNames.UpdateDialog));
+            }
+        }
+
+        private void RefreshUpdateState()
+        {
+            IsUpdateBusy = _updateService.State is UpdateState.Checking
+                or UpdateState.Downloading or UpdateState.Installing;
+            UpdateProgress = _updateService.Progress * 100;
+            UpdateErrorMessage = _updateService.ErrorMessage;
+            var key = _updateService.State switch
+            {
+                UpdateState.Checking => "Update.Status.Checking",
+                UpdateState.UpToDate => "Update.Status.UpToDate",
+                UpdateState.Available => "Update.Status.Available",
+                UpdateState.Downloading => "Update.Status.Downloading",
+                UpdateState.ReadyToInstall => "Update.Status.Ready",
+                UpdateState.Installing => "Update.Status.Installing",
+                UpdateState.Failed => "Update.Status.Failed",
+                _ => "Update.Status.Idle"
+            };
+            UpdateStatus = ResourceService.FindResource<string>(key);
         }
 
         private void RefreshConnectionStatus()

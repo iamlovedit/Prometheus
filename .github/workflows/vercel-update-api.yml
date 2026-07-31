@@ -1,0 +1,31 @@
+name: Deploy Update API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "update-api/**"
+      - ".github/workflows/vercel-update-api.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: update-api
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install
+      - run: npm test
+      - run: npm run build
+      - run: npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}

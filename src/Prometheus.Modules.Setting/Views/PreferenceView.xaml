@@ -169,6 +169,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="12" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
@@ -452,6 +454,45 @@
 
             <Border Grid.Row="2" Style="{StaticResource SettingCard}">
                 <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="240" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Update.Settings.Title}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Style="{StaticResource CaptionText}"
+                            Text="{DynamicResource Update.Settings.Description}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding UpdateStatus}" />
+                        <ProgressBar
+                            Height="12"
+                            Margin="0,8,0,0"
+                            Maximum="100"
+                            Value="{Binding UpdateProgress, Mode=OneWay}" />
+                        <TextBlock
+                            Margin="0,6,0,0"
+                            Foreground="{DynamicResource DangerBrush}"
+                            Text="{Binding UpdateErrorMessage}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTip="{Binding UpdateErrorMessage}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="4"
+                        VerticalAlignment="Center"
+                        Command="{Binding CheckForUpdatesCommand}"
+                        Content="{DynamicResource Update.Settings.Check}"
+                        Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="4" Style="{StaticResource SettingCard}">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="16" />
@@ -545,7 +586,7 @@
             </Border>
 
             <TextBlock
-                Grid.Row="3"
+                Grid.Row="5"
                 Margin="4,10,4,0"
                 HorizontalAlignment="Right"
                 Style="{StaticResource CaptionText}"

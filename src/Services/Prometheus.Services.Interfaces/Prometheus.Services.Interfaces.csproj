@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Prometheus.Core\Prometheus.Core.csproj" />
+    <ProjectReference Include="..\..\Prometheus.Update\Prometheus.Update.csproj" />
   </ItemGroup>
 
 </Project>

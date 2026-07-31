@@ -19,6 +19,9 @@ namespace Prometheus.Views
             _eventAggregator = eventAggregator;
             Closing += MainWindow_Closing;
             Closed += MainWindow_Closed;
+            Loaded += MainWindow_Loaded;
+            _eventAggregator.GetEvent<ApplicationExitRequestedEvent>()
+                .Subscribe(HandleApplicationExitRequested);
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
@@ -46,7 +49,23 @@ namespace Prometheus.Views
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
+            _eventAggregator.GetEvent<ApplicationExitRequestedEvent>()
+                .Unsubscribe(HandleApplicationExitRequested);
             TrayIcon.Dispose();
+        }
+
+        private static void MainWindow_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            UpdateRuntime.MarkHealthReady();
+        }
+
+        private void HandleApplicationExitRequested()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _isExitRequested = true;
+                Close();
+            });
         }
 
         private void ShowMainWindow()

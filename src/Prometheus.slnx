@@ -13,8 +13,11 @@
     <Project Path="Services/Prometheus.Services/Prometheus.Services.csproj" />
   </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/Prometheus.Update.Tests/Prometheus.Update.Tests.csproj" />
     <Project Path="Tests/Prometheus.Modules.ModuleName.Tests/Prometheus.Modules.ModuleName.Tests.csproj" />
   </Folder>
+  <Project Path="Prometheus.ReleaseTool/Prometheus.ReleaseTool.csproj" />
+  <Project Path="Prometheus.Update/Prometheus.Update.csproj" />
   <Project Path="Prometheus.Core/Prometheus.Core.csproj" />
   <Project Path="Prometheus.Shared/Prometheus.Shared.csproj" />
   <Project Path="Prometheus.Updater/Prometheus.Updater.csproj" />

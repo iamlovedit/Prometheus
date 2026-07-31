@@ -14,7 +14,11 @@ using Prometheus.Services;
 using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Services.Interfaces.Updates;
+using Prometheus.Services.Updates;
 using Prometheus.Shared.Views;
+using Prometheus.Update;
+using Prometheus.ViewModels;
 using Prometheus.Views;
 using Serilog;
 using Serilog.Formatting.Json;
@@ -57,15 +61,19 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
             containerRegistry.RegisterSingleton<IProfilePresentationStartupService, ProfilePresentationStartupService>();
             containerRegistry.RegisterSingleton<ILeagueClient, LeagueClient>();
+            containerRegistry.RegisterInstance(UpdateRuntime.CreateOptions());
+            containerRegistry.RegisterSingleton<IUpdateService, UpdateService>();
             containerRegistry.RegisterInstance<ILogHistoryService>(_logHistory);
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
             containerRegistry.RegisterDialogWindow<DialogWindow>();
+            containerRegistry.RegisterDialog<UpdateDialog, UpdateDialogViewModel>(RegionNames.UpdateDialog);
             containerRegistry.RegisterInstance<Dictionary<int, List<SkinBasic>>>([], ParameterNames.SkinsCache);
 
 
-            var directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            directory = Path.Combine(directory, "Resource");
+            var legacyDirectory = Path.Combine(AppContext.BaseDirectory, "Resource");
+            var directory = Path.Combine(UpdatePaths.GetLocalDataRoot(), "Resource");
+            MigrateLegacyResources(legacyDirectory, directory);
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
@@ -200,6 +208,31 @@ namespace Prometheus
             }
 
             return false;
+        }
+
+        private static void MigrateLegacyResources(string legacyDirectory, string targetDirectory)
+        {
+            Directory.CreateDirectory(targetDirectory);
+            if (!Directory.Exists(legacyDirectory)
+                || string.Equals(Path.GetFullPath(legacyDirectory), Path.GetFullPath(targetDirectory),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            foreach (var sourcePath in Directory.EnumerateFiles(legacyDirectory, "*",
+                         SearchOption.AllDirectories))
+            {
+                var relativePath = Path.GetRelativePath(legacyDirectory, sourcePath);
+                var destinationPath = Path.Combine(targetDirectory, relativePath);
+                if (File.Exists(destinationPath))
+                {
+                    continue;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+                File.Copy(sourcePath, destinationPath);
+            }
         }
     }
 }

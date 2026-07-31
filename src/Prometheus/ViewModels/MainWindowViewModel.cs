@@ -3,6 +3,7 @@ using Prism.Events;
 using Prism.Modularity;
 using Prism.Mvvm;
 using Prism.Regions;
+using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
@@ -12,6 +13,7 @@ using Prometheus.Modules.Search;
 using Prometheus.Modules.Summoner;
 using Prometheus.Modules.Utility;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Services.Interfaces.Updates;
 using Serilog;
 using System.Windows;
 
@@ -30,6 +32,9 @@ namespace Prometheus.ViewModels
         private readonly IResourceService _resourceService;
         private readonly IProfilePresentationStartupService _profilePresentationStartupService;
         private readonly IGameAutomationSettings _automationSettings;
+        private readonly IUpdateService _updateService;
+        private readonly IDialogService _dialogService;
+        private bool _updateDialogShown;
 
         private GameflowPhase _lastAlertPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
@@ -43,7 +48,9 @@ namespace Prometheus.ViewModels
             IClientListener clientListener,
             IResourceService resourceService,
             IProfilePresentationStartupService profilePresentationStartupService,
-            IGameAutomationSettings automationSettings)
+            IGameAutomationSettings automationSettings,
+            IUpdateService updateService,
+            IDialogService dialogService)
         {
             _regionManager = regionManager;
             _eventAggregator = eventAggregator;
@@ -54,6 +61,8 @@ namespace Prometheus.ViewModels
             _resourceService = resourceService;
             _profilePresentationStartupService = profilePresentationStartupService;
             _automationSettings = automationSettings;
+            _updateService = updateService;
+            _dialogService = dialogService;
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _automationSettings.Changed += HandleAutomationSettingsChanged;
@@ -160,6 +169,7 @@ namespace Prometheus.ViewModels
 
         private async void ExecuteLoadedCommand()
         {
+            _ = CheckForUpdatesAfterStartupAsync();
             try
             {
                 _profilePresentationStartupService.Start();
@@ -168,6 +178,29 @@ namespace Prometheus.ViewModels
             catch (Exception exception)
             {
                 Log.Error(exception, "Unable to start live match coordinator");
+            }
+        }
+
+        private async Task CheckForUpdatesAfterStartupAsync()
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(15));
+                var update = await _updateService.CheckAsync(false);
+                if (update is null || _updateDialogShown)
+                {
+                    return;
+                }
+
+                _updateDialogShown = true;
+                Dispatch(() => _dialogService.ShowDialog(RegionNames.UpdateDialog, _ =>
+                {
+                    _updateDialogShown = false;
+                }));
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to present the automatic update check");
             }
         }
 

@@ -186,6 +186,7 @@
                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                                     <TextBox
                                         Width="220"
+                                        Height="32"
                                         Style="{DynamicResource TextBoxExtend}"
                                         Text="{Binding Status, UpdateSourceTrigger=PropertyChanged}" />
                                     <Button

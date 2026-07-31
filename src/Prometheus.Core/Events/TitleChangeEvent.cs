@@ -13,6 +13,10 @@ namespace Prometheus.Core.Events
 
     }
 
+    public class ApplicationExitRequestedEvent : PubSubEvent
+    {
+    }
+
     public class LanguageSwitchedEvent : PubSubEvent
     {
 

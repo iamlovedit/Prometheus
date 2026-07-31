@@ -397,3 +397,9 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 .idea/
+
+# Update release and Vercel artifacts
+node_modules/
+.vercel/
+artifacts/
+release-output/

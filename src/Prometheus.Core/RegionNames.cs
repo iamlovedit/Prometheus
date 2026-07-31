@@ -32,6 +32,8 @@
 
         public const string SelectBackgroundDialog = "SelectBackgroundDialog";
 
+        public const string UpdateDialog = "UpdateDialog";
+
         public const string MatchHistoryView = "MatchHistoryView";
 
         public const string SummonerDetailView = "SummonerDetailView";
