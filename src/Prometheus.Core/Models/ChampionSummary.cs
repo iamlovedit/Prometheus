@@ -1,8 +1,11 @@
+using Prism.Mvvm;
 
 namespace Prometheus.Core.Models
 {
-    public class ChampionSummary
+    public class ChampionSummary : BindableBase
     {
+        private string _iconUri;
+
         public int Id { get; set; }
 
         public string Name { get; set; }
@@ -13,7 +16,10 @@ namespace Prometheus.Core.Models
 
         public List<string> Roles { get; set; }
 
-        public string IconUri { get; set; }
+        public string IconUri
+        {
+            get => _iconUri;
+            set => SetProperty(ref _iconUri, value);
+        }
     }
 }
-

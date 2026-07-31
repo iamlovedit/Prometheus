@@ -18,6 +18,9 @@ namespace Prometheus.Services.Client
         private readonly string _settingsPath;
         private bool _autoAcceptReadyCheck;
         private bool _autoReconnect;
+        private bool _autoSwapAramBench;
+        private int[] _preferredAramChampionIds = [];
+        private bool _lastPersistenceSucceeded = true;
 
         public GameAutomationSettings()
             : this(GetDefaultSettingsPath())
@@ -81,6 +84,41 @@ namespace Prometheus.Services.Client
             set => AutoReconnect = value;
         }
 
+        public bool AutoSwapAramBench
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _autoSwapAramBench;
+                }
+            }
+            set => SetAutoSwapAramBench(value);
+        }
+
+        public IReadOnlyList<int> PreferredAramChampionIds
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _preferredAramChampionIds.ToArray();
+                }
+            }
+            set => SetPreferredAramChampionIds(value);
+        }
+
+        public bool LastPersistenceSucceeded
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _lastPersistenceSucceeded;
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         public event EventHandler Changed;
@@ -103,7 +141,7 @@ namespace Prometheus.Services.Client
                 _autoAcceptReadyCheck = value;
             }
 
-            Save();
+            UpdatePersistenceState(Save());
             RaisePropertyChanged(nameof(AutoAcceptReadyCheck));
             RaisePropertyChanged(nameof(AutoAccept));
             RaisePropertyChanged(nameof(IsAutoAcceptEnabled));
@@ -122,9 +160,48 @@ namespace Prometheus.Services.Client
                 _autoReconnect = value;
             }
 
-            Save();
+            UpdatePersistenceState(Save());
             RaisePropertyChanged(nameof(AutoReconnect));
             RaisePropertyChanged(nameof(IsAutoReconnectEnabled));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetAutoSwapAramBench(bool value)
+        {
+            lock (_syncRoot)
+            {
+                if (_autoSwapAramBench == value)
+                {
+                    return;
+                }
+
+                _autoSwapAramBench = value;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(AutoSwapAramBench));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetPreferredAramChampionIds(IEnumerable<int> championIds)
+        {
+            var normalized = championIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+
+            lock (_syncRoot)
+            {
+                if (_preferredAramChampionIds.SequenceEqual(normalized))
+                {
+                    return;
+                }
+
+                _preferredAramChampionIds = normalized;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(PreferredAramChampionIds));
             Changed?.Invoke(this, EventArgs.Empty);
         }
 
@@ -147,25 +224,36 @@ namespace Prometheus.Services.Client
                 // Both values intentionally default to false when absent.
                 _autoAcceptReadyCheck = value.AutoAcceptReadyCheck;
                 _autoReconnect = value.AutoReconnect;
+                _autoSwapAramBench = value.AutoSwapAramBench;
+                _preferredAramChampionIds = value.PreferredAramChampionIds?
+                    .Where(championId => championId > 0)
+                    .Distinct()
+                    .ToArray() ?? [];
             }
             catch (IOException)
             {
                 _autoAcceptReadyCheck = false;
                 _autoReconnect = false;
+                _autoSwapAramBench = false;
+                _preferredAramChampionIds = [];
             }
             catch (UnauthorizedAccessException)
             {
                 _autoAcceptReadyCheck = false;
                 _autoReconnect = false;
+                _autoSwapAramBench = false;
+                _preferredAramChampionIds = [];
             }
             catch (JsonException)
             {
                 _autoAcceptReadyCheck = false;
                 _autoReconnect = false;
+                _autoSwapAramBench = false;
+                _preferredAramChampionIds = [];
             }
         }
 
-        private void Save()
+        private bool Save()
         {
             PersistedSettings value;
             lock (_syncRoot)
@@ -173,7 +261,9 @@ namespace Prometheus.Services.Client
                 value = new PersistedSettings
                 {
                     AutoAcceptReadyCheck = _autoAcceptReadyCheck,
-                    AutoReconnect = _autoReconnect
+                    AutoReconnect = _autoReconnect,
+                    AutoSwapAramBench = _autoSwapAramBench,
+                    PreferredAramChampionIds = _preferredAramChampionIds.ToArray()
                 };
             }
 
@@ -188,14 +278,25 @@ namespace Prometheus.Services.Client
                 var temporaryPath = _settingsPath + ".tmp";
                 File.WriteAllText(temporaryPath, JsonSerializer.Serialize(value));
                 File.Move(temporaryPath, _settingsPath, true);
+                return true;
             }
             catch (IOException)
             {
                 // Automation remains safe and usable for the current process;
                 // a persistence failure must never enable a feature by itself.
+                return false;
             }
             catch (UnauthorizedAccessException)
             {
+                return false;
+            }
+        }
+
+        private void UpdatePersistenceState(bool succeeded)
+        {
+            lock (_syncRoot)
+            {
+                _lastPersistenceSucceeded = succeeded;
             }
         }
 
@@ -209,6 +310,10 @@ namespace Prometheus.Services.Client
             public bool AutoAcceptReadyCheck { get; set; }
 
             public bool AutoReconnect { get; set; }
+
+            public bool AutoSwapAramBench { get; set; }
+
+            public int[] PreferredAramChampionIds { get; set; } = [];
         }
     }
 }

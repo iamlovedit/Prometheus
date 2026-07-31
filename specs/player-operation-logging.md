@@ -83,8 +83,11 @@ P0 操作会改变对局、LCU、玩家资料、持久化自动化设置，或�
 | 对局 | `match.reconnect` | 手动或自动重连游戏 | `GameflowPhase`、`AttemptCount` |
 | 自动化 | `automation.auto_accept.changed` | 开启或关闭自动接受 | `OldValue`、`NewValue`、`Module` |
 | 自动化 | `automation.auto_reconnect.changed` | 开启或关闭自动重连 | `OldValue`、`NewValue`、`Module` |
+| 自动化 | `automation.aram_bench_swap.changed` | 开启或关闭大乱斗自动换英雄 | `OldValue`、`NewValue`、`Module` |
+| 自动化 | `automation.aram_bench_preferences.changed` | 修改大乱斗目标英雄优先级 | `OldCount`、`NewCount`、`Module` |
 | BP | `champ_select.pick` | 选择或锁定英雄 | `ActionId`、`ChampionId` |
 | BP | `champ_select.ban` | 禁用英雄 | `ActionId`、`ChampionId` |
+| BP | `champ_select.bench.swap` | 手动或自动从大乱斗替补席交换英雄 | `ChampionId`、`PhaseInstance`、`AttemptCount` |
 | 符文 | `rune.page.create` | 创建符文页 | 安全的页面标识；不得记录完整请求体 |
 | 符文 | `rune.page.delete` | 删除符文页 | `RunePageId` |
 | 符文 | `rune.page.apply` | 应用符文页 | `RunePageId` |

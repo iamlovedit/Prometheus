@@ -14,6 +14,12 @@ namespace Prometheus.Services.Interfaces.Client
 
         bool IsAutoReconnectEnabled { get; set; }
 
+        bool AutoSwapAramBench { get; set; }
+
+        IReadOnlyList<int> PreferredAramChampionIds { get; set; }
+
+        bool LastPersistenceSucceeded { get; }
+
         event EventHandler Changed;
     }
 }

@@ -292,6 +292,17 @@
     <sys:String x:Key="Utility.Tier.Description">Customize the queue, tier, and division shown on your chat profile</sys:String>
     <sys:String x:Key="Utility.Tier.Action">Apply display</sys:String>
     <sys:String x:Key="Utility.InvalidSelection">Select a valid queue, tier, and division</sys:String>
+    <sys:String x:Key="Utility.AramSwap">Automatic ARAM champion swap</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Description">During ARAM champion select, automatically swap for the highest-priority preferred champion available on the bench; no swap is made when your current champion is already preferred</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Enable">Enable automatic swap</sys:String>
+    <sys:String x:Key="Utility.AramSwap.AddChampion">Add a preferred champion</sys:String>
+    <sys:String x:Key="Utility.AramSwap.AddChampion.Description">List order determines priority; champions nearer the top are preferred</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Add">Add</sys:String>
+    <sys:String x:Key="Utility.AramSwap.PriorityList">Preferred champion priority</sys:String>
+    <sys:String x:Key="Utility.AramSwap.MoveUp">Move up</sys:String>
+    <sys:String x:Key="Utility.AramSwap.MoveDown">Move down</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Remove">Remove</sys:String>
+    <sys:String x:Key="Utility.AramSwap.PersistenceFailed">The setting is active for this session but could not be saved locally</sys:String>
 
     <sys:String x:Key="Match.Rank.All">All</sys:String>
     <sys:String x:Key="Match.Rank.TFT">Teamfight tactics</sys:String>

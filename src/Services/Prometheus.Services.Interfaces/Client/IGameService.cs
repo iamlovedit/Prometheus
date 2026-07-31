@@ -74,6 +74,15 @@ namespace Prometheus.Services.Interfaces.Client
         Task<ChampionSelectSnapshot> GetChampionSelectSnapshotAsync(
             CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Requests an ARAM bench swap through
+        /// lol-champ-select/v1/session/bench/swap/{championId}. When LCU is not
+        /// initialized the underlying HTTP service completes without sending a request.
+        /// </summary>
+        Task SwapAramBenchChampionAsync(
+            int championId,
+            CancellationToken cancellationToken = default);
+
         Task<PostGameSnapshot> GetPostGameSnapshotAsync(CancellationToken cancellationToken = default);
 
         Task AcceptMatchAsync(CancellationToken cancellationToken);

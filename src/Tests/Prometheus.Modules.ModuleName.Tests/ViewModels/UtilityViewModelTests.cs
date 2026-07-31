@@ -52,15 +52,177 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 value => value.SaveOnlineStatus("offline"), Times.Once);
         }
 
+        [Fact]
+        public void PreferredAramChampions_UseConfiguredOrderAndPersistReordering()
+        {
+            var automationSettings = CreateAutomationSettings();
+            var viewModel = CreateViewModel(automationSettings: automationSettings);
+            var first = new ChampionSummary { Id = 22, Name = "Ashe" };
+            var second = new ChampionSummary { Id = 103, Name = "Ahri" };
+
+            viewModel.SelectedAramChampion = first;
+            viewModel.AddAramChampionCommand.Execute();
+            viewModel.SelectedAramChampion = second;
+            viewModel.AddAramChampionCommand.Execute();
+            viewModel.SelectedPreferredAramChampion = second;
+            viewModel.MoveAramChampionUpCommand.Execute();
+
+            Assert.Equal(
+                [103, 22],
+                automationSettings.Object.PreferredAramChampionIds);
+        }
+
+        [Fact]
+        public void AramChampionSelector_SelectingFilteredChampion_PreservesSelection()
+        {
+            var gameResourceManager = new Mock<IGameResourceManager>();
+            gameResourceManager.Setup(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 103, Name = "九尾妖狐", Alias = "Ahri" },
+                    new ChampionSummary { Id = 22, Name = "寒冰射手", Alias = "Ashe" }
+                ]);
+            gameResourceManager.Setup(service =>
+                    service.GetChampoinIconByIdAsync(It.IsAny<int>()))
+                .ReturnsAsync((int championId) => $"{championId}.png");
+            var viewModel = CreateViewModel(gameResourceManager: gameResourceManager);
+
+            viewModel.OnNavigatedTo(null);
+            Assert.Null(viewModel.SelectedAramChampion);
+            Assert.Equal(2, viewModel.AramChampionOptions.Cast<ChampionSummary>().Count());
+
+            viewModel.AramChampionSearchText = "ahr";
+            Assert.Null(viewModel.SelectedAramChampion);
+            var champion = Assert.Single(
+                viewModel.AramChampionOptions.Cast<ChampionSummary>());
+            viewModel.SelectedAramChampion = champion;
+
+            Assert.Same(champion, viewModel.SelectedAramChampion);
+            Assert.Equal(champion.Name, viewModel.AramChampionSearchText);
+            Assert.True(viewModel.AddAramChampionCommand.CanExecute());
+            Assert.Single(viewModel.AramChampionOptions.Cast<ChampionSummary>());
+            Assert.Equal(103, champion.Id);
+            Assert.Equal("103.png", champion.IconUri);
+            gameResourceManager.Verify(service =>
+                service.GetChampoinIconByIdAsync(It.IsAny<int>()), Times.Exactly(2));
+        }
+
+        [Fact]
+        public async Task AramChampionSelector_WhenIconsFinishLoading_DoesNotResetSelection()
+        {
+            var releaseIcons = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var loadCompleted = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var gameResourceManager = new Mock<IGameResourceManager>();
+            gameResourceManager.Setup(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 103, Name = "九尾妖狐", Alias = "Ahri" },
+                    new ChampionSummary { Id = 22, Name = "寒冰射手", Alias = "Ashe" }
+                ]);
+            gameResourceManager.Setup(service =>
+                    service.GetChampoinIconByIdAsync(It.IsAny<int>()))
+                .Returns(async (int championId) =>
+                {
+                    await releaseIcons.Task;
+                    return $"{championId}.png";
+                });
+            var viewModel = CreateViewModel(gameResourceManager: gameResourceManager);
+
+            viewModel.OnNavigatedTo(null);
+            Assert.True(viewModel.IsAramChampionListLoading);
+            viewModel.AramChampionSearchText = "ahr";
+            var champion = Assert.Single(
+                viewModel.AramChampionOptions.Cast<ChampionSummary>());
+            viewModel.SelectedAramChampion = champion;
+            var collectionChangeCount = 0;
+            viewModel.AramChampionOptions.CollectionChanged +=
+                (_, _) => collectionChangeCount++;
+            viewModel.PropertyChanged += (_, eventArgs) =>
+            {
+                if (eventArgs.PropertyName == nameof(viewModel.IsAramChampionListLoading) &&
+                    !viewModel.IsAramChampionListLoading)
+                {
+                    loadCompleted.TrySetResult(true);
+                }
+            };
+
+            releaseIcons.TrySetResult(true);
+            await loadCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.Equal(0, collectionChangeCount);
+            Assert.Same(champion, viewModel.SelectedAramChampion);
+            Assert.True(viewModel.AddAramChampionCommand.CanExecute());
+            Assert.Single(viewModel.AramChampionOptions.Cast<ChampionSummary>());
+            Assert.All(viewModel.AramChampions,
+                value => Assert.Equal($"{value.Id}.png", value.IconUri));
+        }
+
+        [Fact]
+        public void ChampionSummary_IconUri_RaisesPropertyChanged()
+        {
+            var champion = new ChampionSummary();
+            string changedProperty = null;
+            champion.PropertyChanged += (_, eventArgs) =>
+                changedProperty = eventArgs.PropertyName;
+
+            champion.IconUri = "22.png";
+
+            Assert.Equal(nameof(ChampionSummary.IconUri), changedProperty);
+        }
+
+        [Fact]
+        public void AramChampionSelector_WhenInitialLoadIsUnavailable_RetriesWhenOpened()
+        {
+            var gameResourceManager = new Mock<IGameResourceManager>();
+            gameResourceManager.SetupSequence(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync((List<ChampionSummary>)null)
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 22, Name = "寒冰射手", Alias = "Ashe" }
+                ]);
+            gameResourceManager.Setup(service =>
+                    service.GetChampoinIconByIdAsync(22))
+                .ReturnsAsync("22.png");
+            var viewModel = CreateViewModel(gameResourceManager: gameResourceManager);
+
+            viewModel.OnNavigatedTo(null);
+            Assert.Empty(viewModel.AramChampions);
+
+            viewModel.OpenAramChampionSelectorCommand.Execute();
+
+            var champion = Assert.Single(viewModel.AramChampions);
+            Assert.Equal(22, champion.Id);
+            Assert.Equal("22.png", champion.IconUri);
+            gameResourceManager.Verify(service =>
+                service.GetChampionSummarysAsync(), Times.Exactly(2));
+        }
+
         private static UtilityViewModel CreateViewModel(
             Mock<IGameService> gameService = null,
-            Mock<IProfilePresentationSettings> settings = null)
+            Mock<IProfilePresentationSettings> settings = null,
+            Mock<IGameAutomationSettings> automationSettings = null,
+            Mock<IGameResourceManager> gameResourceManager = null)
         {
             return new UtilityViewModel(
                 new Mock<IRegionManager>().Object,
                 new Mock<IResourceService>().Object,
                 (gameService ?? new Mock<IGameService>()).Object,
-                (settings ?? new Mock<IProfilePresentationSettings>()).Object);
+                (settings ?? new Mock<IProfilePresentationSettings>()).Object,
+                (gameResourceManager ?? new Mock<IGameResourceManager>()).Object,
+                (automationSettings ?? CreateAutomationSettings()).Object);
+        }
+
+        private static Mock<IGameAutomationSettings> CreateAutomationSettings()
+        {
+            var settings = new Mock<IGameAutomationSettings>();
+            settings.SetupProperty(value => value.AutoSwapAramBench, false);
+            settings.SetupProperty(
+                value => value.PreferredAramChampionIds,
+                Array.Empty<int>());
+            settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
+            return settings;
         }
     }
 }

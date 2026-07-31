@@ -291,6 +291,17 @@
     <sys:String x:Key="Utility.Tier.Description">自定义聊天资料中展示的模式、段位和等级</sys:String>
     <sys:String x:Key="Utility.Tier.Action">应用展示</sys:String>
     <sys:String x:Key="Utility.InvalidSelection">请选择有效的模式、段位和等级</sys:String>
+    <sys:String x:Key="Utility.AramSwap">大乱斗自动交换英雄</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Description">进入极地大乱斗选人阶段后，自动从替补席交换目标列表中优先级最高的英雄；当前英雄已在列表中时不会交换</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Enable">启用自动交换</sys:String>
+    <sys:String x:Key="Utility.AramSwap.AddChampion">添加想玩的英雄</sys:String>
+    <sys:String x:Key="Utility.AramSwap.AddChampion.Description">列表顺序代表优先级，排在越前面的英雄越优先</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Add">添加</sys:String>
+    <sys:String x:Key="Utility.AramSwap.PriorityList">目标英雄优先级</sys:String>
+    <sys:String x:Key="Utility.AramSwap.MoveUp">上移</sys:String>
+    <sys:String x:Key="Utility.AramSwap.MoveDown">下移</sys:String>
+    <sys:String x:Key="Utility.AramSwap.Remove">移除</sys:String>
+    <sys:String x:Key="Utility.AramSwap.PersistenceFailed">配置已在本次运行中生效，但无法保存到本地</sys:String>
 
     <sys:String x:Key="Match.Rank.All">全部比赛</sys:String>
     <sys:String x:Key="Match.Rank.TFT">云顶之弈</sys:String>

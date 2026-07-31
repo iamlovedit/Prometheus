@@ -1,12 +1,15 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
+using Serilog.Events;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 
@@ -45,6 +48,9 @@ namespace Prometheus.Services.Client
 
         private static readonly TimeSpan[] ReconnectRetryDelays =
             [TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5)];
+
+        private static readonly TimeSpan[] AramBenchSwapRetryDelays =
+            [TimeSpan.Zero, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900)];
         private static readonly JsonSerializerSettings SnapshotCloneSettings = new()
         {
             ContractResolver = new WritablePropertiesContractResolver()
@@ -72,14 +78,17 @@ namespace Prometheus.Services.Client
         private CancellationTokenSource _phaseCts;
         private CancellationTokenSource _acceptAutomationCts;
         private CancellationTokenSource _reconnectAutomationCts;
+        private CancellationTokenSource _aramBenchSwapAutomationCts;
         private Task _acceptAutomationTask = Task.CompletedTask;
         private Task _reconnectAutomationTask = Task.CompletedTask;
+        private Task _aramBenchSwapAutomationTask = Task.CompletedTask;
         private bool _started;
         private bool _subscribed;
         private long _phaseVersion;
         private long _phaseInstance;
         private long _lastAutoAcceptInstance = -1;
         private long _lastAutoReconnectInstance = -1;
+        private string _lastAramBenchSwapState = string.Empty;
         private string _initializedConnection = string.Empty;
         private CancellationTokenSource _rosterCts;
         private Task _rosterTask = Task.CompletedTask;
@@ -158,6 +167,7 @@ namespace Prometheus.Services.Client
                 _phaseVersion++;
                 _phaseInstance++;
                 _initializedConnection = string.Empty;
+                _lastAramBenchSwapState = string.Empty;
                 AttachSubscriptions();
                 AutomationSettings.PropertyChanged += HandleAutomationSettingsChanged;
                 lifetimeToken = _lifetimeCts.Token;
@@ -293,8 +303,10 @@ namespace Prometheus.Services.Client
             CancellationTokenSource phaseCts;
             CancellationTokenSource acceptCts;
             CancellationTokenSource reconnectCts;
+            CancellationTokenSource aramBenchSwapCts;
             Task acceptTask;
             Task reconnectTask;
+            Task aramBenchSwapTask;
 
             await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -314,12 +326,16 @@ namespace Prometheus.Services.Client
                     phaseCts = _phaseCts;
                     acceptCts = _acceptAutomationCts;
                     reconnectCts = _reconnectAutomationCts;
+                    aramBenchSwapCts = _aramBenchSwapAutomationCts;
                     acceptTask = _acceptAutomationTask;
                     reconnectTask = _reconnectAutomationTask;
+                    aramBenchSwapTask = _aramBenchSwapAutomationTask;
                     _lifetimeCts = null;
                     _phaseCts = null;
                     _acceptAutomationCts = null;
                     _reconnectAutomationCts = null;
+                    _aramBenchSwapAutomationCts = null;
+                    _lastAramBenchSwapState = string.Empty;
                     _phaseVersion++;
                     _initializedConnection = string.Empty;
                 }
@@ -343,6 +359,7 @@ namespace Prometheus.Services.Client
             phaseCts?.Cancel();
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
+            aramBenchSwapCts?.Cancel();
             var rosterTask = CancelRosterEnrichment(clearCache: true, resetSignature: true);
             _currentSummoner = null;
             _httpService.Reset();
@@ -350,12 +367,14 @@ namespace Prometheus.Services.Client
             await _leagueClient.StopAsync(cancellationToken).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(acceptTask).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(reconnectTask).ConfigureAwait(false);
+            await AwaitAutomationTaskAsync(aramBenchSwapTask).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(rosterTask).ConfigureAwait(false);
 
             lifetimeCts?.Dispose();
             phaseCts?.Dispose();
             acceptCts?.Dispose();
             reconnectCts?.Dispose();
+            aramBenchSwapCts?.Dispose();
 
             PublishSnapshot(snapshot =>
             {
@@ -529,6 +548,7 @@ namespace Prometheus.Services.Client
             CancellationTokenSource phaseCts;
             CancellationTokenSource acceptCts;
             CancellationTokenSource reconnectCts;
+            CancellationTokenSource aramBenchSwapCts;
             lock (_stateSync)
             {
                 if (!_started)
@@ -539,15 +559,18 @@ namespace Prometheus.Services.Client
                 phaseCts = _phaseCts;
                 acceptCts = _acceptAutomationCts;
                 reconnectCts = _reconnectAutomationCts;
+                aramBenchSwapCts = _aramBenchSwapAutomationCts;
                 _phaseCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
                 _phaseVersion++;
                 _phaseInstance++;
                 _initializedConnection = string.Empty;
+                _lastAramBenchSwapState = string.Empty;
             }
 
             phaseCts?.Cancel();
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
+            aramBenchSwapCts?.Cancel();
             CancelRosterEnrichment(clearCache: true, resetSignature: true);
             _currentSummoner = null;
             _httpService.Reset();
@@ -611,6 +634,7 @@ namespace Prometheus.Services.Client
             }
 
             ScheduleRosterRefresh();
+            TriggerAutomation(GetCurrentPhaseContext());
         }
 
         private void HandleLobbyEvent(OnWebsocketEventArgs args)
@@ -655,6 +679,7 @@ namespace Prometheus.Services.Client
                 return snapshot;
             });
             ScheduleRosterRefresh();
+            TriggerAutomation(GetCurrentPhaseContext());
         }
 
         private async Task RefreshForPhaseAsync(PhaseContext context, string phaseError,
@@ -756,6 +781,7 @@ namespace Prometheus.Services.Client
                     return next;
                 });
                 ScheduleRosterRefresh();
+                TriggerAutomation(context);
             }
             finally
             {
@@ -1688,6 +1714,330 @@ namespace Prometheus.Services.Client
             {
                 StartAutoReconnect(context);
             }
+
+            if (context.Phase == GameflowPhase.ChampSelect &&
+                AutomationSettings.AutoSwapAramBench)
+            {
+                StartAutoAramBenchSwap(context);
+            }
+            else
+            {
+                CancelAutoAramBenchSwap(resetState: true);
+            }
+        }
+
+        private void StartAutoAramBenchSwap(PhaseContext context)
+        {
+            var snapshot = GetCurrentSnapshot();
+            var preferredChampionIds = AutomationSettings.PreferredAramChampionIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+            var stateSignature = BuildAramBenchSwapState(
+                context, snapshot, preferredChampionIds);
+            var targetChampionId = FindPreferredAramBenchChampion(
+                snapshot, preferredChampionIds);
+
+            CancellationTokenSource previousCts = null;
+            lock (_stateSync)
+            {
+                if (!_started || context.Version != _phaseVersion ||
+                    context.Token.IsCancellationRequested ||
+                    !AutomationSettings.AutoSwapAramBench ||
+                    string.Equals(_lastAramBenchSwapState, stateSignature,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                previousCts = _aramBenchSwapAutomationCts;
+                _aramBenchSwapAutomationCts = null;
+                _lastAramBenchSwapState = stateSignature;
+
+                if (targetChampionId > 0)
+                {
+                    _aramBenchSwapAutomationCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(context.Token);
+                    var token = _aramBenchSwapAutomationCts.Token;
+                    _aramBenchSwapAutomationTask = RunAramBenchSwapAsync(
+                        context,
+                        stateSignature,
+                        targetChampionId,
+                        token);
+                }
+            }
+
+            previousCts?.Cancel();
+            previousCts?.Dispose();
+        }
+
+        private async Task RunAramBenchSwapAsync(
+            PhaseContext context,
+            string stateSignature,
+            int championId,
+            CancellationToken cancellationToken)
+        {
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            var attemptCount = 0;
+            Exception lastError = null;
+
+            try
+            {
+                for (var attempt = 0; attempt < AramBenchSwapRetryDelays.Length; attempt++)
+                {
+                    var delay = AramBenchSwapRetryDelays[attempt];
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    if (!IsCurrentAramBenchSwapState(
+                            context, stateSignature, championId))
+                    {
+                        LogAramBenchSwapResult(
+                            LogEventLevel.Information,
+                            "Cancelled",
+                            operationId,
+                            context,
+                            championId,
+                            attemptCount,
+                            stopwatch.ElapsedMilliseconds,
+                            "Automatic ARAM champion swap was cancelled because the bench changed.");
+                        return;
+                    }
+
+                    if (!_leagueClient.Connected || !_httpService.IsInitialized)
+                    {
+                        LogAramBenchSwapResult(
+                            LogEventLevel.Warning,
+                            "Rejected",
+                            operationId,
+                            context,
+                            championId,
+                            attemptCount,
+                            stopwatch.ElapsedMilliseconds,
+                            "Automatic ARAM champion swap was rejected because LCU is unavailable.");
+                        return;
+                    }
+
+                    attemptCount++;
+                    try
+                    {
+                        await _gameService.SwapAramBenchChampionAsync(
+                            championId, cancellationToken).ConfigureAwait(false);
+                        LogAramBenchSwapResult(
+                            LogEventLevel.Information,
+                            "Succeeded",
+                            operationId,
+                            context,
+                            championId,
+                            attemptCount,
+                            stopwatch.ElapsedMilliseconds,
+                            "Automatic ARAM champion swap request was accepted.");
+                        return;
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        lastError = exception;
+                        Log.Debug(exception,
+                            "Automatic ARAM bench swap attempt {AttemptCount} failed for champion {ChampionId}",
+                            attemptCount, championId);
+                    }
+                }
+
+                if (lastError is not null &&
+                    IsCurrentAramBenchSwapState(context, stateSignature, championId))
+                {
+                    LogAramBenchSwapResult(
+                        LogEventLevel.Error,
+                        "Failed",
+                        operationId,
+                        context,
+                        championId,
+                        attemptCount,
+                        stopwatch.ElapsedMilliseconds,
+                        "Automatic ARAM champion swap failed.",
+                        lastError);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                LogAramBenchSwapResult(
+                    LogEventLevel.Information,
+                    "Cancelled",
+                    operationId,
+                    context,
+                    championId,
+                    attemptCount,
+                    stopwatch.ElapsedMilliseconds,
+                    "Automatic ARAM champion swap was cancelled.");
+            }
+        }
+
+        private bool IsCurrentAramBenchSwapState(
+            PhaseContext context,
+            string stateSignature,
+            int championId)
+        {
+            if (!IsCurrentPhase(context) ||
+                context.Phase != GameflowPhase.ChampSelect ||
+                !AutomationSettings.AutoSwapAramBench)
+            {
+                return false;
+            }
+
+            var snapshot = GetCurrentSnapshot();
+            var preferredChampionIds = AutomationSettings.PreferredAramChampionIds?
+                .Where(id => id > 0)
+                .Distinct()
+                .ToArray() ?? [];
+            return string.Equals(
+                       stateSignature,
+                       BuildAramBenchSwapState(context, snapshot, preferredChampionIds),
+                       StringComparison.Ordinal) &&
+                   FindPreferredAramBenchChampion(snapshot, preferredChampionIds) == championId;
+        }
+
+        private static int FindPreferredAramBenchChampion(
+            LiveMatchSnapshot snapshot,
+            IReadOnlyList<int> preferredChampionIds)
+        {
+            var championSelect = snapshot?.ChampionSelect;
+            if (championSelect is null || !championSelect.BenchEnabled ||
+                preferredChampionIds is null || preferredChampionIds.Count == 0 ||
+                !IsAramSession(snapshot))
+            {
+                return 0;
+            }
+
+            var currentChampionId = championSelect.MyTeam?.FirstOrDefault(member =>
+                    member?.CellId == championSelect.LocalPlayerCellId)?.ChampionId ?? 0;
+            if (currentChampionId <= 0 ||
+                preferredChampionIds.Contains(currentChampionId))
+            {
+                return 0;
+            }
+
+            var benchChampionIds = championSelect.BenchChampions?.Where(
+                    champion => champion is not null && champion.ChampionId > 0)
+                .Select(champion => champion.ChampionId)
+                .ToHashSet() ?? [];
+            return preferredChampionIds.FirstOrDefault(benchChampionIds.Contains);
+        }
+
+        private static bool IsAramSession(LiveMatchSnapshot snapshot)
+        {
+            var gameData = snapshot?.GameflowSession?.GameData;
+            if (gameData is not null &&
+                (gameData.QueueId == 450 || gameData.MapId == 12 ||
+                 string.Equals(gameData.GameMode, "ARAM",
+                     StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var lobbyConfig = snapshot?.Lobby?.GameConfig;
+            return lobbyConfig is not null &&
+                   (lobbyConfig.MapId == 12 ||
+                    string.Equals(lobbyConfig.GameMode, "ARAM",
+                        StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string BuildAramBenchSwapState(
+            PhaseContext context,
+            LiveMatchSnapshot snapshot,
+            IReadOnlyList<int> preferredChampionIds)
+        {
+            var championSelect = snapshot?.ChampionSelect;
+            var gameData = snapshot?.GameflowSession?.GameData;
+            var localChampionId = championSelect?.MyTeam?.FirstOrDefault(member =>
+                    member?.CellId == championSelect.LocalPlayerCellId)?.ChampionId ?? 0;
+            var builder = new StringBuilder()
+                .Append(context.Instance).Append('|')
+                .Append(gameData?.QueueId ?? 0).Append('|')
+                .Append(gameData?.MapId ?? 0).Append('|')
+                .Append(gameData?.GameMode).Append('|')
+                .Append(championSelect?.BenchEnabled ?? false).Append('|')
+                .Append(localChampionId).Append('|');
+
+            foreach (var champion in championSelect?.BenchChampions ?? [])
+            {
+                builder.Append(champion?.ChampionId ?? 0).Append(',');
+            }
+
+            builder.Append('|');
+            foreach (var championId in preferredChampionIds ?? [])
+            {
+                builder.Append(championId).Append(',');
+            }
+
+            return builder.ToString();
+        }
+
+        private void CancelAutoAramBenchSwap(bool resetState)
+        {
+            CancellationTokenSource cancellationTokenSource;
+            lock (_stateSync)
+            {
+                cancellationTokenSource = _aramBenchSwapAutomationCts;
+                _aramBenchSwapAutomationCts = null;
+                if (resetState)
+                {
+                    _lastAramBenchSwapState = string.Empty;
+                }
+            }
+
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
+        }
+
+        private static void LogAramBenchSwapResult(
+            LogEventLevel level,
+            string outcome,
+            Guid operationId,
+            PhaseContext context,
+            int championId,
+            int attemptCount,
+            long durationMs,
+            string displayMessage,
+            Exception exception = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["TargetType"] = "Champion",
+                ["TargetId"] = championId,
+                ["GameflowPhase"] = context.RawPhase,
+                ["PhaseInstance"] = context.Instance,
+                ["AttemptCount"] = attemptCount,
+                ["DurationMs"] = durationMs
+            };
+            if (exception is HttpRequestException httpException &&
+                httpException.StatusCode.HasValue)
+            {
+                properties["HttpStatusCode"] = (int)httpException.StatusCode.Value;
+            }
+
+            if (exception is not null)
+            {
+                properties["ErrorType"] = exception.GetType().Name;
+            }
+
+            OperationLog.Write(
+                level,
+                "champ_select.bench.swap",
+                "ChampionSelect",
+                "Automation",
+                outcome,
+                operationId,
+                "MatchService",
+                displayMessage,
+                properties,
+                exception);
         }
 
         private void StartAutoAccept(PhaseContext context)
@@ -1797,6 +2147,16 @@ namespace Prometheus.Services.Client
                     _reconnectAutomationCts?.Cancel();
                 }
                 else
+                {
+                    TriggerAutomation(GetCurrentPhaseContext());
+                }
+            }
+
+            if (args.PropertyName is nameof(IGameAutomationSettings.AutoSwapAramBench)
+                or nameof(IGameAutomationSettings.PreferredAramChampionIds))
+            {
+                CancelAutoAramBenchSwap(resetState: true);
+                if (AutomationSettings.AutoSwapAramBench)
                 {
                     TriggerAutomation(GetCurrentPhaseContext());
                 }
@@ -2131,6 +2491,7 @@ namespace Prometheus.Services.Client
 
             value.MyTeam ??= [];
             value.TheirTeam ??= [];
+            value.BenchChampions ??= [];
             foreach (var enemy in value.TheirTeam.Where(enemy => enemy is not null))
             {
                 // Champion-select opponents are intentionally published only

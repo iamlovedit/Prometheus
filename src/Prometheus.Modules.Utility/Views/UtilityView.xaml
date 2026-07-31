@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:local="clr-namespace:Prometheus.Modules.Utility.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
@@ -56,6 +57,8 @@
             VerticalScrollBarVisibility="Auto">
             <Grid Margin="0,0,0,16" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="12" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="12" />
                     <RowDefinition Height="Auto" />
@@ -287,6 +290,191 @@
                                 Command="{Binding ApplyTierCommand}"
                                 Content="{DynamicResource Utility.Tier.Action}"
                                 Style="{DynamicResource ButtonPrimary}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="4" Style="{StaticResource UtilityCard}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="18" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,18,0">
+                                <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Utility.AramSwap}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Style="{StaticResource CaptionText}"
+                                    Text="{DynamicResource Utility.AramSwap.Description}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                            <CheckBox
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Content="{DynamicResource Utility.AramSwap.Enable}"
+                                IsChecked="{Binding AutoSwapAramBench, Mode=TwoWay}" />
+                        </Grid>
+
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="18" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel>
+                                <TextBlock
+                                    Margin="0,0,0,7"
+                                    Style="{StaticResource FieldName}"
+                                    Text="{DynamicResource Utility.AramSwap.AddChampion}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox
+                                        IsDropDownOpen="{Binding IsAramChampionDropDownOpen, Mode=TwoWay}"
+                                        IsEditable="True"
+                                        IsTextSearchEnabled="False"
+                                        ItemsSource="{Binding AramChampionOptions}"
+                                        MaxDropDownHeight="360"
+                                        ScrollViewer.CanContentScroll="True"
+                                        SelectedItem="{Binding SelectedAramChampion, Mode=TwoWay}"
+                                        StaysOpenOnEdit="True"
+                                        Text="{Binding AramChampionSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                        TextSearch.TextPath="Name"
+                                        VirtualizingPanel.IsVirtualizing="True"
+                                        VirtualizingPanel.VirtualizationMode="Recycling">
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="DropDownOpened">
+                                                <prism:InvokeCommandAction Command="{Binding OpenAramChampionSelectorCommand}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
+                                        <ComboBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel />
+                                            </ItemsPanelTemplate>
+                                        </ComboBox.ItemsPanel>
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Height="42" Margin="2,1">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="36" />
+                                                        <ColumnDefinition Width="9" />
+                                                        <ColumnDefinition />
+                                                    </Grid.ColumnDefinitions>
+                                                    <hc:Gravatar
+                                                        Width="34"
+                                                        Height="34"
+                                                        Style="{DynamicResource GravatarCircleImg}">
+                                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                                    </hc:Gravatar>
+                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                        <TextBlock
+                                                            FontWeight="SemiBold"
+                                                            Text="{Binding Name}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Margin="0,2,0,0"
+                                                            Style="{StaticResource CaptionText}"
+                                                            Text="{Binding Alias}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Button
+                                        Grid.Column="2"
+                                        MinWidth="88"
+                                        Command="{Binding AddAramChampionCommand}"
+                                        Content="{DynamicResource Utility.AramSwap.Add}"
+                                        Style="{DynamicResource ButtonPrimary}" />
+                                </Grid>
+                                <TextBlock
+                                    Margin="0,8,0,0"
+                                    Style="{StaticResource CaptionText}"
+                                    Text="{DynamicResource Utility.AramSwap.AddChampion.Description}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <Grid Grid.Column="2">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="7" />
+                                    <RowDefinition Height="170" />
+                                    <RowDefinition Height="10" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock
+                                    Style="{StaticResource FieldName}"
+                                    Text="{DynamicResource Utility.AramSwap.PriorityList}" />
+                                <ListBox
+                                    Grid.Row="2"
+                                    HorizontalContentAlignment="Stretch"
+                                    ItemsSource="{Binding PreferredAramChampions}"
+                                    SelectedItem="{Binding SelectedPreferredAramChampion, Mode=TwoWay}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Height="42" Margin="4,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="36" />
+                                                    <ColumnDefinition Width="9" />
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <hc:Gravatar
+                                                    Width="34"
+                                                    Height="34"
+                                                    VerticalAlignment="Center"
+                                                    Style="{DynamicResource GravatarCircleImg}">
+                                                    <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                                </hc:Gravatar>
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding Name}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Grid.Column="3"
+                                                    Margin="12,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    Style="{StaticResource CaptionText}"
+                                                    Text="{Binding Alias}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel
+                                    Grid.Row="4"
+                                    HorizontalAlignment="Right"
+                                    Orientation="Horizontal">
+                                    <Button
+                                        MinWidth="72"
+                                        Command="{Binding MoveAramChampionUpCommand}"
+                                        Content="{DynamicResource Utility.AramSwap.MoveUp}" />
+                                    <Button
+                                        MinWidth="72"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding MoveAramChampionDownCommand}"
+                                        Content="{DynamicResource Utility.AramSwap.MoveDown}" />
+                                    <Button
+                                        MinWidth="72"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding RemoveAramChampionCommand}"
+                                        Content="{DynamicResource Utility.AramSwap.Remove}" />
+                                </StackPanel>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </Border>

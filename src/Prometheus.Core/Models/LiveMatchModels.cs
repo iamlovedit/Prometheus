@@ -442,6 +442,10 @@ namespace Prometheus.Core.Models
 
         public List<ChampionSelectTeamMemberSnapshot> TheirTeam { get; set; } = [];
 
+        public bool BenchEnabled { get; set; }
+
+        public List<ChampionSelectBenchChampionSnapshot> BenchChampions { get; set; } = [];
+
         public ChampionSelectTimerSnapshot Timer { get; set; }
 
         public string Phase { get; set; } = string.Empty;
@@ -504,6 +508,13 @@ namespace Prometheus.Core.Models
         public int WardSkinId { get; set; }
 
         public int PickTurn { get; set; }
+    }
+
+    public class ChampionSelectBenchChampionSnapshot
+    {
+        public int ChampionId { get; set; }
+
+        public bool IsPriority { get; set; }
     }
 
     public class ChampionSelectTimerSnapshot

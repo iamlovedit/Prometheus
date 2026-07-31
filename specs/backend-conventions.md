@@ -298,6 +298,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `lol-matchmaking/v1/ready-check` · `/accept` | GET / POST | 就绪检查 / 接受对局 | `MatchService` / `GameService` |
 | `lol-champ-select/v1/session` | GET | BP 会话快照 | `MatchService` / `GameService` |
 | `lol-champ-select/v1/session/actions/{actionId}` | PATCH | 选择 / 禁用英雄（`{type, championId}`） | `GameService` |
+| `lol-champ-select/v1/session/bench/swap/{championId}` | POST | 大乱斗替补席交换英雄 | `GameService` / `MatchService` |
 | `lol-champ-select/v1/current-champion` · `pickable-champions` · `pin-drop-notification` | GET | 当前英雄 / 可选列表 / 分边 | `GameService` |
 | `lol-gameflow/v1/gameflow-phase` | GET | 对局阶段（Lobby/ChampSelect/InProgress…） | `MatchService` |
 | `lol-gameflow/v1/session` | GET | 对局会话全量 | `MatchService` / `GameService` |
