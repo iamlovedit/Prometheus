@@ -18,6 +18,7 @@ namespace Prometheus.Modules.Inventory.ViewModels
         private readonly Dictionary<int, List<SkinBasic>> _skinsCache;
         private List<ChampionSummary> _championsSummary;
         private List<ProfileIcon> _allIcons;
+        private int _profileIconsLoadVersion;
 
         public InventoryViewModel(IRegionManager regionManager, IContainerExtension containerExtension,
             IGameResourceManager gameResourceManager) : base(regionManager)
@@ -105,11 +106,8 @@ namespace Prometheus.Modules.Inventory.ViewModels
                 _allIcons = await _gameResourceManager.GetProfileIconsAsync();
                 if (_allIcons != null)
                 {
-                    _profileIcons = [];
                     CalculatePageCount(_selectdCount);
-                    await UpdateImagesAsync(1, _selectdCount);
-                    RaisePropertyChanged(nameof(ProfileIcons));
-                    IsLoading = false;
+                    await ReloadProfileIconsAsync(1);
                 }
             }
         }
@@ -129,8 +127,16 @@ namespace Prometheus.Modules.Inventory.ViewModels
             get { return _selectdCount; }
             set
             {
-                SetProperty(ref _selectdCount, value);
+                if (!SetProperty(ref _selectdCount, value))
+                {
+                    return;
+                }
+
                 CalculatePageCount(value);
+                if (_allIcons is not null)
+                {
+                    ReloadProfileIconsAsync(1).Observe("Reloading inventory profile icons after page size change");
+                }
             }
         }
         private int _pageCount;
@@ -157,11 +163,7 @@ namespace Prometheus.Modules.Inventory.ViewModels
 
         private async Task ExecutePageChangedCommandAsync(FunctionEventArgs<int> parameter)
         {
-            IsLoading = true;
-            ProfileIcons.Clear();
-            await UpdateImagesAsync(parameter.Info, _selectdCount);
-            IsLoading = false;
-            RaisePropertyChanged(nameof(ProfileIcons));
+            await ReloadProfileIconsAsync(parameter.Info);
         }
 
         private DelegateCommand _searchCommand;
@@ -254,23 +256,61 @@ namespace Prometheus.Modules.Inventory.ViewModels
             }
         }
 
-        private async Task UpdateImagesAsync(int pageIndex, int pageCount)
+        private async Task ReloadProfileIconsAsync(int pageIndex)
         {
-            var icons = _allIcons.Skip((pageIndex - 1) * pageCount).Take(pageCount);
+            if (_allIcons is null)
+            {
+                return;
+            }
+
+            var loadVersion = ++_profileIconsLoadVersion;
+            var targetPageIndex = PageCount > 0
+                ? Math.Clamp(pageIndex, 1, PageCount)
+                : 1;
+
+            IsLoading = true;
+            try
+            {
+                var icons = await LoadProfileIconsAsync(targetPageIndex, _selectdCount);
+                if (loadVersion != _profileIconsLoadVersion)
+                {
+                    return;
+                }
+
+                PageIndex = targetPageIndex;
+                ProfileIcons = new ObservableCollection<ProfileIcon>(icons);
+            }
+            finally
+            {
+                if (loadVersion == _profileIconsLoadVersion)
+                {
+                    IsLoading = false;
+                }
+            }
+        }
+
+        private async Task<List<ProfileIcon>> LoadProfileIconsAsync(int pageIndex, int pageSize)
+        {
+            var result = new List<ProfileIcon>();
+            var icons = _allIcons.Skip((pageIndex - 1) * pageSize).Take(pageSize);
             foreach (var icon in icons)
             {
                 if (icon.Id == 0)
                 {
                     continue;
                 }
+
                 icon.IconPath = await _gameResourceManager.GetProfileIconByIdAsync(icon.Id);
+
                 if (string.IsNullOrEmpty(icon.IconPath))
                 {
                     continue;
                 }
-                ProfileIcons.Add(icon);
+
+                result.Add(icon);
             }
             await Task.Delay(500);
+            return result;
         }
     }
 }
