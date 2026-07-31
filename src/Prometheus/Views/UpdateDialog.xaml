@@ -37,8 +37,15 @@
         </Border>
 
         <StackPanel Grid.Row="4">
-            <TextBlock Text="{Binding StatusText}" />
-            <ProgressBar Height="7" Margin="0,8,0,0" Maximum="100" Value="{Binding Progress}" />
+            <TextBlock
+                Text="{Binding StatusText}"
+                Visibility="{Binding IsProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
+            <ProgressBar
+                Height="7"
+                Margin="0,8,0,0"
+                Maximum="100"
+                Value="{Binding Progress}"
+                Visibility="{Binding IsProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
         </StackPanel>
 
         <TextBlock

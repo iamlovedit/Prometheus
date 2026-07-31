@@ -66,6 +66,7 @@ namespace Prometheus.ViewModels
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _automationSettings.Changed += HandleAutomationSettingsChanged;
+            _updateService.StateChanged += HandleUpdateStateChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Subscribe(HandleNavigateMenu);
             _eventAggregator.GetEvent<SearchSummonerEvent>().Subscribe(HandleSearchSummoner);
             _eventAggregator.GetEvent<TitleChangeEvent>().Subscribe(HandleTitleChange);
@@ -73,6 +74,7 @@ namespace Prometheus.ViewModels
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(HandleWindowClosing);
 
             UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
+            RefreshUpdateState();
         }
 
         private string _title = PrometheusTitle;
@@ -103,6 +105,13 @@ namespace Prometheus.ViewModels
         public bool IsMatchSelected => _currentMenu == MenuName.Match;
         public bool IsUtilitySelected => _currentMenu == MenuName.Utility;
         public bool IsSettingSelected => _currentMenu == MenuName.Setting;
+
+        private bool _hasAvailableUpdate;
+        public bool HasAvailableUpdate
+        {
+            get => _hasAvailableUpdate;
+            private set => SetProperty(ref _hasAvailableUpdate, value);
+        }
 
         private string _trayClientStatus;
         public string TrayClientStatus
@@ -288,6 +297,7 @@ namespace Prometheus.ViewModels
         {
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationSettingsChanged;
+            _updateService.StateChanged -= HandleUpdateStateChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Unsubscribe(HandleNavigateMenu);
             _eventAggregator.GetEvent<SearchSummonerEvent>().Unsubscribe(HandleSearchSummoner);
             _eventAggregator.GetEvent<TitleChangeEvent>().Unsubscribe(HandleTitleChange);
@@ -337,6 +347,16 @@ namespace Prometheus.ViewModels
                 RaisePropertyChanged(nameof(IsTrayAutoAcceptEnabled));
                 RaisePropertyChanged(nameof(IsTrayAutoReconnectEnabled));
             });
+        }
+
+        private void HandleUpdateStateChanged(object sender, UpdateStateChangedEventArgs args)
+        {
+            Dispatch(RefreshUpdateState);
+        }
+
+        private void RefreshUpdateState()
+        {
+            HasAvailableUpdate = _updateService.AvailableUpdate is not null;
         }
 
         private async void ExecuteAcceptReadyCheckFromTray()

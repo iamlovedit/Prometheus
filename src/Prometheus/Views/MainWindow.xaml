@@ -235,15 +235,32 @@
                         Margin="8,8"
                         Background="{DynamicResource BorderBrush}" />
 
-                    <RadioButton
-                        Grid.Row="4"
-                        AutomationProperties.Name="{DynamicResource Menu.Setting}"
-                        Command="{Binding SettingCommand}"
-                        Content="{DynamicResource Menu.Setting}"
-                        GroupName="MainNavigation"
-                        IsChecked="{Binding IsSettingSelected, Mode=OneWay}"
-                        Style="{StaticResource SidebarNavigationItem}"
-                        Tag="&#xe60a;" />
+                    <Grid Grid.Row="4">
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Setting}"
+                            Command="{Binding SettingCommand}"
+                            Content="{DynamicResource Menu.Setting}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsSettingSelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe60a;" />
+                        <Border
+                            Margin="0,0,10,0"
+                            Padding="6,2"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Panel.ZIndex="1"
+                            Background="{DynamicResource DangerBrush}"
+                            CornerRadius="6"
+                            IsHitTestVisible="False"
+                            Visibility="{Binding HasAvailableUpdate, Converter={StaticResource Boolean2VisibilityConverter}}">
+                            <TextBlock
+                                FontSize="10"
+                                FontWeight="SemiBold"
+                                Foreground="White"
+                                Text="{DynamicResource Update.Menu.Available}" />
+                        </Border>
+                    </Grid>
                 </Grid>
             </Border>
             <Grid Grid.Column="1" Margin="12">

@@ -176,6 +176,13 @@ namespace Prometheus.Modules.Setting.ViewModels
             private set => SetProperty(ref _updateProgress, value);
         }
 
+        private bool _isUpdateProgressVisible;
+        public bool IsUpdateProgressVisible
+        {
+            get => _isUpdateProgressVisible;
+            private set => SetProperty(ref _isUpdateProgressVisible, value);
+        }
+
         private string? _updateErrorMessage;
         public string? UpdateErrorMessage
         {
@@ -243,11 +250,14 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         private void RefreshUpdateState()
         {
-            IsUpdateBusy = _updateService.State is UpdateState.Checking
+            var state = _updateService.State;
+            IsUpdateBusy = state is UpdateState.Checking
                 or UpdateState.Downloading or UpdateState.Installing;
+            IsUpdateProgressVisible = state is UpdateState.Downloading
+                or UpdateState.ReadyToInstall or UpdateState.Installing;
             UpdateProgress = _updateService.Progress * 100;
             UpdateErrorMessage = _updateService.ErrorMessage;
-            var key = _updateService.State switch
+            var key = state switch
             {
                 UpdateState.Checking => "Update.Status.Checking",
                 UpdateState.UpToDate => "Update.Status.UpToDate",

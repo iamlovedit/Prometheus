@@ -469,11 +469,15 @@
                             Text="{DynamicResource Update.Settings.Description}" />
                     </StackPanel>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock FontWeight="SemiBold" Text="{Binding UpdateStatus}" />
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Text="{Binding UpdateStatus}"
+                            Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
                         <ProgressBar
                             Height="12"
                             Margin="0,8,0,0"
                             Maximum="100"
+                            Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}"
                             Value="{Binding UpdateProgress, Mode=OneWay}" />
                         <TextBlock
                             Margin="0,6,0,0"

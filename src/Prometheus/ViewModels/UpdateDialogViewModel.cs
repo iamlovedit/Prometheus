@@ -71,6 +71,13 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
         private set => SetProperty(ref _progress, value);
     }
 
+    private bool _isProgressVisible;
+    public bool IsProgressVisible
+    {
+        get => _isProgressVisible;
+        private set => SetProperty(ref _isProgressVisible, value);
+    }
+
     private bool _isBusy;
     public bool IsBusy
     {
@@ -168,6 +175,8 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
         Progress = _updateService.Progress * 100;
         ErrorMessage = _updateService.ErrorMessage;
         IsBusy = _updateService.State is UpdateState.Downloading or UpdateState.Installing;
+        IsProgressVisible = _updateService.State is UpdateState.Downloading
+            or UpdateState.ReadyToInstall or UpdateState.Installing;
         StatusText = Text(_updateService.State switch
         {
             UpdateState.Downloading => "Update.Status.Downloading",

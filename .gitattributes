@@ -1,2 +1,23 @@
-# Normalize text files to LF while allowing Git to detect binary files.
+# Normalize text files and use LF across supported platforms.
 * text=auto eol=lf
+
+# Windows batch files require CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Keep binary files out of line-ending normalization.
+*.7z binary
+*.avif binary
+*.gif binary
+*.gz binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.svgz binary
+*.tar binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
