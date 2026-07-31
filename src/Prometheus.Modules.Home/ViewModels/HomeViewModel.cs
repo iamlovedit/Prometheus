@@ -27,6 +27,7 @@ namespace Prometheus.Modules.Home.ViewModels
         private CancellationTokenSource _dashboardCts;
         private int _dashboardVersion;
         private int _teamVersion;
+        private bool _dashboardLoaded;
         private bool _dashboardLoading;
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
         private DateTimeOffset _timerAnchor;
@@ -51,7 +52,6 @@ namespace Prometheus.Modules.Home.ViewModels
             _resourceService = resourceService;
             _clientService = clientService;
 
-            RecentMatches = [];
             MyTeam = [];
             TheirTeam = [];
 
@@ -68,8 +68,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty);
         }
-
-        public ObservableCollection<HomeMatchItemViewModel> RecentMatches { get; }
 
         public ObservableCollection<HomeTeamMemberViewModel> MyTeam { get; }
 
@@ -173,11 +171,11 @@ namespace Prometheus.Modules.Home.ViewModels
             set => SetProperty(ref _emptySummaryText, value);
         }
 
-        private bool _showRecentMatches;
-        public bool ShowRecentMatches
+        private bool _showSummaryCard = true;
+        public bool ShowSummaryCard
         {
-            get => _showRecentMatches;
-            set => SetProperty(ref _showRecentMatches, value);
+            get => _showSummaryCard;
+            set => SetProperty(ref _showSummaryCard, value);
         }
 
         private bool _showTeamSummary;
@@ -416,7 +414,7 @@ namespace Prometheus.Modules.Home.ViewModels
             ErrorText = _snapshot.Error ?? string.Empty;
 
             ResetStageFlags();
-            ShowRecentMatches = false;
+            ShowSummaryCard = true;
             ShowTeamSummary = false;
             ShowEmptySummary = true;
             CanPrimaryAction = true;
@@ -540,10 +538,7 @@ namespace Prometheus.Modules.Home.ViewModels
             PhaseTitle = Text("HomePage.Phase.Idle.Title");
             PhaseDescription = Text("HomePage.Phase.Idle.Description");
             PhaseDetail = SummonerName ?? Text("HomePage.Phase.Idle.Detail");
-            SummaryTitle = Text("HomePage.Summary.Recent");
-            EmptySummaryText = Text("HomePage.Summary.NoMatches");
-            ShowRecentMatches = RecentMatches.Count > 0;
-            ShowEmptySummary = !ShowRecentMatches;
+            ShowSummaryCard = false;
             PrimaryActionText = Text("HomePage.ViewCareer");
             SecondaryActionText = Text("Menu.Utility");
         }
@@ -794,7 +789,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private async Task EnsureDashboardLoadedAsync()
         {
-            if (_dashboardLoading || !IsConnected || !string.IsNullOrWhiteSpace(SummonerName))
+            if (_dashboardLoading || _dashboardLoaded || !IsConnected)
             {
                 return;
             }
@@ -807,7 +802,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
             try
             {
-                var summoner = await _summonerService.GetCurrentSummoner();
+                var summoner = await _summonerService.GetCurrentSummoner(token);
                 token.ThrowIfCancellationRequested();
                 if (summoner is null)
                 {
@@ -816,10 +811,9 @@ namespace Prometheus.Modules.Home.ViewModels
 
                 var profileTask = _gameResourceManager.GetProfileIconByIdAsync(summoner.ProfileIconId);
                 var backgroundTask = LoadBackgroundAsync();
-                var rankTask = _summonerService.GetRankStatsByPuuid(summoner.Puuid);
-                var matchesTask = _summonerService.GetMatchesAsync(summoner.Puuid, 0, 4);
+                var rankTask = _summonerService.GetRankStatsByPuuid(summoner.Puuid, token);
 
-                await Task.WhenAll(profileTask, backgroundTask, rankTask, matchesTask);
+                await Task.WhenAll(profileTask, backgroundTask, rankTask);
                 token.ThrowIfCancellationRequested();
                 if (version != _dashboardVersion)
                 {
@@ -827,8 +821,6 @@ namespace Prometheus.Modules.Home.ViewModels
                 }
 
                 var ranks = ParseRanks(rankTask.Result);
-                var matches = await BuildRecentMatchesAsync(matchesTask.Result, token);
-                token.ThrowIfCancellationRequested();
 
                 Dispatch(() =>
                 {
@@ -844,7 +836,7 @@ namespace Prometheus.Modules.Home.ViewModels
                     HeroBackground = backgroundTask.Result;
                     SoloTierText = ranks.solo?.DisplayTier ?? Text("Career.Rank.Tier.Unranked");
                     FlexTierText = ranks.flex?.DisplayTier ?? Text("Career.Rank.Tier.Unranked");
-                    Replace(RecentMatches, matches);
+                    _dashboardLoaded = true;
                     if (_snapshot.GameflowPhase == GameflowPhase.None)
                     {
                         ConfigureIdle();
@@ -888,38 +880,6 @@ namespace Prometheus.Modules.Home.ViewModels
             return (
                 queueMap?["RANKED_SOLO_5x5"]?.ToObject<Rank>(),
                 queueMap?["RANKED_FLEX_SR"]?.ToObject<Rank>());
-        }
-
-        private async Task<IReadOnlyList<HomeMatchItemViewModel>> BuildRecentMatchesAsync(
-            IReadOnlyList<Match> matches, CancellationToken token)
-        {
-            if (matches is null)
-            {
-                return Array.Empty<HomeMatchItemViewModel>();
-            }
-
-            var tasks = matches.Take(5).Select(async match =>
-            {
-                token.ThrowIfCancellationRequested();
-                var participant = match.Participants?.FirstOrDefault();
-                var icon = participant is null
-                    ? null
-                    : await _gameResourceManager.GetChampoinIconByIdAsync(participant.ChampionId);
-                var stats = participant?.Stats;
-                return new HomeMatchItemViewModel
-                {
-                    ChampionIcon = icon,
-                    IsWin = stats?.Win == true,
-                    ResultText = stats?.Win == true
-                        ? Text("Career.Match.Victory")
-                        : Text("Career.Match.Defeated"),
-                    GameMode = match.DisplayGameMode ?? match.GameMode,
-                    KdaText = stats is null ? "--" : $"{stats.Kills}/{stats.Deaths}/{stats.Assists}",
-                    CreationText = match.CreationDate?.ToString("MM-dd HH:mm") ?? string.Empty
-                };
-            });
-
-            return await Task.WhenAll(tasks);
         }
 
         private async Task UpdateChampionSelectTeamsAsync(ChampionSelectSnapshot championSelect, int version)
@@ -1126,6 +1086,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ClearDashboard()
         {
+            _dashboardLoaded = false;
             SummonerName = Text("HomePage.NoSummoner");
             SummonerTag = string.Empty;
             SummonerLevel = "--";
@@ -1133,7 +1094,6 @@ namespace Prometheus.Modules.Home.ViewModels
             HeroBackground = null;
             SoloTierText = "--";
             FlexTierText = "--";
-            RecentMatches.Clear();
             MyTeam.Clear();
             TheirTeam.Clear();
         }

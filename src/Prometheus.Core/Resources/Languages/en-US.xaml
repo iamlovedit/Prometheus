@@ -243,6 +243,12 @@
     <sys:String x:Key="Inventory.Skins.SearchPlaceholder">Search champions</sys:String>
     <sys:String x:Key="Inventory.Skins.Empty">Select a champion to view its skins</sys:String>
     <sys:String x:Key="Inventory.Skins.Download">Download</sys:String>
+    <sys:String x:Key="Inventory.Skins.CountUnit">skins</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll">Download all</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.SelectFolder">Select a folder for the skins</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.Success">Saved {0} skins</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.Partial">Saved {0} skins; {1} failed</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.Error">Failed to save skins: {0}</sys:String>
     <sys:String x:Key="Inventory.ProfileIcons">Profile icons</sys:String>
     <sys:String x:Key="Inventory.ProfileIcons.Description">Browse and export available summoner icons</sys:String>
     <sys:String x:Key="Utility.Game">Game</sys:String>

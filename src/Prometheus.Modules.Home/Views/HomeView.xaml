@@ -240,7 +240,8 @@
                 <Border
                     Grid.Row="2"
                     Padding="14"
-                    Style="{StaticResource HomeCard}">
+                    Style="{StaticResource HomeCard}"
+                    Visibility="{Binding ShowSummaryCard, Converter={StaticResource Boolean2VisibilityConverter}}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="32" />
@@ -255,51 +256,6 @@
                                 Style="{DynamicResource ButtonIcon}" />
                         </DockPanel>
                         <Grid Grid.Row="1">
-                            <ListBox
-                                ItemsSource="{Binding RecentMatches}"
-                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                Style="{DynamicResource StackPanelVerticalListBox}"
-                                Visibility="{Binding ShowRecentMatches, Converter={StaticResource Boolean2VisibilityConverter}}">
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border
-                                            Margin="0,3"
-                                            Padding="8"
-                                            Style="{StaticResource HomeCard}">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="42" />
-                                                    <ColumnDefinition />
-                                                    <ColumnDefinition Width="120" />
-                                                </Grid.ColumnDefinitions>
-                                                <Image
-                                                    Width="32"
-                                                    Height="32"
-                                                    Source="{Binding ChampionIcon}"
-                                                    Stretch="UniformToFill" />
-                                                <StackPanel
-                                                    Grid.Column="1"
-                                                    Margin="8,0,0,0"
-                                                    VerticalAlignment="Center">
-                                                    <TextBlock FontWeight="Bold" Text="{Binding ResultText}" />
-                                                    <TextBlock Style="{StaticResource HomeCaption}" Text="{Binding GameMode}" />
-                                                </StackPanel>
-                                                <StackPanel
-                                                    Grid.Column="2"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Center">
-                                                    <TextBlock HorizontalAlignment="Right" Text="{Binding KdaText}" />
-                                                    <TextBlock
-                                                        HorizontalAlignment="Right"
-                                                        Style="{StaticResource HomeCaption}"
-                                                        Text="{Binding CreationText}" />
-                                                </StackPanel>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
                             <Grid Visibility="{Binding ShowTeamSummary, Converter={StaticResource Boolean2VisibilityConverter}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition />

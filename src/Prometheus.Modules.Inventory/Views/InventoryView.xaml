@@ -128,6 +128,7 @@
                                     <ColumnDefinition Width="52" />
                                     <ColumnDefinition Width="12" />
                                     <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <hc:Gravatar
                                     Width="50"
@@ -137,11 +138,47 @@
                                 </hc:Gravatar>
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{Binding SelectedChampion.Name}" />
-                                    <TextBlock
-                                        Margin="0,4,0,0"
-                                        Style="{DynamicResource PageCaption}"
-                                        Text="{Binding SelectedChampion.Alias}" />
+                                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                                        <TextBlock
+                                            Style="{DynamicResource PageCaption}"
+                                            Text="{Binding SelectedChampion.Alias}" />
+                                        <StackPanel Orientation="Horizontal">
+                                            <StackPanel.Style>
+                                                <Style TargetType="{x:Type StackPanel}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Skins}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock
+                                                Margin="8,0"
+                                                Style="{DynamicResource PageCaption}"
+                                                Text="·" />
+                                            <TextBlock
+                                                FontWeight="SemiBold"
+                                                Style="{DynamicResource PageCaption}"
+                                                Text="{Binding Skins.Count}" />
+                                            <TextBlock
+                                                Margin="4,0,0,0"
+                                                Style="{DynamicResource PageCaption}"
+                                                Text="{DynamicResource Inventory.Skins.CountUnit}" />
+                                        </StackPanel>
+                                    </StackPanel>
                                 </StackPanel>
+                                <Button
+                                    Grid.Column="3"
+                                    Height="32"
+                                    Margin="12,0,0,0"
+                                    Padding="12,0"
+                                    VerticalAlignment="Center"
+                                    hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
+                                    hc:IconElement.Height="15"
+                                    hc:IconElement.Width="15"
+                                    Command="{Binding DownloadAllCommand}"
+                                    Content="{DynamicResource Inventory.Skins.DownloadAll}"
+                                    Style="{DynamicResource ButtonPrimary}" />
                             </Grid>
                             <TextBlock
                                 Grid.Row="2"
@@ -184,54 +221,41 @@
                                     <DataTemplate>
                                         <Border
                                             Height="230"
-                                            Margin="0,0,12,12"
-                                            Background="{DynamicResource MainContentForegroundDrawingBrush}"
                                             BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
                                             CornerRadius="10">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition />
-                                                    <RowDefinition Height="42" />
-                                                </Grid.RowDefinitions>
-                                                <Border
-                                                    Margin="6,6,6,0"
-                                                    Background="{DynamicResource SecondaryRegionBrush}"
-                                                    CornerRadius="8">
-                                                    <Grid>
-                                                        <Image Source="{Binding Uri}" Stretch="UniformToFill" />
-                                                        <Button
-                                                            Width="36"
-                                                            Height="36"
-                                                            Margin="0,0,8,8"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Bottom"
-                                                            hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
-                                                            hc:IconElement.Height="16"
-                                                            hc:IconElement.Width="16"
-                                                            Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBox}}, Path=DataContext.DownloadCommand}"
-                                                            CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=DataContext}"
-                                                            ToolTip="{DynamicResource Inventory.Skins.Download}">
-                                                            <Button.Style>
-                                                                <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
-                                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True">
-                                                                            <Setter Property="Visibility" Value="Visible" />
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Button.Style>
-                                                        </Button>
-                                                    </Grid>
-                                                </Border>
+                                            <Border.Background>
+                                                <ImageBrush ImageSource="{Binding Uri}" Stretch="UniformToFill" />
+                                            </Border.Background>
+                                            <Grid Margin="12,0,12,12" VerticalAlignment="Bottom">
                                                 <TextBlock
-                                                    Grid.Row="1"
-                                                    Margin="12,0"
-                                                    VerticalAlignment="Center"
+                                                    VerticalAlignment="Bottom"
                                                     FontWeight="SemiBold"
+                                                    Foreground="White"
                                                     Text="{Binding Name}"
                                                     TextTrimming="CharacterEllipsis" />
+                                                <Button
+                                                    Width="32"
+                                                    Height="32"
+                                                    Padding="0"
+                                                    HorizontalAlignment="Right"
+                                                    hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
+                                                    hc:IconElement.Height="16"
+                                                    hc:IconElement.Width="16"
+                                                    Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBox}}, Path=DataContext.DownloadCommand}"
+                                                    CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=DataContext}"
+                                                    ToolTip="{DynamicResource Inventory.Skins.Download}">
+                                                    <Button.Style>
+                                                        <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -239,6 +263,7 @@
                                 <ListBox.ItemContainerStyle>
                                     <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}">
                                         <Setter Property="Padding" Value="0" />
+                                        <Setter Property="Margin" Value="4" />
                                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                     </Style>
                                 </ListBox.ItemContainerStyle>
@@ -303,7 +328,6 @@
                                     <DataTemplate>
                                         <Border
                                             Height="142"
-                                            Padding="10"
                                             Background="{DynamicResource MainContentForegroundDrawingBrush}"
                                             BorderBrush="{DynamicResource BorderBrush}"
                                             BorderThickness="1"
@@ -318,6 +342,7 @@
                                                 <Button
                                                     Width="36"
                                                     Height="36"
+                                                    Padding="0"
                                                     HorizontalAlignment="Right"
                                                     VerticalAlignment="Bottom"
                                                     hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"

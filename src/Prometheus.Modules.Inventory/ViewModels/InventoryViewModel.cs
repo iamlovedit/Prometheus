@@ -1,3 +1,4 @@
+using HandyControl.Controls;
 using HandyControl.Data;
 using Microsoft.Win32;
 using Prism.Commands;
@@ -15,15 +16,17 @@ namespace Prometheus.Modules.Inventory.ViewModels
     public class InventoryViewModel : RegionViewModelBase
     {
         private readonly IGameResourceManager _gameResourceManager;
+        private readonly IResourceService _resourceService;
         private readonly Dictionary<int, List<SkinBasic>> _skinsCache;
         private List<ChampionSummary> _championsSummary;
         private List<ProfileIcon> _allIcons;
         private int _profileIconsLoadVersion;
 
         public InventoryViewModel(IRegionManager regionManager, IContainerExtension containerExtension,
-            IGameResourceManager gameResourceManager) : base(regionManager)
+            IGameResourceManager gameResourceManager, IResourceService resourceService) : base(regionManager)
         {
             _gameResourceManager = gameResourceManager;
+            _resourceService = resourceService;
             _skinsCache = containerExtension.Resolve<Dictionary<int, List<SkinBasic>>>(ParameterNames.SkinsCache);
         }
 
@@ -47,7 +50,10 @@ namespace Prometheus.Modules.Inventory.ViewModels
             get { return _skins; }
             set
             {
-                SetProperty(ref _skins, value);
+                if (SetProperty(ref _skins, value))
+                {
+                    _downloadAllCommand?.RaiseCanExecuteChanged();
+                }
             }
         }
 
@@ -222,6 +228,158 @@ namespace Prometheus.Modules.Inventory.ViewModels
                 File.Copy(skin.Uri, dialog.FileName, true);
             }
         }
+
+        private bool _isDownloadingAll;
+        public bool IsDownloadingAll
+        {
+            get { return _isDownloadingAll; }
+            set
+            {
+                if (SetProperty(ref _isDownloadingAll, value))
+                {
+                    _downloadAllCommand?.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private DelegateCommand _downloadAllCommand;
+        public DelegateCommand DownloadAllCommand =>
+            _downloadAllCommand ??= new DelegateCommand(
+                ExecuteDownloadAllCommand,
+                CanExecuteDownloadAllCommand);
+
+        private bool CanExecuteDownloadAllCommand()
+        {
+            return !IsDownloadingAll && _skins is { Count: > 0 };
+        }
+
+        private void ExecuteDownloadAllCommand()
+        {
+            ExecuteDownloadAllCommandAsync().Observe("Downloading all champion skins");
+        }
+
+        private async Task ExecuteDownloadAllCommandAsync()
+        {
+            var dialog = new OpenFolderDialog
+            {
+                Title = _resourceService.FindResource<string>("Inventory.Skins.DownloadAll.SelectFolder"),
+                Multiselect = false
+            };
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var skins = _skins.ToArray();
+            IsDownloadingAll = true;
+            try
+            {
+                var result = await Task.Run(() => SaveSkins(skins, dialog.FolderName));
+                if (result.FailedCount == 0)
+                {
+                    Growl.Info(string.Format(
+                        _resourceService.FindResource<string>("Inventory.Skins.DownloadAll.Success"),
+                        result.SavedCount));
+                }
+                else
+                {
+                    Growl.Error(string.Format(
+                        _resourceService.FindResource<string>("Inventory.Skins.DownloadAll.Partial"),
+                        result.SavedCount,
+                        result.FailedCount));
+                }
+            }
+            catch (Exception exception)
+            {
+                Growl.Error(string.Format(
+                    _resourceService.FindResource<string>("Inventory.Skins.DownloadAll.Error"),
+                    exception.Message));
+            }
+            finally
+            {
+                IsDownloadingAll = false;
+            }
+        }
+
+        private static (int SavedCount, int FailedCount) SaveSkins(
+            IEnumerable<SkinBasic> skins,
+            string folderPath)
+        {
+            var savedCount = 0;
+            var failedCount = 0;
+            var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var skin in skins)
+            {
+                try
+                {
+                    if (skin is null || string.IsNullOrWhiteSpace(skin.Uri) || !File.Exists(skin.Uri))
+                    {
+                        failedCount++;
+                        continue;
+                    }
+
+                    var extension = Path.GetExtension(skin.Uri);
+                    var baseName = GetSafeFileName(skin.Name, skin.Id);
+                    var fileName = GetUniqueFileName(baseName, extension, skin.Id, usedFileNames);
+                    var targetPath = Path.Combine(folderPath, fileName);
+
+                    if (!string.Equals(
+                        Path.GetFullPath(skin.Uri),
+                        Path.GetFullPath(targetPath),
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Copy(skin.Uri, targetPath, true);
+                    }
+
+                    savedCount++;
+                }
+                catch
+                {
+                    failedCount++;
+                }
+            }
+
+            return (savedCount, failedCount);
+        }
+
+        private static string GetSafeFileName(string name, int skinId)
+        {
+            var invalidCharacters = Path.GetInvalidFileNameChars();
+            var safeName = new string((name ?? string.Empty)
+                .Select(character => invalidCharacters.Contains(character) ? '_' : character)
+                .ToArray())
+                .Trim()
+                .TrimEnd('.');
+
+            return string.IsNullOrWhiteSpace(safeName)
+                ? $"skin-{skinId}"
+                : safeName;
+        }
+
+        private static string GetUniqueFileName(
+            string baseName,
+            string extension,
+            int skinId,
+            ISet<string> usedFileNames)
+        {
+            var fileName = $"{baseName}{extension}";
+            if (usedFileNames.Add(fileName))
+            {
+                return fileName;
+            }
+
+            fileName = $"{baseName}-{skinId}{extension}";
+            var suffix = 2;
+            while (!usedFileNames.Add(fileName))
+            {
+                fileName = $"{baseName}-{skinId}-{suffix}{extension}";
+                suffix++;
+            }
+
+            return fileName;
+        }
+
         private DelegateCommand<ProfileIcon> _downloadIconCommand;
         public DelegateCommand<ProfileIcon> DownloadIconCommand =>
             _downloadIconCommand ?? (_downloadIconCommand = new DelegateCommand<ProfileIcon>(ExecuteDownloadIconCommand));

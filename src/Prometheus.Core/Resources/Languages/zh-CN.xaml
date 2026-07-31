@@ -242,6 +242,12 @@
     <sys:String x:Key="Inventory.Skins.SearchPlaceholder">搜索英雄</sys:String>
     <sys:String x:Key="Inventory.Skins.Empty">请选择英雄查看皮肤</sys:String>
     <sys:String x:Key="Inventory.Skins.Download">下载</sys:String>
+    <sys:String x:Key="Inventory.Skins.CountUnit">款皮肤</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll">全部下载</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.SelectFolder">选择皮肤保存文件夹</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.Success">已保存 {0} 款皮肤</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.Partial">已保存 {0} 款皮肤，{1} 款保存失败</sys:String>
+    <sys:String x:Key="Inventory.Skins.DownloadAll.Error">批量保存皮肤失败：{0}</sys:String>
     <sys:String x:Key="Inventory.ProfileIcons">召唤师头像</sys:String>
     <sys:String x:Key="Inventory.ProfileIcons.Description">浏览并导出可用的召唤师头像</sys:String>
     <sys:String x:Key="Utility.Game">游戏玩法</sys:String>
