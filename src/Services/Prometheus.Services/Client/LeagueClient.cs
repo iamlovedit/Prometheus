@@ -22,6 +22,7 @@ namespace Prometheus.Services.Client
         private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(1);
 
         private readonly IClientService _clientService;
+        private readonly ILogger _logger;
         private readonly object _stateSync = new();
         private readonly object _connectionTransitionSync = new();
         private readonly object _subscriptionsSync = new();
@@ -36,8 +37,14 @@ namespace Prometheus.Services.Client
         private bool _stopping;
 
         public LeagueClient(IClientService clientService)
+            : this(clientService, Log.Logger)
+        {
+        }
+
+        internal LeagueClient(IClientService clientService, ILogger logger)
         {
             _clientService = clientService ?? throw new ArgumentNullException(nameof(clientService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public event Action OnConnected;
@@ -457,7 +464,7 @@ namespace Prometheus.Services.Client
             AbortAndDispose(socket);
         }
 
-        private void HandleMessageReceived(string data)
+        internal void HandleMessageReceived(string data)
         {
             OnWebsocketEventArgs eventArgs;
             try
@@ -480,6 +487,7 @@ namespace Prometheus.Services.Client
                 return;
             }
 
+            LogWebsocketEvent(eventArgs);
             InvokeSafely(OnWebsocketEvent, eventArgs);
 
             Action<OnWebsocketEventArgs>[] subscribers;
@@ -502,6 +510,36 @@ namespace Prometheus.Services.Client
                         "A League client websocket subscriber failed for {Uri}", eventArgs.Uri);
                 }
             }
+        }
+
+        private void LogWebsocketEvent(OnWebsocketEventArgs eventArgs)
+        {
+            var sanitizedData = WebsocketEventLogSanitizer.Sanitize(
+                (object)eventArgs.Data,
+                Token);
+            var sanitizedEventType = WebsocketEventLogSanitizer.SanitizeScalar(
+                eventArgs.EventType,
+                Token);
+            var sanitizedUri = WebsocketEventLogSanitizer.SanitizeUri(eventArgs.Uri, Token);
+
+            var logger = _logger
+                .ForContext("Kind", "Diagnostic")
+                .ForContext("EventName", "lcu.websocket.event.received")
+                .ForContext("Category", "WebSocket")
+                .ForContext("Origin", "Observed")
+                .ForContext("DataRedactedFieldCount", sanitizedData.RedactedFieldCount)
+                .ForContext("DataSanitizationFailed", sanitizedData.Failed);
+
+            if (!string.IsNullOrWhiteSpace(sanitizedData.ErrorType))
+            {
+                logger = logger.ForContext("DataSanitizationErrorType", sanitizedData.ErrorType);
+            }
+
+            logger.Information(
+                "Received League client websocket event {EventType} for {Uri}. Data: {Data:l}",
+                sanitizedEventType,
+                sanitizedUri,
+                sanitizedData.Data);
         }
 
         private void HandleDisconnected(ClientWebSocket socket)

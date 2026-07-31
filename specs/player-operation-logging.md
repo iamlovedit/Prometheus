@@ -67,7 +67,7 @@
 4. **稳定事件名**：事件名采用小写点分格式 `<domain>.<resource>.<action>`，不包含本地化文本和结果后缀。
 5. **结构化优先**：筛选、聚合和关联依赖属性字段；`DisplayMessage` 只用于人类阅读。
 6. **单一记录边界**：同一业务结果只记录一次。ViewModel 与服务层不得各自生成一条含义相同的成功或失败事件。
-7. **技术层不冒充业务层**：通用 `IHttpService` 只能记录诊断信息，禁止仅凭 URL 推断玩家动作或记录请求体作为操作日志。
+7. **技术层不冒充业务层**：通用 `IHttpService` 只能记录诊断信息，禁止仅凭 URL 推断玩家动作或记录请求体作为操作日志。`LeagueClient` 可以按 §8.3 记录脱敏后的订阅事件诊断数据，但不得据此生成玩家操作结果。
 
 ---
 
@@ -164,7 +164,9 @@ P2 行为仅在明确的排障需求下使用 `Debug`，不得默认污染玩家
 | `ErrorCode` | 稳定错误码 |
 | `HttpStatusCode` | 可安全记录的 HTTP 状态码 |
 
-所有扩展属性必须采用白名单。禁止把任意请求对象、响应对象或动态 JSON 直接附加到日志事件。
+操作日志的所有扩展属性必须采用白名单。禁止把任意请求对象、响应对象或动态 JSON 直接附加到
+`Operation` 日志事件。`Diagnostic` 类型的 LCU WebSocket 接收日志可以在统一接收边界附加按 §8.3
+递归脱敏后的 `Data`，不得复用该例外记录 HTTP 请求体、HTTP 响应体或业务操作请求对象。
 
 ---
 
@@ -242,7 +244,7 @@ WebSocket 或快照刷新观察到的状态变化可以记录为 `Observed`，�
 - LCU token、Authorization 头、完整客户端命令行。
 - `MatchService` 中包含 token 的原始连接指纹或由其直接派生的标识。
 - 房间密码。
-- HTTP/WebSocket 完整请求体、响应体或原始事件 JSON。
+- HTTP 完整请求体、HTTP 完整响应体、WebSocket 原始帧，以及未经 §8.3 脱敏的 WebSocket `Data`。
 - 个性签名、聊天或剪贴板正文。
 - 完整玩家昵称、Riot ID、PUUID、SummonerId 等可识别玩家身份的数据。
 - 未经处理的召唤师搜索关键词。
@@ -259,8 +261,49 @@ WebSocket 或快照刷新观察到的状态变化可以记录为 `Observed`，�
 | 文件导出路径 | `AssetType`、`AssetId`、文件扩展名 |
 | 玩家身份 | 当前会话内随机别名或会话级加盐哈希 |
 | 服务异常 | `ErrorType`、稳定错误码、HTTP 状态码、已确认安全的摘要 |
+| WebSocket 事件 `Data` | 保留字段结构和非敏感值；敏感字段值替换为 `[REDACTED]` 后的 JSON |
 
-脱敏采用“允许字段白名单”，禁止先记录全部内容再依赖正则事后清洗。
+操作日志脱敏采用“允许字段白名单”。WebSocket 订阅事件诊断日志采用 §8.3 规定的统一递归脱敏器。
+两种路径都必须在调用 Serilog 之前完成处理，禁止先记录全部内容再依赖 Sink、正则或日志查看器事后清洗。
+
+### 8.3 LCU WebSocket 订阅事件诊断日志
+
+为保留完整的 LCU 事件轨迹，每个通过 WAMP 帧校验的 `OnJsonApiEvent` 都必须由 `LeagueClient`
+在统一接收边界记录一次，且先记录、后分发。该日志属于技术诊断日志，不属于玩家操作日志。
+
+固定结构化属性：
+
+| 字段 | 值/说明 |
+|------|---------|
+| `Kind` | `Diagnostic` |
+| `EventName` | `lcu.websocket.event.received` |
+| `Category` | `WebSocket` |
+| `Origin` | `Observed` |
+| `EventType` | LCU 返回的事件类型；写入前执行安全字符串检查 |
+| `Uri` | 去除查询串、片段和身份标识动态段后的事件 URI |
+| `Data` | 递归脱敏后以紧凑 JSON 保存的事件数据 |
+| `DataRedactedFieldCount` | 本次被替换或移除的敏感字段/值数量 |
+| `DataSanitizationFailed` | 脱敏是否失败；失败时 `Data` 只能为安全占位值 |
+| `DataSanitizationErrorType` | 仅脱敏失败时记录安全的异常类型，不记录异常消息 |
+
+统一递归脱敏器必须满足：
+
+1. 先把 `Data` 转换为独立的 JSON 树，再遍历对象、数组和标量；不得修改分发给业务订阅者的原对象。
+2. 凭据字段（token、Authorization、密码、secret、cookie 等）、玩家身份字段（昵称、Riot ID、
+   PUUID、SummonerId、AccountId 等）、聊天/签名/剪贴板正文、搜索关键词和完整本地路径必须把值替换为
+   `[REDACTED]`；保留字段名便于理解事件形状。
+3. 当前 LCU token 及其认证形式即使出现在未知字段、嵌套 JSON 字符串或 URI 中，也必须整值替换，
+   禁止只依赖字段名。
+4. 字符串内嵌的 JSON 对象或数组必须继续递归脱敏后再写回；绝对本地路径、Basic/Bearer 凭据文本、
+   完整命令行等高风险标量必须整值替换。
+5. URI 必须移除查询串和片段；`puuid`、`summoner(s)`、`account(s)`、`player(s)`、`user(s)`、
+   `conversation(s)` 等身份路径段之后的动态标识，以及长不透明标识段，必须替换为 `[REDACTED]`。
+6. 脱敏失败时记录 `Data="[UNAVAILABLE]"`、`DataSanitizationFailed=true` 和安全的异常类型；
+   禁止在异常消息、回退路径或调试日志中输出原始 `Data`。
+7. 日志级别固定为 `Information`，保证默认生产日志配置能够采集。即使没有按 URI 注册订阅者，
+   只要收到了合法事件也必须记录；不得对合法事件去重或只记录变化摘要。
+8. 单个接收帧只允许在 `LeagueClient` 记录一次。各 ViewModel、`MatchService` 和订阅回调不得重复记录
+   相同的原始事件；它们仍可按业务语义另行记录 `Operation` 结果。
 
 ---
 
@@ -273,6 +316,7 @@ WebSocket 或快照刷新观察到的状态变化可以记录为 `Observed`，�
 5. 重复网络错误应在短时间窗口内聚合，摘要中携带发生次数。
 6. `Cancelled`、`Rejected`、`Skipped` 必须使用准确结果，禁止统一记为 `Failed`。
 7. 文件选择对话框被取消、重复点击被幂等保护等正常情况不得记录异常栈。
+8. §8.3 的 WebSocket 接收诊断日志以完整事件轨迹为目标，不适用操作日志的变化去重；每个合法接收帧均记录一次。
 
 ---
 
@@ -396,6 +440,9 @@ DisplayMessage=训练模式房间创建成功
 13. [ ] 面板可区分操作日志和诊断日志，并按来源、结果、类别筛选。
 14. [ ] 清空内存日志后面板保持为空，清空事件仅进入持久化日志并明确清理范围。
 15. [ ] 中英文资源保持同步，筛选逻辑不依赖本地化字符串。
+16. [ ] 每个合法 `OnJsonApiEvent` 在分发前产生且仅产生一条 `lcu.websocket.event.received` 诊断日志。
+17. [ ] WebSocket 日志保留全部非敏感 `Data`，敏感字段、嵌套 JSON 字符串、URI 和当前 token 在进入任何 Sink 前已脱敏。
+18. [ ] WebSocket 脱敏失败不会回退记录原始事件，只记录安全占位值和异常类型。
 
 ---
 
@@ -414,6 +461,10 @@ DisplayMessage=训练模式房间创建成功
 - 落盘格式能够恢复操作日志的全部必填字段。
 - 日志面板按类型、类别、来源和结果正确筛选。
 - token、房间密码、签名正文、搜索关键词、完整 PUUID 和完整文件路径不会出现在内存快照或落盘文本中。
+- 合法 WebSocket 事件无论是否有 URI 订阅者都记录一次，且日志发生在观察者/订阅者回调之前。
+- WebSocket `Data` 中的安全嵌套字段和数组完整保留；凭据、玩家身份、聊天正文、嵌套 JSON 字符串中的敏感值均替换为 `[REDACTED]`。
+- 事件 URI 的查询串、身份动态段和当前 LCU token 不会进入内存快照或落盘文本。
+- WebSocket `Data` 脱敏失败时仅记录 `[UNAVAILABLE]` 和安全错误类型，仍继续正常分发事件。
 - 清空内存日志后面板保持为空，不会误删磁盘文件，持久化日志中仍记录清理范围。
 
 ---

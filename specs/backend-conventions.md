@@ -170,6 +170,14 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 - 连接成功后发送订阅帧：`[5, "OnJsonApiEvent"]`（WAMP SUBSCRIBE）。
 - 事件帧固定为三元数组：`[8, "OnJsonApiEvent", { data, eventType, uri }]`；非此形状（长度≠3、首元素≠8、事件名不符）直接丢弃。
 - 反序列化目标：`OnWebsocketEventArgs { dynamic Data; string EventType; string Uri; }`（`Prometheus.Core/Models`）。
+- 每个通过协议校验的 `OnJsonApiEvent` 必须在分发给全局观察者和 URI 订阅者之前记录一条
+  `Information` 级别的结构化诊断日志，固定属性为 `Kind=Diagnostic`、
+  `EventName=lcu.websocket.event.received`、`Category=WebSocket`、`Origin=Observed`、
+  `EventType`、脱敏后的 `Uri` 和脱敏后的 `Data`。无论是否存在 URI 订阅者都必须记录，
+  同一个接收帧只记录一次。
+- `Data` 允许完整记录经过统一递归脱敏后的 JSON；禁止把原始帧、原始 `Data` 或任何未经脱敏的
+  中间字符串传给 Serilog。具体脱敏规则以
+  [玩家操作日志规范 §8.3](./player-operation-logging.md#83-lcu-websocket-订阅事件诊断日志) 为准。
 
 ### 5.2 生命周期
 
@@ -211,6 +219,8 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 
 - 使用 **Serilog**（`Log.Error(ex, ...)`），禁止 `Console.WriteLine` / `Debug.WriteLine` 进入正式代码。
 - 日志中不得出现 token（§3.3）、不得打印完整响应体中的用户隐私字段。
+- LCU WebSocket 事件在 `LeagueClient` 的统一接收边界记录；允许记录递归脱敏后的完整事件
+  `Data`，但禁止记录原始帧或未脱敏 `Data`。脱敏失败时只记录安全占位值和错误类型，禁止回退到原始数据。
 - 具有业务意义的玩家操作、自动化动作和其执行结果还必须遵守
   [玩家操作日志规范](./player-operation-logging.md)。
 
