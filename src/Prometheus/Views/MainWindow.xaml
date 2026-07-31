@@ -20,6 +20,98 @@
     Icon="../Resources/Prometheus_16.ico"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+    <hc:Window.Resources>
+        <Style x:Key="SidebarNavigationItem" TargetType="{x:Type RadioButton}">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type RadioButton}">
+                        <Grid x:Name="ItemRoot" Background="Transparent" SnapsToDevicePixels="True">
+                            <Border
+                                x:Name="ItemBackground"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10" />
+                            <Border
+                                x:Name="SelectionIndicator"
+                                Width="3"
+                                Height="24"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource PrimaryBrush}"
+                                CornerRadius="0,3,3,0"
+                                Visibility="Collapsed" />
+                            <Grid Margin="10,0,12,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    x:Name="IconBackground"
+                                    Width="32"
+                                    Height="32"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Background="Transparent"
+                                    CornerRadius="8">
+                                    <TextBlock
+                                        x:Name="IconGlyph"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontFamily="{StaticResource Iconfont}"
+                                        FontSize="19"
+                                        Foreground="{TemplateBinding Foreground}"
+                                        Text="{TemplateBinding Tag}" />
+                                </Border>
+                                <ContentPresenter
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Content="{TemplateBinding Content}"
+                                    RecognizesAccessKey="False"
+                                    TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Grid>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Background" Value="{DynamicResource MainContentForegroundDrawingBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ItemBackground" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ItemBackground" Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+                                <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="IconBackground" Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                                <Setter TargetName="IconGlyph" Property="Foreground" Value="White" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ItemRoot" Property="Opacity" Value="0.45" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </hc:Window.Resources>
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
@@ -29,90 +121,131 @@
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition
-                    Width="160"
-                    MinWidth="160"
-                    MaxWidth="160" />
+                    Width="192"
+                    MinWidth="192"
+                    MaxWidth="192" />
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
-            <Grid Margin="12" Background="{DynamicResource RegionBrush}">
-                <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition Height="auto" />
-                </Grid.RowDefinitions>
-                <hc:SideMenu>
-                    <hc:SideMenu.Resources>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontFamily" Value="{StaticResource Iconfont}" />
-                            <Setter Property="FontSize" Value="20" />
-                        </Style>
-                    </hc:SideMenu.Resources>
+            <Border
+                Margin="12,12,0,12"
+                Padding="10"
+                Background="{DynamicResource RegionBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="76" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <hc:SideMenuItem
-                        Command="{Binding HomeCommand}"
-                        Header="{DynamicResource Menu.Home}"
-                        IsSelected="{Binding IsHomeSelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe609;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
+                    <Grid Margin="8,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Border
+                            Width="40"
+                            Height="40"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SecondaryRegionBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10">
+                            <Image
+                                Width="22"
+                                Height="22"
+                                Source="../Resources/Prometheus_16.ico"
+                                Stretch="Uniform" />
+                        </Border>
+                        <TextBlock
+                            Grid.Column="2"
+                            VerticalAlignment="Center"
+                            FontSize="15"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Text="PROMETHEUS"
+                            TextTrimming="CharacterEllipsis" />
+                    </Grid>
 
-                    <hc:SideMenuItem
-                        Command="{Binding CareerCommand}"
-                        Header="{DynamicResource Menu.Career}"
-                        IsSelected="{Binding IsCareerSelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe604;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
-                    <hc:SideMenuItem
-                        Command="{Binding InventoryCommand}"
-                        Header="{DynamicResource Menu.Inventory}"
-                        IsSelected="{Binding IsInventorySelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe607;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
+                    <Border
+                        Grid.Row="1"
+                        Height="1"
+                        Margin="8,0,8,8"
+                        Background="{DynamicResource BorderBrush}" />
 
-                    <hc:SideMenuItem
-                        Command="{Binding SearchCommand}"
-                        Header="{DynamicResource Menu.Search}"
-                        IsSelected="{Binding IsSearchSelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe60c;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
+                    <StackPanel Grid.Row="2" VerticalAlignment="Top">
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Home}"
+                            Command="{Binding HomeCommand}"
+                            Content="{DynamicResource Menu.Home}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsHomeSelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe609;" />
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Career}"
+                            Command="{Binding CareerCommand}"
+                            Content="{DynamicResource Menu.Career}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsCareerSelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe604;" />
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Inventory}"
+                            Command="{Binding InventoryCommand}"
+                            Content="{DynamicResource Menu.Inventory}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsInventorySelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe607;" />
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Search}"
+                            Command="{Binding SearchCommand}"
+                            Content="{DynamicResource Menu.Search}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsSearchSelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe60c;" />
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Match}"
+                            Command="{Binding MatchCommand}"
+                            Content="{DynamicResource Menu.Match}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsMatchSelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe635;" />
+                        <RadioButton
+                            AutomationProperties.Name="{DynamicResource Menu.Utility}"
+                            Command="{Binding UtilityCommand}"
+                            Content="{DynamicResource Menu.Utility}"
+                            GroupName="MainNavigation"
+                            IsChecked="{Binding IsUtilitySelected, Mode=OneWay}"
+                            Style="{StaticResource SidebarNavigationItem}"
+                            Tag="&#xe627;" />
+                    </StackPanel>
 
-                    <hc:SideMenuItem
-                        Command="{Binding MatchCommand}"
-                        Header="{DynamicResource Menu.Match}"
-                        IsEnabled="True"
-                        IsSelected="{Binding IsMatchSelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe635;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
+                    <Border
+                        Grid.Row="3"
+                        Height="1"
+                        Margin="8,8"
+                        Background="{DynamicResource BorderBrush}" />
 
-                    <hc:SideMenuItem
-                        Command="{Binding UtilityCommand}"
-                        Header="{DynamicResource Menu.Utility}"
-                        IsSelected="{Binding IsUtilitySelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe627;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
-
-                    <hc:SideMenuItem
-                        VerticalAlignment="Bottom"
+                    <RadioButton
+                        Grid.Row="4"
+                        AutomationProperties.Name="{DynamicResource Menu.Setting}"
                         Command="{Binding SettingCommand}"
-                        Header="{DynamicResource Menu.Setting}"
-                        IsSelected="{Binding IsSettingSelected, Mode=OneWay}">
-                        <hc:SideMenuItem.Icon>
-                            <TextBlock Text="&#xe60a;" />
-                        </hc:SideMenuItem.Icon>
-                    </hc:SideMenuItem>
-                </hc:SideMenu>
-
-            </Grid>
+                        Content="{DynamicResource Menu.Setting}"
+                        GroupName="MainNavigation"
+                        IsChecked="{Binding IsSettingSelected, Mode=OneWay}"
+                        Style="{StaticResource SidebarNavigationItem}"
+                        Tag="&#xe60a;" />
+                </Grid>
+            </Border>
             <Grid Grid.Column="1" Margin="12">
                 <ContentControl prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
                 <Border
