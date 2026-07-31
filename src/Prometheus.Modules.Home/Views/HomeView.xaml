@@ -54,9 +54,9 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="4">
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="64" />
+            <RowDefinition Height="76" />
             <RowDefinition Height="12" />
             <RowDefinition />
         </Grid.RowDefinitions>

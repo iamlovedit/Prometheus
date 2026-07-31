@@ -135,7 +135,7 @@
             </Border>
         </DataTemplate>
     </UserControl.Resources>
-    <Grid Margin="4">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="76" />
             <RowDefinition Height="12" />

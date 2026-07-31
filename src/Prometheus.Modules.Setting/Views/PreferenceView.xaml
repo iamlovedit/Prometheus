@@ -160,113 +160,181 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer
-        HorizontalContentAlignment="Stretch"
-        HorizontalScrollBarVisibility="Disabled"
-        VerticalScrollBarVisibility="Auto">
-        <Grid Margin="0,0,0,16" HorizontalAlignment="Stretch">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="12" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="12" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition />
-                </Grid.ColumnDefinitions>
+    <Grid HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-                <Border Grid.Column="0" Style="{StaticResource SettingCard}">
-                    <Grid>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource SettingCard}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="18" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="1" />
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Setting.Personalization}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Style="{StaticResource CaptionText}"
+                            Text="{DynamicResource Setting.Personalization.Description}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Language}" />
+                            <TextBlock
+                                Margin="0,3,12,0"
+                                Style="{StaticResource CaptionText}"
+                                Text="{DynamicResource Setting.Language.Description}" />
+                        </StackPanel>
+                        <ComboBox
+                            Grid.Column="1"
+                            Width="180"
+                            VerticalAlignment="Center"
+                            SelectedIndex="{Binding SelectedLanguageIndex, Mode=TwoWay}">
+                            <ComboBoxItem Content="{DynamicResource Setting.Language.CH}" />
+                            <ComboBoxItem Content="{DynamicResource Setting.Language.EN}" />
+                        </ComboBox>
+                    </Grid>
+
+                    <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Grid.Row="6">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="18" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="14" />
-                            <RowDefinition Height="1" />
-                            <RowDefinition Height="14" />
+                            <RowDefinition Height="10" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <StackPanel>
-                            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Setting.Personalization}" />
+                            <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Theme}" />
                             <TextBlock
-                                Margin="0,4,0,0"
+                                Margin="0,3,0,0"
                                 Style="{StaticResource CaptionText}"
-                                Text="{DynamicResource Setting.Personalization.Description}" />
+                                Text="{DynamicResource Setting.Theme.Description}" />
                         </StackPanel>
-
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Language}" />
-                                <TextBlock
-                                    Margin="0,3,12,0"
-                                    Style="{StaticResource CaptionText}"
-                                    Text="{DynamicResource Setting.Language.Description}" />
-                            </StackPanel>
-                            <ComboBox
-                                Grid.Column="1"
-                                Width="180"
-                                VerticalAlignment="Center"
-                                SelectedIndex="{Binding SelectedLanguageIndex, Mode=TwoWay}">
-                                <ComboBoxItem Content="{DynamicResource Setting.Language.CH}" />
-                                <ComboBoxItem Content="{DynamicResource Setting.Language.EN}" />
-                            </ComboBox>
-                        </Grid>
-
-                        <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
-
-                        <Grid Grid.Row="6">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="10" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <StackPanel>
-                                <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Theme}" />
-                                <TextBlock
-                                    Margin="0,3,0,0"
-                                    Style="{StaticResource CaptionText}"
-                                    Text="{DynamicResource Setting.Theme.Description}" />
-                            </StackPanel>
-                            <ListBox
-                                Grid.Row="2"
-                                Height="80"
-                                Padding="0"
-                                HorizontalAlignment="Left"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                ItemContainerStyle="{StaticResource ThemeChoiceItem}"
-                                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                SelectedIndex="{Binding SelectedThemeIndex, Mode=TwoWay}">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" />
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBoxItem>
-                                    <Border Style="{StaticResource ThemeChoiceCard}">
-                                        <StackPanel>
-                                            <Border
-                                                Height="44"
-                                                Background="#F4F6F8"
-                                                CornerRadius="4">
-                                                <Grid>
+                        <ListBox
+                            Grid.Row="2"
+                            Height="80"
+                            Padding="0"
+                            HorizontalAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ItemContainerStyle="{StaticResource ThemeChoiceItem}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                            SelectedIndex="{Binding SelectedThemeIndex, Mode=TwoWay}">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBoxItem>
+                                <Border Style="{StaticResource ThemeChoiceCard}">
+                                    <StackPanel>
+                                        <Border
+                                            Height="44"
+                                            Background="#F4F6F8"
+                                            CornerRadius="4">
+                                            <Grid>
+                                                <Border
+                                                    Width="20"
+                                                    HorizontalAlignment="Left"
+                                                    Background="#E1E5EA"
+                                                    CornerRadius="4,0,0,4" />
+                                                <StackPanel Margin="26,8,7,7">
                                                     <Border
-                                                        Width="20"
+                                                        Height="7"
+                                                        Background="White"
+                                                        CornerRadius="2" />
+                                                    <Border
+                                                        Height="16"
+                                                        Margin="0,5,0,0"
+                                                        Background="#E7EAEE"
+                                                        CornerRadius="2" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock
+                                            Margin="0,5,0,0"
+                                            HorizontalAlignment="Center"
+                                            Foreground="{DynamicResource PrimaryTextBrush}"
+                                            Text="{DynamicResource Setting.Theme.Light}" />
+                                    </StackPanel>
+                                </Border>
+                            </ListBoxItem>
+                            <ListBoxItem>
+                                <Border Style="{StaticResource ThemeChoiceCard}">
+                                    <StackPanel>
+                                        <Border
+                                            Height="44"
+                                            Background="#17191E"
+                                            CornerRadius="4">
+                                            <Grid>
+                                                <Border
+                                                    Width="20"
+                                                    HorizontalAlignment="Left"
+                                                    Background="#24272E"
+                                                    CornerRadius="4,0,0,4" />
+                                                <StackPanel Margin="26,8,7,7">
+                                                    <Border
+                                                        Height="7"
+                                                        Background="#343842"
+                                                        CornerRadius="2" />
+                                                    <Border
+                                                        Height="16"
+                                                        Margin="0,5,0,0"
+                                                        Background="#2A2D35"
+                                                        CornerRadius="2" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock
+                                            Margin="0,5,0,0"
+                                            HorizontalAlignment="Center"
+                                            Foreground="{DynamicResource PrimaryTextBrush}"
+                                            Text="{DynamicResource Setting.Theme.Dark}" />
+                                    </StackPanel>
+                                </Border>
+                            </ListBoxItem>
+                            <ListBoxItem>
+                                <Border Style="{StaticResource ThemeChoiceCard}">
+                                    <StackPanel>
+                                        <Border
+                                            Height="44"
+                                            Background="#F4F6F8"
+                                            CornerRadius="4">
+                                            <Grid ClipToBounds="True">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid Grid.Column="0" Background="#F4F6F8">
+                                                    <Border
+                                                        Width="10"
                                                         HorizontalAlignment="Left"
-                                                        Background="#E1E5EA"
-                                                        CornerRadius="4,0,0,4" />
-                                                    <StackPanel Margin="26,8,7,7">
+                                                        Background="#E1E5EA" />
+                                                    <StackPanel Margin="13,8,4,7">
                                                         <Border
                                                             Height="7"
                                                             Background="White"
@@ -278,29 +346,12 @@
                                                             CornerRadius="2" />
                                                     </StackPanel>
                                                 </Grid>
-                                            </Border>
-                                            <TextBlock
-                                                Margin="0,5,0,0"
-                                                HorizontalAlignment="Center"
-                                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                                Text="{DynamicResource Setting.Theme.Light}" />
-                                        </StackPanel>
-                                    </Border>
-                                </ListBoxItem>
-                                <ListBoxItem>
-                                    <Border Style="{StaticResource ThemeChoiceCard}">
-                                        <StackPanel>
-                                            <Border
-                                                Height="44"
-                                                Background="#17191E"
-                                                CornerRadius="4">
-                                                <Grid>
+                                                <Grid Grid.Column="1" Background="#17191E">
                                                     <Border
-                                                        Width="20"
+                                                        Width="10"
                                                         HorizontalAlignment="Left"
-                                                        Background="#24272E"
-                                                        CornerRadius="4,0,0,4" />
-                                                    <StackPanel Margin="26,8,7,7">
+                                                        Background="#24272E" />
+                                                    <StackPanel Margin="13,8,4,7">
                                                         <Border
                                                             Height="7"
                                                             Background="#343842"
@@ -312,289 +363,236 @@
                                                             CornerRadius="2" />
                                                     </StackPanel>
                                                 </Grid>
-                                            </Border>
-                                            <TextBlock
-                                                Margin="0,5,0,0"
-                                                HorizontalAlignment="Center"
-                                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                                Text="{DynamicResource Setting.Theme.Dark}" />
-                                        </StackPanel>
-                                    </Border>
-                                </ListBoxItem>
-                                <ListBoxItem>
-                                    <Border Style="{StaticResource ThemeChoiceCard}">
-                                        <StackPanel>
-                                            <Border
-                                                Height="44"
-                                                Background="#F4F6F8"
-                                                CornerRadius="4">
-                                                <Grid ClipToBounds="True">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition />
-                                                        <ColumnDefinition />
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid Grid.Column="0" Background="#F4F6F8">
-                                                        <Border
-                                                            Width="10"
-                                                            HorizontalAlignment="Left"
-                                                            Background="#E1E5EA" />
-                                                        <StackPanel Margin="13,8,4,7">
-                                                            <Border
-                                                                Height="7"
-                                                                Background="White"
-                                                                CornerRadius="2" />
-                                                            <Border
-                                                                Height="16"
-                                                                Margin="0,5,0,0"
-                                                                Background="#E7EAEE"
-                                                                CornerRadius="2" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                    <Grid Grid.Column="1" Background="#17191E">
-                                                        <Border
-                                                            Width="10"
-                                                            HorizontalAlignment="Left"
-                                                            Background="#24272E" />
-                                                        <StackPanel Margin="13,8,4,7">
-                                                            <Border
-                                                                Height="7"
-                                                                Background="#343842"
-                                                                CornerRadius="2" />
-                                                            <Border
-                                                                Height="16"
-                                                                Margin="0,5,0,0"
-                                                                Background="#2A2D35"
-                                                                CornerRadius="2" />
-                                                        </StackPanel>
-                                                    </Grid>
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock
-                                                Margin="0,5,0,0"
-                                                HorizontalAlignment="Center"
-                                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                                Text="{DynamicResource Setting.Theme.System}" />
-                                        </StackPanel>
-                                    </Border>
-                                </ListBoxItem>
-                            </ListBox>
-                        </Grid>
+                                            </Grid>
+                                        </Border>
+                                        <TextBlock
+                                            Margin="0,5,0,0"
+                                            HorizontalAlignment="Center"
+                                            Foreground="{DynamicResource PrimaryTextBrush}"
+                                            Text="{DynamicResource Setting.Theme.System}" />
+                                    </StackPanel>
+                                </Border>
+                            </ListBoxItem>
+                        </ListBox>
                     </Grid>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource SettingCard}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="18" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="14" />
-                            <RowDefinition Height="1" />
-                            <RowDefinition Height="14" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition />
-                        </Grid.RowDefinitions>
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Setting.Automation}" />
-                            <TextBlock
-                                Margin="0,4,0,0"
-                                Style="{StaticResource CaptionText}"
-                                Text="{DynamicResource Setting.Automation.Description}" />
-                        </StackPanel>
-
-                        <Grid Grid.Row="2">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,12,0">
-                                <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Automation.AutoAccept}" />
-                                <TextBlock
-                                    Margin="0,3,0,0"
-                                    Style="{StaticResource CaptionText}"
-                                    Text="{DynamicResource Setting.Automation.AutoAccept.Description}" />
-                            </StackPanel>
-                            <ToggleButton
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                IsChecked="{Binding AutoAccept, Mode=TwoWay}"
-                                Style="{StaticResource SettingToggleSwitch}" />
-                        </Grid>
-
-                        <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
-
-                        <Grid Grid.Row="6">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,12,0">
-                                <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Automation.AutoReconnect}" />
-                                <TextBlock
-                                    Margin="0,3,0,0"
-                                    Style="{StaticResource CaptionText}"
-                                    Text="{DynamicResource Setting.Automation.AutoReconnect.Description}" />
-                            </StackPanel>
-                            <ToggleButton
-                                Grid.Column="1"
-                                VerticalAlignment="Center"
-                                IsChecked="{Binding AutoReconnect, Mode=TwoWay}"
-                                Style="{StaticResource SettingToggleSwitch}" />
-                        </Grid>
-
-                        <TextBlock
-                            Grid.Row="7"
-                            Margin="0,14,0,0"
-                            VerticalAlignment="Bottom"
-                            Style="{StaticResource CaptionText}"
-                            Text="{DynamicResource Setting.Automation.Note}" />
-                    </Grid>
-                </Border>
-            </Grid>
-
-            <Border Grid.Row="2" Style="{StaticResource SettingCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="240" />
-                        <ColumnDefinition Width="24" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Update.Settings.Title}" />
-                        <TextBlock
-                            Margin="0,4,0,0"
-                            Style="{StaticResource CaptionText}"
-                            Text="{DynamicResource Update.Settings.Description}" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock
-                            FontWeight="SemiBold"
-                            Text="{Binding UpdateStatus}"
-                            Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                        <ProgressBar
-                            Height="12"
-                            Margin="0,8,0,0"
-                            Maximum="100"
-                            Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}"
-                            Value="{Binding UpdateProgress, Mode=OneWay}" />
-                        <TextBlock
-                            Margin="0,6,0,0"
-                            Foreground="{DynamicResource DangerBrush}"
-                            Text="{Binding UpdateErrorMessage}"
-                            TextTrimming="CharacterEllipsis"
-                            ToolTip="{Binding UpdateErrorMessage}" />
-                    </StackPanel>
-                    <Button
-                        Grid.Column="4"
-                        VerticalAlignment="Center"
-                        Command="{Binding CheckForUpdatesCommand}"
-                        Content="{DynamicResource Update.Settings.Check}"
-                        Style="{DynamicResource ButtonPrimary}" />
                 </Grid>
             </Border>
 
-            <Border Grid.Row="4" Style="{StaticResource SettingCard}">
+            <Border Grid.Column="2" Style="{StaticResource SettingCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="16" />
+                        <RowDefinition Height="18" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="1" />
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
                     </Grid.RowDefinitions>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Setting.Diagnostics}" />
-                            <TextBlock
-                                Margin="0,4,0,0"
-                                Style="{StaticResource CaptionText}"
-                                Text="{DynamicResource Setting.Diagnostics.Summary}" />
-                        </StackPanel>
-                        <Button
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Command="{Binding DataContext.OpenDiagnosticsCommand, RelativeSource={RelativeSource AncestorType={x:Type views:SettingView}}}"
-                            Content="{DynamicResource Setting.Diagnostics.Open}"
-                            Style="{DynamicResource ButtonPrimary}" />
-                    </Grid>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Setting.Automation}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Style="{StaticResource CaptionText}"
+                            Text="{DynamicResource Setting.Automation.Description}" />
+                    </StackPanel>
 
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-
-                        <Border Grid.Column="0" Style="{StaticResource MetricCard}">
-                            <StackPanel>
-                                <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Setting.Diagnostics.Client}" />
-                                <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
-                                    <Ellipse
-                                        Width="9"
-                                        Height="9"
-                                        Margin="0,0,8,0"
-                                        VerticalAlignment="Center">
-                                        <Ellipse.Style>
-                                            <Style TargetType="{x:Type Ellipse}">
-                                                <Setter Property="Fill" Value="#909090" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Connected}">
-                                                        <Setter Property="Fill" Value="#45B97C" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Connecting}">
-                                                        <Setter Property="Fill" Value="{DynamicResource InfoBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Reconnecting}">
-                                                        <Setter Property="Fill" Value="{DynamicResource WarningBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Error}">
-                                                        <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Ellipse.Style>
-                                    </Ellipse>
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding ConnectionStatus}" />
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource MetricCard}">
-                            <StackPanel>
-                                <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Setting.Diagnostics.Version}" />
-                                <TextBlock
-                                    Margin="0,7,0,0"
-                                    FontWeight="SemiBold"
-                                    Text="{Binding ApplicationVersion, StringFormat=v{0}}" />
-                            </StackPanel>
-                        </Border>
-
-                        <Border Grid.Column="4" Style="{StaticResource MetricCard}">
-                            <StackPanel>
-                                <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Setting.Diagnostics.LogEntries}" />
-                                <TextBlock Margin="0,7,0,0" FontWeight="SemiBold">
-                                    <Run Text="{Binding LogCount, Mode=OneWay}" />
-                                    <Run Text=" / " />
-                                    <Run Text="{Binding LogCapacity, Mode=OneWay}" />
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Automation.AutoAccept}" />
+                            <TextBlock
+                                Margin="0,3,0,0"
+                                Style="{StaticResource CaptionText}"
+                                Text="{DynamicResource Setting.Automation.AutoAccept.Description}" />
+                        </StackPanel>
+                        <ToggleButton
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            IsChecked="{Binding AutoAccept, Mode=TwoWay}"
+                            Style="{StaticResource SettingToggleSwitch}" />
                     </Grid>
+
+                    <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
+
+                    <Grid Grid.Row="6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Automation.AutoReconnect}" />
+                            <TextBlock
+                                Margin="0,3,0,0"
+                                Style="{StaticResource CaptionText}"
+                                Text="{DynamicResource Setting.Automation.AutoReconnect.Description}" />
+                        </StackPanel>
+                        <ToggleButton
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            IsChecked="{Binding AutoReconnect, Mode=TwoWay}"
+                            Style="{StaticResource SettingToggleSwitch}" />
+                    </Grid>
+
+                    <TextBlock
+                        Grid.Row="7"
+                        Margin="0,14,0,0"
+                        VerticalAlignment="Bottom"
+                        Style="{StaticResource CaptionText}"
+                        Text="{DynamicResource Setting.Automation.Note}" />
                 </Grid>
             </Border>
-
-            <TextBlock
-                Grid.Row="5"
-                Margin="4,10,4,0"
-                HorizontalAlignment="Right"
-                Style="{StaticResource CaptionText}"
-                Text="{DynamicResource Setting.AutoSave}" />
         </Grid>
-    </ScrollViewer>
+
+        <Border Grid.Row="2" Style="{StaticResource SettingCard}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="240" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Update.Settings.Title}" />
+                    <TextBlock
+                        Margin="0,4,0,0"
+                        Style="{StaticResource CaptionText}"
+                        Text="{DynamicResource Update.Settings.Description}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="{Binding UpdateStatus}"
+                        Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                    <ProgressBar
+                        Height="12"
+                        Margin="0,8,0,0"
+                        Maximum="100"
+                        Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}"
+                        Value="{Binding UpdateProgress, Mode=OneWay}" />
+                    <TextBlock
+                        Margin="0,6,0,0"
+                        Foreground="{DynamicResource DangerBrush}"
+                        Text="{Binding UpdateErrorMessage}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding UpdateErrorMessage}" />
+                </StackPanel>
+                <Button
+                    Grid.Column="4"
+                    VerticalAlignment="Center"
+                    Command="{Binding CheckForUpdatesCommand}"
+                    Content="{DynamicResource Update.Settings.Check}"
+                    Style="{DynamicResource ButtonPrimary}" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="4" Style="{StaticResource SettingCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="16" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitle}" Text="{DynamicResource Setting.Diagnostics}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Style="{StaticResource CaptionText}"
+                            Text="{DynamicResource Setting.Diagnostics.Summary}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Command="{Binding DataContext.OpenDiagnosticsCommand, RelativeSource={RelativeSource AncestorType={x:Type views:SettingView}}}"
+                        Content="{DynamicResource Setting.Diagnostics.Open}"
+                        Style="{DynamicResource ButtonPrimary}" />
+                </Grid>
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Setting.Diagnostics.Client}" />
+                            <StackPanel Margin="0,7,0,0" Orientation="Horizontal">
+                                <Ellipse
+                                    Width="9"
+                                    Height="9"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="{x:Type Ellipse}">
+                                            <Setter Property="Fill" Value="#909090" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Connected}">
+                                                    <Setter Property="Fill" Value="#45B97C" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Connecting}">
+                                                    <Setter Property="Fill" Value="{DynamicResource InfoBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Reconnecting}">
+                                                    <Setter Property="Fill" Value="{DynamicResource WarningBrush}" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ConnectionState}" Value="{x:Static models:ConnectionState.Error}">
+                                                    <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock FontWeight="SemiBold" Text="{Binding ConnectionStatus}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Setting.Diagnostics.Version}" />
+                            <TextBlock
+                                Margin="0,7,0,0"
+                                FontWeight="SemiBold"
+                                Text="{Binding ApplicationVersion, StringFormat=v{0}}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CaptionText}" Text="{DynamicResource Setting.Diagnostics.LogEntries}" />
+                            <TextBlock Margin="0,7,0,0" FontWeight="SemiBold">
+                                <Run Text="{Binding LogCount, Mode=OneWay}" />
+                                <Run Text=" / " />
+                                <Run Text="{Binding LogCapacity, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <TextBlock
+                    Grid.Row="5"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    Style="{StaticResource CaptionText}"
+                    Text="{DynamicResource Setting.AutoSave}"
+                    TextBlock.FontWeight="Bold" />
+            </Grid>
+        </Border>
+
+
+    </Grid>
 </UserControl>
