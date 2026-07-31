@@ -6,18 +6,30 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="clr-namespace:Prometheus.Core.Models;assembly=Prometheus.Core"
     xmlns:prism="http://prismlibrary.com/"
-    xmlns:views="clr-namespace:Prometheus.Modules.Setting.Views"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Setting.ViewModels"
+    xmlns:views="clr-namespace:Prometheus.Modules.Setting.Views"
     d:DataContext="{d:DesignInstance Type=viewmodels:PreferenceViewModel}"
     d:DesignHeight="660"
     d:DesignWidth="1080"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <Style x:Key="SettingCard" BasedOn="{StaticResource PageCard}" TargetType="{x:Type Border}" />
-        <Style x:Key="SectionTitle" BasedOn="{StaticResource PageSectionTitle}" TargetType="{x:Type TextBlock}" />
-        <Style x:Key="SettingName" BasedOn="{StaticResource PageFieldTitle}" TargetType="{x:Type TextBlock}" />
-        <Style x:Key="CaptionText" BasedOn="{StaticResource PageCaption}" TargetType="{x:Type TextBlock}" />
+        <Style
+            x:Key="SettingCard"
+            BasedOn="{StaticResource PageCard}"
+            TargetType="{x:Type Border}" />
+        <Style
+            x:Key="SectionTitle"
+            BasedOn="{StaticResource PageSectionTitle}"
+            TargetType="{x:Type TextBlock}" />
+        <Style
+            x:Key="SettingName"
+            BasedOn="{StaticResource PageFieldTitle}"
+            TargetType="{x:Type TextBlock}" />
+        <Style
+            x:Key="CaptionText"
+            BasedOn="{StaticResource PageCaption}"
+            TargetType="{x:Type TextBlock}" />
         <Style x:Key="ThemeChoiceItem" TargetType="{x:Type ListBoxItem}">
             <Setter Property="Margin" Value="0,0,8,0" />
             <Setter Property="Padding" Value="0" />
@@ -47,7 +59,10 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="MetricCard" BasedOn="{StaticResource PageMetricCard}" TargetType="{x:Type Border}" />
+        <Style
+            x:Key="MetricCard"
+            BasedOn="{StaticResource PageMetricCard}"
+            TargetType="{x:Type Border}" />
         <Style x:Key="SettingToggleSwitch" TargetType="{x:Type ToggleButton}">
             <Setter Property="Width" Value="40" />
             <Setter Property="Height" Value="24" />
@@ -149,9 +164,7 @@
         HorizontalContentAlignment="Stretch"
         HorizontalScrollBarVisibility="Disabled"
         VerticalScrollBarVisibility="Auto">
-        <Grid
-            Margin="0,0,0,16"
-            HorizontalAlignment="Stretch">
+        <Grid Margin="0,0,0,16" HorizontalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="12" />
@@ -207,9 +220,7 @@
                             </ComboBox>
                         </Grid>
 
-                        <Border
-                            Grid.Row="4"
-                            Background="{DynamicResource BorderBrush}" />
+                        <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
 
                         <Grid Grid.Row="6">
                             <Grid.RowDefinitions>
@@ -227,14 +238,14 @@
                             <ListBox
                                 Grid.Row="2"
                                 Height="80"
-                                HorizontalAlignment="Left"
                                 Padding="0"
+                                HorizontalAlignment="Left"
                                 Background="Transparent"
                                 BorderThickness="0"
                                 ItemContainerStyle="{StaticResource ThemeChoiceItem}"
-                                SelectedIndex="{Binding SelectedThemeIndex, Mode=TwoWay}"
                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                SelectedIndex="{Binding SelectedThemeIndex, Mode=TwoWay}">
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <StackPanel Orientation="Horizontal" />
@@ -254,7 +265,10 @@
                                                         Background="#E1E5EA"
                                                         CornerRadius="4,0,0,4" />
                                                     <StackPanel Margin="26,8,7,7">
-                                                        <Border Height="7" Background="White" CornerRadius="2" />
+                                                        <Border
+                                                            Height="7"
+                                                            Background="White"
+                                                            CornerRadius="2" />
                                                         <Border
                                                             Height="16"
                                                             Margin="0,5,0,0"
@@ -285,7 +299,10 @@
                                                         Background="#24272E"
                                                         CornerRadius="4,0,0,4" />
                                                     <StackPanel Margin="26,8,7,7">
-                                                        <Border Height="7" Background="#343842" CornerRadius="2" />
+                                                        <Border
+                                                            Height="7"
+                                                            Background="#343842"
+                                                            CornerRadius="2" />
                                                         <Border
                                                             Height="16"
                                                             Margin="0,5,0,0"
@@ -320,7 +337,10 @@
                                                             HorizontalAlignment="Left"
                                                             Background="#E1E5EA" />
                                                         <StackPanel Margin="13,8,4,7">
-                                                            <Border Height="7" Background="White" CornerRadius="2" />
+                                                            <Border
+                                                                Height="7"
+                                                                Background="White"
+                                                                CornerRadius="2" />
                                                             <Border
                                                                 Height="16"
                                                                 Margin="0,5,0,0"
@@ -334,7 +354,10 @@
                                                             HorizontalAlignment="Left"
                                                             Background="#24272E" />
                                                         <StackPanel Margin="13,8,4,7">
-                                                            <Border Height="7" Background="#343842" CornerRadius="2" />
+                                                            <Border
+                                                                Height="7"
+                                                                Background="#343842"
+                                                                CornerRadius="2" />
                                                             <Border
                                                                 Height="16"
                                                                 Margin="0,5,0,0"
@@ -396,9 +419,7 @@
                                 Style="{StaticResource SettingToggleSwitch}" />
                         </Grid>
 
-                        <Border
-                            Grid.Row="4"
-                            Background="{DynamicResource BorderBrush}" />
+                        <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
 
                         <Grid Grid.Row="6">
                             <Grid.ColumnDefinitions>

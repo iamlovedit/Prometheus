@@ -10,7 +10,5 @@
     d:DataContext="{d:DesignInstance Type=viewmodels:SystemViewModel}"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <hc:UniformSpacingPanel Margin="12">
-        
-    </hc:UniformSpacingPanel>
+    <hc:UniformSpacingPanel Margin="12" />
 </UserControl>

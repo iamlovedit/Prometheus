@@ -76,9 +76,7 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding CanOpenProfile}" Value="True" />
-                        <Condition
-                            Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type Button}}, Path=IsMouseOver}"
-                            Value="True" />
+                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type Button}}, Path=IsMouseOver}" Value="True" />
                     </MultiDataTrigger.Conditions>
                     <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
                 </MultiDataTrigger>
@@ -367,9 +365,7 @@
             </Grid>
         </Border>
 
-        <Grid
-            Grid.Row="2"
-            Visibility="{Binding HasRoster, Converter={StaticResource Boolean2VisibilityConverter}}">
+        <Grid Grid.Row="2" Visibility="{Binding HasRoster, Converter={StaticResource Boolean2VisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition Width="12" />
@@ -405,7 +401,10 @@
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
                             <TextBlock Style="{StaticResource LiveCaption}" Text="{DynamicResource Match.Live.Recent20}" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource LiveCaption}" Text="{Binding MyTeamStatusText}" />
+                            <TextBlock
+                                Margin="8,0,0,0"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{Binding MyTeamStatusText}" />
                         </StackPanel>
                     </Grid>
                     <ItemsControl
@@ -444,7 +443,10 @@
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
                             <TextBlock Style="{StaticResource LiveCaption}" Text="{DynamicResource Match.Live.Recent20}" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource LiveCaption}" Text="{Binding TheirTeamStatusText}" />
+                            <TextBlock
+                                Margin="8,0,0,0"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{Binding TheirTeamStatusText}" />
                         </StackPanel>
                     </Grid>
                     <ItemsControl

@@ -14,19 +14,26 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <Grid Margin="4">
-        <Grid.RowDefinitions><RowDefinition Height="76" /><RowDefinition Height="12" /><RowDefinition /></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
         <Border Style="{DynamicResource PageHeaderCard}">
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
                 <Button
-                    Width="36"
-                    Height="36"
-                    Margin="0,0,14,0"
-                    hc:IconElement.Width="16"
-                    hc:IconElement.Height="16"
+                    Width="32"
+                    Height="32"
+                    Margin="0,0,12,0"
+                    Padding="0"
                     hc:IconElement.Geometry="{StaticResource BackGeometry}"
+                    hc:IconElement.Height="16"
+                    hc:IconElement.Width="16"
                     Command="{Binding BackCommand}"
-                    Style="{DynamicResource ButtonPrimary}"
                     ToolTip="{DynamicResource Generic.Back}" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Career.MatchHistory.Title}" />
@@ -35,10 +42,20 @@
             </Grid>
         </Border>
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="280" /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
             <Border Style="{DynamicResource PageCard}">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition /><RowDefinition Height="12" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Career.MatchHistory.List}" />
                     <local:MatchList
                         Grid.Row="2"
@@ -46,24 +63,33 @@
                         SelectedItem="{Binding SelectedMatch}"
                         SelectionChangedCommand="{Binding MatchChangedCommand}" />
                     <Grid Grid.Row="4">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition /><ColumnDefinition Width="36" /></Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="36" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="36" />
+                        </Grid.ColumnDefinitions>
                         <Button
                             Width="32"
                             Height="32"
-                            hc:IconElement.Width="14"
-                            hc:IconElement.Height="14"
                             hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
+                            hc:IconElement.Height="14"
+                            hc:IconElement.Width="14"
                             Command="{Binding PreviousPageCommand}"
                             IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}"
                             Style="{DynamicResource ButtonIcon}" />
-                        <TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding CurrentPage}" />
+                        <TextBlock
+                            Grid.Column="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontWeight="SemiBold"
+                            Text="{Binding CurrentPage}" />
                         <Button
                             Grid.Column="2"
                             Width="32"
                             Height="32"
-                            hc:IconElement.Width="14"
-                            hc:IconElement.Height="14"
                             hc:IconElement.Geometry="{DynamicResource NextGeometry}"
+                            hc:IconElement.Height="14"
+                            hc:IconElement.Width="14"
                             Command="{Binding NextPageCommand}"
                             IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}"
                             Style="{DynamicResource ButtonIcon}" />
@@ -72,20 +98,42 @@
             </Border>
             <Border Grid.Column="2" Style="{DynamicResource PageCard}">
                 <Grid>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition /></Grid.RowDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Career.MatchHistory.Detail}" />
                     <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition /><ColumnDefinition Width="8" /><ColumnDefinition /><ColumnDefinition Width="8" />
-                            <ColumnDefinition /><ColumnDefinition Width="8" /><ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition />
                         </Grid.ColumnDefinitions>
-                        <Border Style="{DynamicResource PageMetricCard}"><local:StatusBar Title="{DynamicResource Match.Date}" Value="{Binding MatchDetail.CreationDate}" /></Border>
-                        <Border Grid.Column="2" Style="{DynamicResource PageMetricCard}"><local:StatusBar Title="{DynamicResource Match.GameMode}" Value="{Binding MatchDetail.GameMode}" /></Border>
-                        <Border Grid.Column="4" Style="{DynamicResource PageMetricCard}"><local:StatusBar Title="{DynamicResource Match.GameDuration}" Value="{Binding MatchDetail.Duration}" /></Border>
-                        <Border Grid.Column="6" Style="{DynamicResource PageMetricCard}"><local:StatusBar Title="{DynamicResource Match.Kill}" Value="{Binding MatchDetail.Kills}" /></Border>
+                        <Border Style="{DynamicResource PageMetricCard}">
+                            <local:StatusBar Title="{DynamicResource Match.Date}" Value="{Binding MatchDetail.CreationDate}" />
+                        </Border>
+                        <Border Grid.Column="2" Style="{DynamicResource PageMetricCard}">
+                            <local:StatusBar Title="{DynamicResource Match.GameMode}" Value="{Binding MatchDetail.GameMode}" />
+                        </Border>
+                        <Border Grid.Column="4" Style="{DynamicResource PageMetricCard}">
+                            <local:StatusBar Title="{DynamicResource Match.GameDuration}" Value="{Binding MatchDetail.Duration}" />
+                        </Border>
+                        <Border Grid.Column="6" Style="{DynamicResource PageMetricCard}">
+                            <local:StatusBar Title="{DynamicResource Match.Kill}" Value="{Binding MatchDetail.Kills}" />
+                        </Border>
                     </Grid>
                     <Grid Grid.Row="4">
-                        <hc:LoadingCircle Panel.ZIndex="2" Style="{DynamicResource LoadingCircleBaseStyle}" Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        <hc:LoadingCircle
+                            Panel.ZIndex="2"
+                            Style="{DynamicResource LoadingCircleBaseStyle}"
+                            Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
                         <ScrollViewer
                             HorizontalContentAlignment="Stretch"
                             HorizontalScrollBarVisibility="Auto"
@@ -94,14 +142,22 @@
                             <StackPanel MinWidth="760">
                                 <Border Style="{DynamicResource PageMetricCard}">
                                     <Grid>
-                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="8" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="8" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
                                         <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Career.MatchHistory.BlueTeam}" />
                                         <local:DetailControl Grid.Row="2" Team="{Binding BlueTeam}" />
                                     </Grid>
                                 </Border>
                                 <Border Margin="0,12,0,0" Style="{DynamicResource PageMetricCard}">
                                     <Grid>
-                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="8" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="8" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
                                         <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Career.MatchHistory.PurpleTeam}" />
                                         <local:DetailControl Grid.Row="2" Team="{Binding PurPleTeam}" />
                                     </Grid>

@@ -20,10 +20,10 @@
 
         <hc:UniformSpacingPanel
             Grid.Row="0"
+            VerticalAlignment="Center"
             HorizontalSpacing="10"
             ItemVerticalAlignment="Center"
-            Orientation="Horizontal"
-            VerticalAlignment="Center">
+            Orientation="Horizontal">
             <TextBox
                 Width="220"
                 Height="34"
@@ -50,13 +50,12 @@
             <ToggleButton
                 Height="34"
                 VerticalContentAlignment="Center"
-                IsChecked="{Binding AutoScroll}"
-                Content="{DynamicResource Setting.Log.AutoScroll}" />
+                Content="{DynamicResource Setting.Log.AutoScroll}"
+                IsChecked="{Binding AutoScroll}" />
             <ToggleButton
                 Height="34"
                 VerticalContentAlignment="Center"
-                IsChecked="{Binding IsPaused}"
-                >
+                IsChecked="{Binding IsPaused}">
                 <TextBlock>
                     <TextBlock.Style>
                         <Style TargetType="{x:Type TextBlock}">
@@ -96,9 +95,9 @@
                     ItemsSource="{Binding Entries}"
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                    Visibility="{Binding HasVisibleEntries, Converter={StaticResource Boolean2VisibilityConverter}}"
                     VirtualizingPanel.IsVirtualizing="True"
-                    VirtualizingPanel.VirtualizationMode="Recycling">
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+                    Visibility="{Binding HasVisibleEntries, Converter={StaticResource Boolean2VisibilityConverter}}">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="Padding" Value="8,2" />

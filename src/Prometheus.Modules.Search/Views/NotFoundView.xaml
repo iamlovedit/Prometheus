@@ -14,7 +14,11 @@
         BorderThickness="1"
         CornerRadius="8">
         <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="36" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
@@ -25,7 +29,10 @@
                 Text="&#xe688;" />
             <StackPanel Grid.Column="2" VerticalAlignment="Center">
                 <TextBlock FontWeight="SemiBold" Text="{DynamicResource Search.UserNotFound}" />
-                <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}" Text="{DynamicResource Search.NotFound.Description}" />
+                <TextBlock
+                    Margin="0,3,0,0"
+                    Style="{DynamicResource PageCaption}"
+                    Text="{DynamicResource Search.NotFound.Description}" />
             </StackPanel>
         </Grid>
     </Border>

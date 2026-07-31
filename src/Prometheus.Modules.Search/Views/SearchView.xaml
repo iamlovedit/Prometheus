@@ -14,21 +14,38 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <Grid Margin="4">
-        <Grid.RowDefinitions><RowDefinition Height="76" /><RowDefinition Height="12" /><RowDefinition /></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
         <Border Style="{DynamicResource PageHeaderCard}">
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Menu.Search}" />
                 <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Search.Description}" />
             </StackPanel>
         </Border>
-        <Border Grid.Row="2" VerticalAlignment="Top" Style="{DynamicResource PageCard}">
+        <Border
+            Grid.Row="2"
+            VerticalAlignment="Top"
+            Style="{DynamicResource PageCard}">
             <Grid>
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid>
-                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="32" /><ColumnDefinition Width="420" /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="32" />
+                        <ColumnDefinition Width="420" />
+                    </Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Search.Section.Title}" />
-                        <TextBlock Margin="0,4,0,0" Style="{DynamicResource PageCaption}" Text="{DynamicResource Search.SearchNameTips}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            Style="{DynamicResource PageCaption}"
+                            Text="{DynamicResource Search.SearchNameTips}" />
                     </StackPanel>
                     <hc:SearchBar
                         Grid.Column="2"
@@ -40,7 +57,10 @@
                         CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
                         Style="{DynamicResource SearchBarPlus}" />
                 </Grid>
-                <local:NotFoundView Grid.Row="1" Margin="0,14,0,0" Visibility="{Binding HasSummoner, Converter={StaticResource Boolean2VisibilityReConverter}}" />
+                <local:NotFoundView
+                    Grid.Row="1"
+                    Margin="0,14,0,0"
+                    Visibility="{Binding HasSummoner, Converter={StaticResource Boolean2VisibilityReConverter}}" />
             </Grid>
         </Border>
     </Grid>

@@ -14,23 +14,47 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <Grid Margin="4">
-        <Grid.RowDefinitions><RowDefinition Height="76" /><RowDefinition Height="12" /><RowDefinition /></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="76" />
+            <RowDefinition Height="12" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
         <Border Style="{DynamicResource PageHeaderCard}">
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Menu.Inventory}" />
                 <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Inventory.Description}" />
             </StackPanel>
         </Border>
-        <TabControl Grid.Row="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Style="{DynamicResource TabControlInLine}">
-            <TabItem HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Header="{DynamicResource Inventory.Skins}">
+        <TabControl
+            Grid.Row="2"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            Style="{DynamicResource TabControlInLine}">
+            <TabItem
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch"
+                Header="{DynamicResource Inventory.Skins}">
                 <Grid Margin="0,12,0,0">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="240" /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="240" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
                     <Border Style="{DynamicResource PageCard}">
                         <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition Height="34" /><RowDefinition Height="12" /><RowDefinition /></Grid.RowDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="12" />
+                                <RowDefinition Height="34" />
+                                <RowDefinition Height="12" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
                             <StackPanel>
                                 <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Inventory.Skins}" />
-                                <TextBlock Margin="0,4,0,0" Style="{DynamicResource PageCaption}" Text="{DynamicResource Inventory.Skins.Description}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Style="{DynamicResource PageCaption}"
+                                    Text="{DynamicResource Inventory.Skins.Description}" />
                             </StackPanel>
                             <hc:SearchBar
                                 Grid.Row="2"
@@ -50,15 +74,35 @@
                                 VirtualizingPanel.IsContainerVirtualizable="True"
                                 VirtualizingPanel.IsVirtualizing="True"
                                 VirtualizingPanel.VirtualizationMode="Recycling">
-                                <i:Interaction.Triggers><i:EventTrigger EventName="SelectionChanged"><prism:InvokeCommandAction Command="{Binding SelectionChangedCommand}" /></i:EventTrigger></i:Interaction.Triggers>
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="SelectionChanged">
+                                        <prism:InvokeCommandAction Command="{Binding SelectionChangedCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Grid Height="58" Margin="2,1">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition Width="10" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                            <hc:Gravatar Width="46" Height="46" Style="{DynamicResource GravatarCircleImg}"><Image Source="{Binding IconUri}" /></hc:Gravatar>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="48" />
+                                                <ColumnDefinition Width="10" />
+                                                <ColumnDefinition />
+                                            </Grid.ColumnDefinitions>
+                                            <hc:Gravatar
+                                                Width="46"
+                                                Height="46"
+                                                Style="{DynamicResource GravatarCircleImg}">
+                                                <Image Source="{Binding IconUri}" />
+                                            </hc:Gravatar>
                                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                                <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Margin="0,4,0,0" Style="{DynamicResource PageCaption}" Text="{Binding Alias}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding Name}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Margin="0,4,0,0"
+                                                    Style="{DynamicResource PageCaption}"
+                                                    Text="{Binding Alias}"
+                                                    TextTrimming="CharacterEllipsis" />
                                             </StackPanel>
                                         </Grid>
                                     </DataTemplate>
@@ -73,20 +117,44 @@
                     </Border>
                     <Border Grid.Column="2" Style="{DynamicResource PageCard}">
                         <Grid>
-                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition /></Grid.RowDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="12" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
                             <Grid>
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="52" /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <hc:Gravatar Width="50" Height="50" Style="{DynamicResource GravatarCircleImg}"><Image Source="{Binding SelectedChampion.IconUri}" /></hc:Gravatar>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="52" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <hc:Gravatar
+                                    Width="50"
+                                    Height="50"
+                                    Style="{DynamicResource GravatarCircleImg}">
+                                    <Image Source="{Binding SelectedChampion.IconUri}" />
+                                </hc:Gravatar>
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{Binding SelectedChampion.Name}" />
-                                    <TextBlock Margin="0,4,0,0" Style="{DynamicResource PageCaption}" Text="{Binding SelectedChampion.Alias}" />
+                                    <TextBlock
+                                        Margin="0,4,0,0"
+                                        Style="{DynamicResource PageCaption}"
+                                        Text="{Binding SelectedChampion.Alias}" />
                                 </StackPanel>
                             </Grid>
-                            <TextBlock Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Inventory.Skins.Empty}">
+                            <TextBlock
+                                Grid.Row="2"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Text="{DynamicResource Inventory.Skins.Empty}">
                                 <TextBlock.Style>
                                     <Style BasedOn="{StaticResource PageCaption}" TargetType="{x:Type TextBlock}">
                                         <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers><DataTrigger Binding="{Binding Skins}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Skins}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
@@ -99,10 +167,18 @@
                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <ListBox.Style>
                                     <Style BasedOn="{StaticResource ListBoxBaseStyle}" TargetType="{x:Type ListBox}">
-                                        <Style.Triggers><DataTrigger Binding="{Binding Skins}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Skins}" Value="{x:Null}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </ListBox.Style>
-                                <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="2" />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border
@@ -113,8 +189,14 @@
                                             BorderThickness="1"
                                             CornerRadius="10">
                                             <Grid>
-                                                <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="42" /></Grid.RowDefinitions>
-                                                <Border Margin="6,6,6,0" Background="{DynamicResource SecondaryRegionBrush}" CornerRadius="8">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition />
+                                                    <RowDefinition Height="42" />
+                                                </Grid.RowDefinitions>
+                                                <Border
+                                                    Margin="6,6,6,0"
+                                                    Background="{DynamicResource SecondaryRegionBrush}"
+                                                    CornerRadius="8">
                                                     <Grid>
                                                         <Image Source="{Binding Uri}" Stretch="UniformToFill" />
                                                         <Button
@@ -123,29 +205,40 @@
                                                             Margin="0,0,8,8"
                                                             HorizontalAlignment="Right"
                                                             VerticalAlignment="Bottom"
-                                                            hc:IconElement.Width="16"
-                                                            hc:IconElement.Height="16"
                                                             hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
+                                                            hc:IconElement.Height="16"
+                                                            hc:IconElement.Width="16"
                                                             Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBox}}, Path=DataContext.DownloadCommand}"
                                                             CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=DataContext}"
                                                             ToolTip="{DynamicResource Inventory.Skins.Download}">
                                                             <Button.Style>
                                                                 <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
                                                                     <Setter Property="Visibility" Value="Collapsed" />
-                                                                    <Style.Triggers><DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>
                                                         </Button>
                                                     </Grid>
                                                 </Border>
-                                                <TextBlock Grid.Row="1" Margin="12,0" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Grid.Row="1"
+                                                    Margin="12,0"
+                                                    VerticalAlignment="Center"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding Name}"
+                                                    TextTrimming="CharacterEllipsis" />
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                                 <ListBox.ItemContainerStyle>
                                     <Style BasedOn="{StaticResource ListBoxItemBaseStyle}" TargetType="{x:Type ListBoxItem}">
-                                        <Setter Property="Padding" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                     </Style>
                                 </ListBox.ItemContainerStyle>
                             </ListBox>
@@ -153,15 +246,30 @@
                     </Border>
                 </Grid>
             </TabItem>
-            <TabItem HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Header="{DynamicResource Inventory.ProfileIcons}">
+            <TabItem
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch"
+                Header="{DynamicResource Inventory.ProfileIcons}">
                 <Border Margin="0,12,0,0" Style="{DynamicResource PageCard}">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="12" /><RowDefinition /><RowDefinition Height="12" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="12" />
+                            <RowDefinition />
+                            <RowDefinition Height="12" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid>
-                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Inventory.ProfileIcons}" />
-                                <TextBlock Margin="0,4,0,0" Style="{DynamicResource PageCaption}" Text="{DynamicResource Inventory.ProfileIcons.Description}" />
+                                <TextBlock
+                                    Margin="0,4,0,0"
+                                    Style="{DynamicResource PageCaption}"
+                                    Text="{DynamicResource Inventory.ProfileIcons.Description}" />
                             </StackPanel>
                             <hc:ComboBox
                                 Grid.Column="1"
@@ -184,27 +292,49 @@
                                 VirtualizingPanel.VirtualizationMode="Recycling"
                                 Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityReConverter}}">
                                 <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate><hc:UniformSpacingPanel HorizontalAlignment="Stretch" ChildWrapping="Wrap" ItemHorizontalAlignment="Center" Spacing="16" /></ItemsPanelTemplate>
+                                    <ItemsPanelTemplate>
+                                        <hc:UniformSpacingPanel
+                                            HorizontalAlignment="Stretch"
+                                            ChildWrapping="Wrap"
+                                            ItemHorizontalAlignment="Center"
+                                            Spacing="16" />
+                                    </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Width="142" Height="142" Padding="10" Background="{DynamicResource MainContentForegroundDrawingBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+                                        <Border
+                                            Width="142"
+                                            Height="142"
+                                            Padding="10"
+                                            Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="10">
                                             <Grid>
-                                                <hc:Gravatar Width="120" Height="120" Style="{DynamicResource GravatarCircleImg}"><Image Source="{Binding IconPath}" Stretch="UniformToFill" /></hc:Gravatar>
+                                                <hc:Gravatar
+                                                    Width="120"
+                                                    Height="120"
+                                                    Style="{DynamicResource GravatarCircleImg}">
+                                                    <Image Source="{Binding IconPath}" Stretch="UniformToFill" />
+                                                </hc:Gravatar>
                                                 <Button
                                                     Width="36"
                                                     Height="36"
                                                     HorizontalAlignment="Right"
                                                     VerticalAlignment="Bottom"
-                                                    hc:IconElement.Width="16"
-                                                    hc:IconElement.Height="16"
                                                     hc:IconElement.Geometry="{DynamicResource DownloadGeometry}"
+                                                    hc:IconElement.Height="16"
+                                                    hc:IconElement.Width="16"
                                                     Command="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBox}}, Path=DataContext.DownloadIconCommand}"
                                                     CommandParameter="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=DataContext}">
                                                     <Button.Style>
                                                         <Style BasedOn="{StaticResource ButtonIcon}" TargetType="{x:Type Button}">
                                                             <Setter Property="Visibility" Value="Collapsed" />
-                                                            <Style.Triggers><DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
                                                         </Style>
                                                     </Button.Style>
                                                 </Button>
@@ -214,8 +344,17 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </Grid>
-                        <hc:Pagination Grid.Row="4" HorizontalAlignment="Center" DataCountPerPage="{Binding SelectdCount}" MaxPageCount="{Binding PageCount}" PageIndex="{Binding PageIndex}">
-                            <i:Interaction.Triggers><i:EventTrigger EventName="PageUpdated"><prism:InvokeCommandAction Command="{Binding PageChangedCommand}" /></i:EventTrigger></i:Interaction.Triggers>
+                        <hc:Pagination
+                            Grid.Row="4"
+                            HorizontalAlignment="Center"
+                            DataCountPerPage="{Binding SelectdCount}"
+                            MaxPageCount="{Binding PageCount}"
+                            PageIndex="{Binding PageIndex}">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="PageUpdated">
+                                    <prism:InvokeCommandAction Command="{Binding PageChangedCommand}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
                         </hc:Pagination>
                     </Grid>
                 </Border>

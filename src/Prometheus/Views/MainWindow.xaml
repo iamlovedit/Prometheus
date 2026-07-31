@@ -1,6 +1,5 @@
 ﻿<hc:Window
     x:Class="Prometheus.Views.MainWindow"
-    x:Name="RootWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
@@ -10,6 +9,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.ViewModels"
+    x:Name="RootWindow"
     Title="{Binding Title}"
     Width="1280"
     Height="820"
@@ -47,24 +47,36 @@
                         </Style>
                     </hc:SideMenu.Resources>
 
-                    <hc:SideMenuItem Command="{Binding HomeCommand}" Header="{DynamicResource Menu.Home}" IsSelected="{Binding IsHomeSelected, Mode=OneWay}">
+                    <hc:SideMenuItem
+                        Command="{Binding HomeCommand}"
+                        Header="{DynamicResource Menu.Home}"
+                        IsSelected="{Binding IsHomeSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe609;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding CareerCommand}" Header="{DynamicResource Menu.Career}" IsSelected="{Binding IsCareerSelected, Mode=OneWay}">
+                    <hc:SideMenuItem
+                        Command="{Binding CareerCommand}"
+                        Header="{DynamicResource Menu.Career}"
+                        IsSelected="{Binding IsCareerSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe604;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
-                    <hc:SideMenuItem Command="{Binding InventoryCommand}" Header="{DynamicResource Menu.Inventory}" IsSelected="{Binding IsInventorySelected, Mode=OneWay}">
+                    <hc:SideMenuItem
+                        Command="{Binding InventoryCommand}"
+                        Header="{DynamicResource Menu.Inventory}"
+                        IsSelected="{Binding IsInventorySelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe607;" />
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding SearchCommand}" Header="{DynamicResource Menu.Search}" IsSelected="{Binding IsSearchSelected, Mode=OneWay}">
+                    <hc:SideMenuItem
+                        Command="{Binding SearchCommand}"
+                        Header="{DynamicResource Menu.Search}"
+                        IsSelected="{Binding IsSearchSelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe60c;" />
                         </hc:SideMenuItem.Icon>
@@ -80,7 +92,10 @@
                         </hc:SideMenuItem.Icon>
                     </hc:SideMenuItem>
 
-                    <hc:SideMenuItem Command="{Binding UtilityCommand}" Header="{DynamicResource Menu.Utility}" IsSelected="{Binding IsUtilitySelected, Mode=OneWay}">
+                    <hc:SideMenuItem
+                        Command="{Binding UtilityCommand}"
+                        Header="{DynamicResource Menu.Utility}"
+                        IsSelected="{Binding IsUtilitySelected, Mode=OneWay}">
                         <hc:SideMenuItem.Icon>
                             <TextBlock Text="&#xe627;" />
                         </hc:SideMenuItem.Icon>
@@ -101,11 +116,11 @@
             <Grid Grid.Column="1" Margin="12">
                 <ContentControl prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
                 <Border
-                    Panel.ZIndex="20"
                     Margin="24,8"
                     Padding="12,8"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Top"
+                    Panel.ZIndex="20"
                     Background="{DynamicResource RegionBrush}"
                     BorderBrush="{DynamicResource InfoBrush}"
                     BorderThickness="1"
@@ -152,16 +167,10 @@
                 Visibility="Visible">
                 <hc:NotifyIcon.ContextContent>
                     <ContextMenu DataContext="{Binding DataContext, ElementName=RootWindow}">
-                        <MenuItem
-                            Header="{Binding TrayClientStatus}"
-                            IsEnabled="False" />
-                        <MenuItem
-                            Header="{Binding TrayGameflowStatus}"
-                            IsEnabled="False" />
+                        <MenuItem Header="{Binding TrayClientStatus}" IsEnabled="False" />
+                        <MenuItem Header="{Binding TrayGameflowStatus}" IsEnabled="False" />
                         <Separator />
-                        <MenuItem
-                            Command="{Binding ShowMainWindowCommand}"
-                            Header="{DynamicResource Tray.ShowMainWindow}" />
+                        <MenuItem Command="{Binding ShowMainWindowCommand}" Header="{DynamicResource Tray.ShowMainWindow}" />
                         <MenuItem
                             Command="{Binding OpenMatchFromTrayCommand}"
                             Header="{DynamicResource Tray.OpenMatch}"
@@ -182,13 +191,9 @@
                                 IsChecked="{Binding IsTrayAutoReconnectEnabled, Mode=TwoWay}" />
                         </MenuItem>
                         <Separator />
-                        <MenuItem
-                            Command="{Binding OpenSettingsFromTrayCommand}"
-                            Header="{DynamicResource Menu.Setting}" />
+                        <MenuItem Command="{Binding OpenSettingsFromTrayCommand}" Header="{DynamicResource Menu.Setting}" />
                         <Separator />
-                        <MenuItem
-                            Click="ExitApplication_Click"
-                            Header="{DynamicResource Tray.Exit}" />
+                        <MenuItem Click="ExitApplication_Click" Header="{DynamicResource Tray.Exit}" />
                     </ContextMenu>
                 </hc:NotifyIcon.ContextContent>
             </hc:NotifyIcon>

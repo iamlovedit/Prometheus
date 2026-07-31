@@ -14,10 +14,22 @@
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
     <UserControl.Resources>
-        <Style x:Key="UtilityCard" BasedOn="{StaticResource PageCard}" TargetType="{x:Type Border}" />
-        <Style x:Key="SectionTitle" BasedOn="{StaticResource PageSectionTitle}" TargetType="{x:Type TextBlock}" />
-        <Style x:Key="FieldName" BasedOn="{StaticResource PageFieldTitle}" TargetType="{x:Type TextBlock}" />
-        <Style x:Key="CaptionText" BasedOn="{StaticResource PageCaption}" TargetType="{x:Type TextBlock}" />
+        <Style
+            x:Key="UtilityCard"
+            BasedOn="{StaticResource PageCard}"
+            TargetType="{x:Type Border}" />
+        <Style
+            x:Key="SectionTitle"
+            BasedOn="{StaticResource PageSectionTitle}"
+            TargetType="{x:Type TextBlock}" />
+        <Style
+            x:Key="FieldName"
+            BasedOn="{StaticResource PageFieldTitle}"
+            TargetType="{x:Type TextBlock}" />
+        <Style
+            x:Key="CaptionText"
+            BasedOn="{StaticResource PageCaption}"
+            TargetType="{x:Type TextBlock}" />
         <local:DivisionConverter x:Key="DivisionConverter" />
         <local:ReDivisionConverter x:Key="ReDivisionConverter" />
         <local:TierShowConverter x:Key="TierShowConverter" />
@@ -33,9 +45,7 @@
         <Border Style="{DynamicResource PageHeaderCard}">
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Menu.Utility}" />
-                <TextBlock
-                    Style="{DynamicResource PageDescription}"
-                    Text="{DynamicResource Utility.Description}" />
+                <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Utility.Description}" />
             </StackPanel>
         </Border>
 
@@ -44,9 +54,7 @@
             HorizontalContentAlignment="Stretch"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
-            <Grid
-                Margin="0,0,0,16"
-                HorizontalAlignment="Stretch">
+            <Grid Margin="0,0,0,16" HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="12" />
@@ -161,9 +169,7 @@
                                 </hc:ComboBox>
                             </Grid>
 
-                            <Border
-                                Grid.Row="4"
-                                Background="{DynamicResource BorderBrush}" />
+                            <Border Grid.Row="4" Background="{DynamicResource BorderBrush}" />
 
                             <Grid Grid.Row="6">
                                 <Grid.ColumnDefinitions>
@@ -221,7 +227,10 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0">
-                                <TextBlock Margin="0,0,0,7" Style="{StaticResource FieldName}" Text="{DynamicResource Match.Rank.Mode}" />
+                                <TextBlock
+                                    Margin="0,0,0,7"
+                                    Style="{StaticResource FieldName}"
+                                    Text="{DynamicResource Match.Rank.Mode}" />
                                 <ComboBox SelectedIndex="{Binding SelectedModeIndex, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Match.Rank.TFT}" />
                                     <ComboBoxItem Content="{DynamicResource Match.Rank.Solo}" />
@@ -230,7 +239,10 @@
                             </StackPanel>
 
                             <StackPanel Grid.Column="2">
-                                <TextBlock Margin="0,0,0,7" Style="{StaticResource FieldName}" Text="{DynamicResource Match.Rank.Tier}" />
+                                <TextBlock
+                                    Margin="0,0,0,7"
+                                    Style="{StaticResource FieldName}"
+                                    Text="{DynamicResource Match.Rank.Tier}" />
                                 <ComboBox SelectedIndex="{Binding SelectedTierIndex, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Unranked}" />
                                     <ComboBoxItem Content="{DynamicResource Career.Rank.Tier.Iron}" />
@@ -246,10 +258,11 @@
                                 </ComboBox>
                             </StackPanel>
 
-                            <StackPanel
-                                Grid.Column="4"
-                                Visibility="{Binding SelectedTierIndex, Converter={StaticResource TierShowConverter}}">
-                                <TextBlock Margin="0,0,0,7" Style="{StaticResource FieldName}" Text="{DynamicResource Match.Rank.Division}" />
+                            <StackPanel Grid.Column="4" Visibility="{Binding SelectedTierIndex, Converter={StaticResource TierShowConverter}}">
+                                <TextBlock
+                                    Margin="0,0,0,7"
+                                    Style="{StaticResource FieldName}"
+                                    Text="{DynamicResource Match.Rank.Division}" />
                                 <Grid>
                                     <ComboBox
                                         IsEnabled="False"
@@ -257,9 +270,7 @@
                                         Visibility="{Binding SelectedTierIndex, Converter={StaticResource ReDivisionConverter}}">
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.NA}" />
                                     </ComboBox>
-                                    <ComboBox
-                                        SelectedIndex="{Binding SelectedDivisionIndex, Mode=TwoWay}"
-                                        Visibility="{Binding SelectedTierIndex, Converter={StaticResource DivisionConverter}}">
+                                    <ComboBox SelectedIndex="{Binding SelectedDivisionIndex, Mode=TwoWay}" Visibility="{Binding SelectedTierIndex, Converter={StaticResource DivisionConverter}}">
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.I}" />
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.II}" />
                                         <ComboBoxItem Content="{DynamicResource Match.Rank.Divisions.III}" />
