@@ -341,6 +341,13 @@
     <sys:String x:Key="Match.Live.Data.Count">已获取 {0}/{1}</sys:String>
     <sys:String x:Key="Match.Live.Data.FullCount">数据完整 {0}/{1}</sys:String>
 
+    <sys:String x:Key="TextInput.ContextMenu.Undo">撤销</sys:String>
+    <sys:String x:Key="TextInput.ContextMenu.Cut">剪切</sys:String>
+    <sys:String x:Key="TextInput.ContextMenu.Copy">复制</sys:String>
+    <sys:String x:Key="TextInput.ContextMenu.Paste">粘贴</sys:String>
+    <sys:String x:Key="TextInput.ContextMenu.Delete">删除</sys:String>
+    <sys:String x:Key="TextInput.ContextMenu.SelectAll">全选</sys:String>
+
     <sys:String x:Key="Errors.EmptyLobbyName">房间名不能为空</sys:String>
     <sys:String x:Key="Infos.CreateLobbySuccesfully">创建自定义房间成功!</sys:String>
     <sys:String x:Key="Match.PurpleTeam">紫色方</sys:String>

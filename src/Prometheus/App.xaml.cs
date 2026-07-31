@@ -130,6 +130,7 @@ namespace Prometheus
                     .WriteTo.Sink(_logHistory.Sink)
                     .CreateLogger();
                 RegisterExceptionHandlers();
+                TextInputContextMenu.Register();
                 base.OnStartup(e);
             }
         }
