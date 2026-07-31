@@ -139,9 +139,7 @@
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{Binding SelectedChampion.Name}" />
                                     <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
-                                        <TextBlock
-                                            Style="{DynamicResource PageCaption}"
-                                            Text="{Binding SelectedChampion.Alias}" />
+                                        <TextBlock Style="{DynamicResource PageCaption}" Text="{Binding SelectedChampion.Alias}" />
                                         <StackPanel Orientation="Horizontal">
                                             <StackPanel.Style>
                                                 <Style TargetType="{x:Type StackPanel}">

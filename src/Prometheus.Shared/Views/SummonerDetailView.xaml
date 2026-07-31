@@ -21,12 +21,13 @@
             TargetType="{x:Type Button}">
             <Setter Property="Width" Value="36" />
             <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="hc:IconElement.Width" Value="16" />
             <Setter Property="hc:IconElement.Height" Value="16" />
         </Style>
         <DataTemplate x:Key="RankCardTemplate">
             <Border Style="{DynamicResource PageCard}">
-                <Grid>
+                <Grid VerticalAlignment="Center">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="14" />
@@ -181,223 +182,217 @@
                 <ColumnDefinition Width="12" />
                 <ColumnDefinition Width="240" />
             </Grid.ColumnDefinitions>
-            <ScrollViewer
-                HorizontalContentAlignment="Stretch"
-                HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto">
-                <Grid Margin="0,0,0,16" HorizontalAlignment="Stretch">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="280" />
-                        <RowDefinition Height="12" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Border
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12">
-                        <Border.Background>
-                            <ImageBrush ImageSource="{Binding BackgroundSkin}" Stretch="UniformToFill" />
-                        </Border.Background>
-                        <Grid>
-                            <Border CornerRadius="11">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                        <GradientStop Offset="0" Color="#22000000" />
-                                        <GradientStop Offset="0.52" Color="#66000000" />
-                                        <GradientStop Offset="1" Color="#E6000000" />
-                                    </LinearGradientBrush>
-                                </Border.Background>
+            <Grid HorizontalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition MinHeight="280" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                    <Border.Background>
+                        <ImageBrush ImageSource="{Binding BackgroundSkin}" Stretch="UniformToFill" />
+                    </Border.Background>
+                    <Grid>
+                        <Border CornerRadius="11">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Offset="0" Color="#22000000" />
+                                    <GradientStop Offset="0.52" Color="#66000000" />
+                                    <GradientStop Offset="1" Color="#E6000000" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Grid Margin="24,20">
+                            <Border
+                                Padding="10,5"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Background="#99000000"
+                                CornerRadius="14"
+                                Visibility="{Binding IsPublic, Converter={StaticResource Boolean2VisibilityReConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path
+                                        Width="14"
+                                        Height="14"
+                                        Data="{StaticResource LookGeometry}"
+                                        Fill="White"
+                                        Stretch="Uniform" />
+                                    <TextBlock
+                                        Margin="7,0,0,0"
+                                        FontWeight="SemiBold"
+                                        Foreground="White"
+                                        Text="{DynamicResource Career.Private}" />
+                                </StackPanel>
                             </Border>
-                            <Grid Margin="24,20">
-                                <Border
-                                    Padding="10,5"
-                                    HorizontalAlignment="Left"
-                                    VerticalAlignment="Top"
-                                    Background="#99000000"
-                                    CornerRadius="14"
-                                    Visibility="{Binding IsPublic, Converter={StaticResource Boolean2VisibilityReConverter}}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Path
-                                            Width="14"
-                                            Height="14"
-                                            Data="{StaticResource LookGeometry}"
-                                            Fill="White"
-                                            Stretch="Uniform" />
+                            <Grid VerticalAlignment="Bottom">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="112" />
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Width="112" Height="112">
+                                    <Grid.ToolTip>
+                                        <StackPanel>
+                                            <TextBlock><Run Text="{DynamicResource Career.Experience.Progress}" /><Run Text=": " /><Run Text="{Binding Summoner.PercentCompleteForNextLevel}" /><Run Text="%" /></TextBlock>
+                                            <TextBlock><Run Text="{DynamicResource Career.Experience.Earned}" /><Run Text=": " /><Run Text="{Binding Summoner.XpSinceLastLevel}" /></TextBlock>
+                                            <TextBlock><Run Text="{DynamicResource Career.Experience.Remaining}" /><Run Text=": " /><Run Text="{Binding Summoner.XpUntilNextLevel}" /></TextBlock>
+                                        </StackPanel>
+                                    </Grid.ToolTip>
+                                    <hc:CircleProgressBar
+                                        Width="112"
+                                        Height="112"
+                                        ArcThickness="4"
+                                        Background="#40FFFFFF"
+                                        Foreground="{DynamicResource InfoBrush}"
+                                        IsHitTestVisible="False"
+                                        Maximum="100"
+                                        Minimum="0"
+                                        RenderTransformOrigin="0.5,0.5"
+                                        ShowText="False"
+                                        Value="{Binding Summoner.PercentCompleteForNextLevel}">
+                                        <hc:CircleProgressBar.RenderTransform>
+                                            <RotateTransform Angle="180" />
+                                        </hc:CircleProgressBar.RenderTransform>
+                                    </hc:CircleProgressBar>
+                                    <hc:Gravatar
+                                        Width="98"
+                                        Height="98"
+                                        Style="{StaticResource GravatarCircleImg}">
+                                        <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
+                                    </hc:Gravatar>
+                                    <Border
+                                        Height="22"
+                                        MinWidth="36"
+                                        Padding="7,0"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Bottom"
+                                        Background="#E61C1C1C"
+                                        BorderBrush="{DynamicResource InfoBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="11">
                                         <TextBlock
-                                            Margin="7,0,0,0"
+                                            HorizontalAlignment="Center"
                                             FontWeight="SemiBold"
                                             Foreground="White"
-                                            Text="{DynamicResource Career.Private}" />
-                                    </StackPanel>
-                                </Border>
-                                <Grid VerticalAlignment="Bottom">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="112" />
-                                        <ColumnDefinition />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid Width="112" Height="112">
-                                        <Grid.ToolTip>
-                                            <StackPanel>
-                                                <TextBlock><Run Text="{DynamicResource Career.Experience.Progress}" /><Run Text=": " /><Run Text="{Binding Summoner.PercentCompleteForNextLevel}" /><Run Text="%" /></TextBlock>
-                                                <TextBlock><Run Text="{DynamicResource Career.Experience.Earned}" /><Run Text=": " /><Run Text="{Binding Summoner.XpSinceLastLevel}" /></TextBlock>
-                                                <TextBlock><Run Text="{DynamicResource Career.Experience.Remaining}" /><Run Text=": " /><Run Text="{Binding Summoner.XpUntilNextLevel}" /></TextBlock>
-                                            </StackPanel>
-                                        </Grid.ToolTip>
-                                        <hc:CircleProgressBar
-                                            Width="112"
-                                            Height="112"
-                                            ArcThickness="4"
-                                            Background="#40FFFFFF"
-                                            Foreground="{DynamicResource InfoBrush}"
-                                            IsHitTestVisible="False"
-                                            Maximum="100"
-                                            Minimum="0"
-                                            RenderTransformOrigin="0.5,0.5"
-                                            ShowText="False"
-                                            Value="{Binding Summoner.PercentCompleteForNextLevel}">
-                                            <hc:CircleProgressBar.RenderTransform>
-                                                <RotateTransform Angle="180" />
-                                            </hc:CircleProgressBar.RenderTransform>
-                                        </hc:CircleProgressBar>
-                                        <hc:Gravatar
-                                            Width="98"
-                                            Height="98"
-                                            Style="{StaticResource GravatarCircleImg}">
-                                            <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
-                                        </hc:Gravatar>
-                                        <Border
-                                            Height="22"
-                                            MinWidth="36"
-                                            Padding="7,0"
-                                            HorizontalAlignment="Center"
-                                            VerticalAlignment="Bottom"
-                                            Background="#E61C1C1C"
-                                            BorderBrush="{DynamicResource InfoBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="11">
-                                            <TextBlock
-                                                HorizontalAlignment="Center"
-                                                FontWeight="SemiBold"
-                                                Foreground="White"
-                                                Text="{Binding Summoner.SummonerLevel}" />
-                                        </Border>
-                                    </Grid>
-                                    <StackPanel
-                                        Grid.Column="1"
-                                        Margin="18,0,0,2"
-                                        VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock
-                                                FontSize="26"
-                                                FontWeight="Bold"
-                                                Foreground="White"
-                                                Text="{Binding Summoner.GameName}" />
-                                            <Button
-                                                Width="32"
-                                                Height="32"
-                                                Margin="4,0,0,0"
-                                                Padding="0"
-                                                hc:IconElement.Geometry="{DynamicResource CopyGeometry}"
-                                                hc:IconElement.Height="18"
-                                                hc:IconElement.Width="18"
-                                                Command="{Binding CopyCommand}"
-                                                Foreground="White"
-                                                Style="{DynamicResource ButtonIcon}"
-                                                ToolTip="{DynamicResource Career.Copy}" />
-                                        </StackPanel>
-                                        <TextBlock
-                                            Margin="0,5,0,0"
-                                            FontSize="14"
-                                            Foreground="White"><Run Text="#" /><Run Text="{Binding Summoner.TagLine}" /></TextBlock>
-                                    </StackPanel>
-                                    <Border Grid.Column="2" VerticalAlignment="Center">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="8" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock
-                                                FontSize="12"
-                                                FontWeight="SemiBold"
-                                                Foreground="#CCFFFFFF"
-                                                Text="{DynamicResource Career.Match.Last20}" />
-                                            <Grid Grid.Row="2">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="18" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="18" />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock
-                                                        FontSize="12"
-                                                        Foreground="#CCFFFFFF"
-                                                        Text="{DynamicResource Career.Match.Wins}" />
-                                                    <TextBlock
-                                                        Margin="0,3,0,0"
-                                                        FontSize="18"
-                                                        FontWeight="Bold"
-                                                        Foreground="#FF77DD77"
-                                                        Text="{Binding Wins}" />
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2">
-                                                    <TextBlock
-                                                        FontSize="12"
-                                                        Foreground="#CCFFFFFF"
-                                                        Text="{DynamicResource Career.Match.Losses}" />
-                                                    <TextBlock
-                                                        Margin="0,3,0,0"
-                                                        FontSize="18"
-                                                        FontWeight="Bold"
-                                                        Foreground="#FFFF7A6E"
-                                                        Text="{Binding Losses}" />
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="4">
-                                                    <TextBlock
-                                                        FontSize="12"
-                                                        Foreground="#CCFFFFFF"
-                                                        Text="{DynamicResource Career.Match.KDA}" />
-                                                    <TextBlock
-                                                        Margin="0,3,0,0"
-                                                        FontSize="18"
-                                                        FontWeight="Bold"
-                                                        Foreground="White"
-                                                        Text="{Binding KDA}" />
-                                                </StackPanel>
-                                            </Grid>
-                                        </Grid>
+                                            Text="{Binding Summoner.SummonerLevel}" />
                                     </Border>
                                 </Grid>
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="18,0,0,2"
+                                    VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock
+                                            FontSize="26"
+                                            FontWeight="Bold"
+                                            Foreground="White"
+                                            Text="{Binding Summoner.GameName}" />
+                                        <Button
+                                            Width="32"
+                                            Height="32"
+                                            Margin="4,0,0,0"
+                                            Padding="0"
+                                            hc:IconElement.Geometry="{DynamicResource CopyGeometry}"
+                                            hc:IconElement.Height="18"
+                                            hc:IconElement.Width="18"
+                                            Command="{Binding CopyCommand}"
+                                            Foreground="White"
+                                            Style="{DynamicResource ButtonIcon}"
+                                            ToolTip="{DynamicResource Career.Copy}" />
+                                    </StackPanel>
+                                    <TextBlock
+                                        Margin="0,5,0,0"
+                                        FontSize="14"
+                                        Foreground="White"><Run Text="#" /><Run Text="{Binding Summoner.TagLine}" /></TextBlock>
+                                </StackPanel>
+                                <Border Grid.Column="2" VerticalAlignment="Center">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="8" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="#CCFFFFFF"
+                                            Text="{DynamicResource Career.Match.Last20}" />
+                                        <Grid Grid.Row="2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="18" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="18" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    Foreground="#CCFFFFFF"
+                                                    Text="{DynamicResource Career.Match.Wins}" />
+                                                <TextBlock
+                                                    Margin="0,3,0,0"
+                                                    FontSize="18"
+                                                    FontWeight="Bold"
+                                                    Foreground="#FF77DD77"
+                                                    Text="{Binding Wins}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    Foreground="#CCFFFFFF"
+                                                    Text="{DynamicResource Career.Match.Losses}" />
+                                                <TextBlock
+                                                    Margin="0,3,0,0"
+                                                    FontSize="18"
+                                                    FontWeight="Bold"
+                                                    Foreground="#FFFF7A6E"
+                                                    Text="{Binding Losses}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="4">
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    Foreground="#CCFFFFFF"
+                                                    Text="{DynamicResource Career.Match.KDA}" />
+                                                <TextBlock
+                                                    Margin="0,3,0,0"
+                                                    FontSize="18"
+                                                    FontWeight="Bold"
+                                                    Foreground="White"
+                                                    Text="{Binding KDA}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
                             </Grid>
                         </Grid>
-                    </Border>
-                    <Grid Grid.Row="2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <ContentControl
-                            HorizontalContentAlignment="Stretch"
-                            Content="{Binding Solo}"
-                            ContentTemplate="{StaticResource RankCardTemplate}"
-                            Tag="{DynamicResource Career.Rank.Solo}"
-                            ToolTip="{Binding SoloIcon}"
-                            ToolTipService.IsEnabled="False" />
-                        <ContentControl
-                            Grid.Column="2"
-                            HorizontalContentAlignment="Stretch"
-                            Content="{Binding Flex}"
-                            ContentTemplate="{StaticResource RankCardTemplate}"
-                            Tag="{DynamicResource Career.Rank.Flex}"
-                            ToolTip="{Binding FlexIcon}"
-                            ToolTipService.IsEnabled="False" />
                     </Grid>
+                </Border>
+                <Grid Grid.Row="1" Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <ContentControl
+                        HorizontalContentAlignment="Stretch"
+                        Content="{Binding Solo}"
+                        ContentTemplate="{StaticResource RankCardTemplate}"
+                        Tag="{DynamicResource Career.Rank.Solo}"
+                        ToolTip="{Binding SoloIcon}"
+                        ToolTipService.IsEnabled="False" />
+                    <ContentControl
+                        Grid.Column="2"
+                        HorizontalContentAlignment="Stretch"
+                        Content="{Binding Flex}"
+                        ContentTemplate="{StaticResource RankCardTemplate}"
+                        Tag="{DynamicResource Career.Rank.Flex}"
+                        ToolTip="{Binding FlexIcon}"
+                        ToolTipService.IsEnabled="False" />
                 </Grid>
-            </ScrollViewer>
+            </Grid>
             <Border
                 Grid.Column="2"
                 Padding="8"

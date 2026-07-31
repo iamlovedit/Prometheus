@@ -71,6 +71,7 @@
                         <Button
                             Width="32"
                             Height="32"
+                            Padding="0"
                             hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
                             hc:IconElement.Height="14"
                             hc:IconElement.Width="14"
@@ -87,6 +88,7 @@
                             Grid.Column="2"
                             Width="32"
                             Height="32"
+                            Padding="0"
                             hc:IconElement.Geometry="{DynamicResource NextGeometry}"
                             hc:IconElement.Height="14"
                             hc:IconElement.Width="14"
