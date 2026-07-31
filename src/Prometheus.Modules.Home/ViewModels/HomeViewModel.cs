@@ -23,6 +23,7 @@ namespace Prometheus.Modules.Home.ViewModels
         private readonly IResourceService _resourceService;
         private readonly IClientService _clientService;
         private readonly DispatcherTimer _displayTimer;
+        private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
 
         private CancellationTokenSource _dashboardCts;
         private int _dashboardVersion;
@@ -51,6 +52,9 @@ namespace Prometheus.Modules.Home.ViewModels
             _gameResourceManager = gameResourceManager;
             _resourceService = resourceService;
             _clientService = clientService;
+            _snapshotDispatcher = new LatestValueDispatcher<LiveMatchSnapshot>(
+                action => Dispatch(action, DispatcherPriority.Background),
+                ApplySnapshot);
 
             MyTeam = [];
             TheirTeam = [];
@@ -379,7 +383,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void HandleSnapshotChanged(object sender, LiveMatchSnapshotChangedEventArgs args)
         {
-            Dispatch(() => ApplySnapshot(args.Snapshot));
+            _snapshotDispatcher.Publish(args?.Snapshot ?? LiveMatchSnapshot.Empty);
         }
 
         private void HandleAutomationChanged(object sender, EventArgs args)
@@ -1121,12 +1125,13 @@ namespace Prometheus.Modules.Home.ViewModels
             }
         }
 
-        private static void Dispatch(Action action)
+        private static void Dispatch(Action action,
+            DispatcherPriority priority = DispatcherPriority.Normal)
         {
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher is not null && !dispatcher.CheckAccess())
             {
-                dispatcher.BeginInvoke(action);
+                dispatcher.BeginInvoke(priority, action);
                 return;
             }
 

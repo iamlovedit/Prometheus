@@ -7,6 +7,7 @@ using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
+using Prometheus.Core.Mvvm;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
 using Prometheus.Modules.Search;
@@ -16,6 +17,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Serilog;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Prometheus.ViewModels
 {
@@ -34,6 +36,7 @@ namespace Prometheus.ViewModels
         private readonly IGameAutomationSettings _automationSettings;
         private readonly IUpdateService _updateService;
         private readonly IDialogService _dialogService;
+        private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
         private bool _updateDialogShown;
 
         private GameflowPhase _lastAlertPhase = GameflowPhase.Unknown;
@@ -63,6 +66,9 @@ namespace Prometheus.ViewModels
             _automationSettings = automationSettings;
             _updateService = updateService;
             _dialogService = dialogService;
+            _snapshotDispatcher = new LatestValueDispatcher<LiveMatchSnapshot>(
+                action => Dispatch(action, DispatcherPriority.Background),
+                ApplySnapshot);
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _automationSettings.Changed += HandleAutomationSettingsChanged;
@@ -73,6 +79,7 @@ namespace Prometheus.ViewModels
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(HandleLanguageChanged);
             _eventAggregator.GetEvent<WindowClosingEvent>().Subscribe(HandleWindowClosing);
 
+            UpdateTrayLocalizedText();
             UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
             RefreshUpdateState();
         }
@@ -146,6 +153,62 @@ namespace Prometheus.ViewModels
         {
             get => _isTrayReadyCheckAvailable;
             private set => SetProperty(ref _isTrayReadyCheckAvailable, value);
+        }
+
+        private string _trayShowMainWindowText;
+        public string TrayShowMainWindowText
+        {
+            get => _trayShowMainWindowText;
+            private set => SetProperty(ref _trayShowMainWindowText, value);
+        }
+
+        private string _trayOpenMatchText;
+        public string TrayOpenMatchText
+        {
+            get => _trayOpenMatchText;
+            private set => SetProperty(ref _trayOpenMatchText, value);
+        }
+
+        private string _trayAcceptText;
+        public string TrayAcceptText
+        {
+            get => _trayAcceptText;
+            private set => SetProperty(ref _trayAcceptText, value);
+        }
+
+        private string _trayAutomationText;
+        public string TrayAutomationText
+        {
+            get => _trayAutomationText;
+            private set => SetProperty(ref _trayAutomationText, value);
+        }
+
+        private string _trayAutoAcceptText;
+        public string TrayAutoAcceptText
+        {
+            get => _trayAutoAcceptText;
+            private set => SetProperty(ref _trayAutoAcceptText, value);
+        }
+
+        private string _trayAutoReconnectText;
+        public string TrayAutoReconnectText
+        {
+            get => _trayAutoReconnectText;
+            private set => SetProperty(ref _trayAutoReconnectText, value);
+        }
+
+        private string _traySettingsText;
+        public string TraySettingsText
+        {
+            get => _traySettingsText;
+            private set => SetProperty(ref _traySettingsText, value);
+        }
+
+        private string _trayExitText;
+        public string TrayExitText
+        {
+            get => _trayExitText;
+            private set => SetProperty(ref _trayExitText, value);
         }
 
         public bool IsTrayAutoAcceptEnabled
@@ -290,6 +353,7 @@ namespace Prometheus.ViewModels
         {
             UpdateAlertText(_matchService.Current?.GameflowPhase ?? GameflowPhase.Unknown);
             UpdateWindowTitle(_currentMenu);
+            UpdateTrayLocalizedText();
             UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
         }
 
@@ -316,7 +380,7 @@ namespace Prometheus.ViewModels
 
         private void HandleSnapshotChanged(object sender, LiveMatchSnapshotChangedEventArgs args)
         {
-            Dispatch(() => ApplySnapshot(args.Snapshot));
+            _snapshotDispatcher.Publish(args?.Snapshot ?? LiveMatchSnapshot.Empty);
         }
 
         private void ApplySnapshot(LiveMatchSnapshot snapshot)
@@ -466,6 +530,18 @@ namespace Prometheus.ViewModels
                                             StringComparison.OrdinalIgnoreCase);
         }
 
+        private void UpdateTrayLocalizedText()
+        {
+            TrayShowMainWindowText = Text("Tray.ShowMainWindow");
+            TrayOpenMatchText = Text("Tray.OpenMatch");
+            TrayAcceptText = Text("HomePage.Action.Accept");
+            TrayAutomationText = Text("Tray.Automation");
+            TrayAutoAcceptText = Text("Setting.Automation.AutoAccept");
+            TrayAutoReconnectText = Text("Setting.Automation.AutoReconnect");
+            TraySettingsText = Text("Menu.Setting");
+            TrayExitText = Text("Tray.Exit");
+        }
+
         private string GetTrayGameflowText(LiveMatchSnapshot snapshot)
         {
             if (snapshot.ConnectionState != ConnectionState.Connected)
@@ -564,12 +640,13 @@ namespace Prometheus.ViewModels
             return _resourceService.FindResource<string>(key);
         }
 
-        private static void Dispatch(Action action)
+        private static void Dispatch(Action action,
+            DispatcherPriority priority = DispatcherPriority.Normal)
         {
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher is not null && !dispatcher.CheckAccess())
             {
-                dispatcher.BeginInvoke(action);
+                dispatcher.BeginInvoke(priority, action);
                 return;
             }
 

@@ -9,7 +9,6 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.ViewModels"
-    x:Name="RootWindow"
     Title="{Binding Title}"
     Width="1280"
     Height="820"
@@ -315,37 +314,37 @@
                 MouseDoubleClick="TrayIcon_MouseDoubleClick"
                 Text="{Binding TrayToolTip}"
                 Visibility="Visible">
-                <hc:NotifyIcon.ContextContent>
-                    <ContextMenu DataContext="{Binding DataContext, ElementName=RootWindow}">
+                <hc:NotifyIcon.ContextMenu>
+                    <ContextMenu>
                         <MenuItem Header="{Binding TrayClientStatus}" IsEnabled="False" />
                         <MenuItem Header="{Binding TrayGameflowStatus}" IsEnabled="False" />
                         <Separator />
-                        <MenuItem Command="{Binding ShowMainWindowCommand}" Header="{DynamicResource Tray.ShowMainWindow}" />
+                        <MenuItem Command="{Binding ShowMainWindowCommand}" Header="{Binding TrayShowMainWindowText}" />
                         <MenuItem
                             Command="{Binding OpenMatchFromTrayCommand}"
-                            Header="{DynamicResource Tray.OpenMatch}"
+                            Header="{Binding TrayOpenMatchText}"
                             IsEnabled="{Binding IsTrayMatchAvailable}" />
                         <MenuItem
                             Command="{Binding AcceptReadyCheckFromTrayCommand}"
-                            Header="{DynamicResource HomePage.Action.Accept}"
+                            Header="{Binding TrayAcceptText}"
                             Visibility="{Binding IsTrayReadyCheckAvailable, Converter={StaticResource Boolean2VisibilityConverter}}" />
                         <Separator />
-                        <MenuItem Header="{DynamicResource Tray.Automation}">
+                        <MenuItem Header="{Binding TrayAutomationText}">
                             <MenuItem
-                                Header="{DynamicResource Setting.Automation.AutoAccept}"
+                                Header="{Binding TrayAutoAcceptText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAutoAcceptEnabled, Mode=TwoWay}" />
                             <MenuItem
-                                Header="{DynamicResource Setting.Automation.AutoReconnect}"
+                                Header="{Binding TrayAutoReconnectText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAutoReconnectEnabled, Mode=TwoWay}" />
                         </MenuItem>
                         <Separator />
-                        <MenuItem Command="{Binding OpenSettingsFromTrayCommand}" Header="{DynamicResource Menu.Setting}" />
+                        <MenuItem Command="{Binding OpenSettingsFromTrayCommand}" Header="{Binding TraySettingsText}" />
                         <Separator />
-                        <MenuItem Click="ExitApplication_Click" Header="{DynamicResource Tray.Exit}" />
+                        <MenuItem Click="ExitApplication_Click" Header="{Binding TrayExitText}" />
                     </ContextMenu>
-                </hc:NotifyIcon.ContextContent>
+                </hc:NotifyIcon.ContextMenu>
             </hc:NotifyIcon>
         </Grid>
     </Border>

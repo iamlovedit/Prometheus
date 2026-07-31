@@ -8,6 +8,7 @@ using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Prometheus.Modules.Match.ViewModels
 {
@@ -22,6 +23,8 @@ namespace Prometheus.Modules.Match.ViewModels
         private readonly IEventAggregator _eventAggregator;
         private readonly IMatchService _matchService;
         private readonly IResourceService _resourceService;
+        private readonly LatestValueDispatcher<(LiveMatchSnapshot Snapshot, long Generation)>
+            _snapshotDispatcher;
 
         private long _appliedVersion = -1;
         private long _subscriptionGeneration;
@@ -39,6 +42,16 @@ namespace Prometheus.Modules.Match.ViewModels
             _matchService = matchService ?? throw new ArgumentNullException(nameof(matchService));
             _resourceService = resourceService ??
                 throw new ArgumentNullException(nameof(resourceService));
+            _snapshotDispatcher = new LatestValueDispatcher<
+                (LiveMatchSnapshot Snapshot, long Generation)>(
+                action => Dispatch(action, DispatcherPriority.Background),
+                pending =>
+                {
+                    if (IsActiveSubscription(pending.Generation))
+                    {
+                        ApplySnapshot(pending.Snapshot);
+                    }
+                });
 
             MyTeam = [];
             TheirTeam = [];
@@ -181,15 +194,9 @@ namespace Prometheus.Modules.Match.ViewModels
 
         private void HandleSnapshotChanged(object sender, LiveMatchSnapshotChangedEventArgs args)
         {
-            var snapshot = args?.Snapshot;
-            var generation = _subscriptionGeneration;
-            Dispatch(() =>
-            {
-                if (IsActiveSubscription(generation))
-                {
-                    ApplySnapshot(snapshot ?? LiveMatchSnapshot.Empty);
-                }
-            });
+            _snapshotDispatcher.Publish((
+                args?.Snapshot ?? LiveMatchSnapshot.Empty,
+                _subscriptionGeneration));
         }
 
         private void HandleLanguageSwitched()
@@ -648,7 +655,8 @@ namespace Prometheus.Modules.Match.ViewModels
             }
         }
 
-        private static void Dispatch(Action action)
+        private static void Dispatch(Action action,
+            DispatcherPriority priority = DispatcherPriority.Normal)
         {
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher is null || dispatcher.CheckAccess())
@@ -657,7 +665,7 @@ namespace Prometheus.Modules.Match.ViewModels
                 return;
             }
 
-            dispatcher.BeginInvoke(action);
+            dispatcher.BeginInvoke(priority, action);
         }
     }
 }
