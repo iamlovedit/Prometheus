@@ -16,7 +16,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         {
             var context = CreateContext();
             context.Phase = "ChampSelect";
-            context.ChampionSelect = CreateChampionSelect("ally-puuid");
+            context.ChampionSelect = CreateChampionSelect(
+                "ally-puuid", "ally-2", "ally-3", "ally-4", "ally-5");
             context.ChampionSelect.TheirTeam =
             [
                 new ChampionSelectTeamMemberSnapshot
@@ -48,8 +49,9 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 
             await context.Service.StartAsync();
             var snapshot = await WaitForSnapshotAsync(context.Service, value =>
-                value.Roster?.MyTeam.FirstOrDefault()?.DataState ==
-                    LiveMatchPlayerDataState.Loaded);
+                value.Roster?.MyTeam.Count == 5 &&
+                value.Roster.MyTeam.All(player =>
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
 
             Assert.Equal(5, snapshot.Roster.MyTeam.Count);
             Assert.Equal(5, snapshot.Roster.TheirTeam.Count);
@@ -81,6 +83,188 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 "enemy-secret-puuid", It.IsAny<CancellationToken>()), Times.Never);
             context.SummonerService.Verify(service => service.GetMatchesResultAsync(
                 "enemy-secret-puuid", It.IsAny<int>(), It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task GameflowRealShape_MergesChampionSelectionSpellsByPuuidForBothTeams()
+        {
+            var context = CreateContext();
+            context.Phase = "InProgress";
+            context.GameflowSession = CreateRealShapeGameflowSession("InProgress");
+
+            await context.Service.StartAsync();
+            var snapshot = await WaitForSnapshotAsync(context.Service, value =>
+                value.Roster?.SourcePhase == GameflowPhase.InProgress &&
+                value.Roster.MyTeam.Count == 5 &&
+                value.Roster.TheirTeam.Count == 5 &&
+                value.Roster.MyTeam.Concat(value.Roster.TheirTeam).All(player =>
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
+
+            Assert.Contains(snapshot.Roster.MyTeam, player =>
+                player.Puuid == "local-puuid" && player.IsLocalPlayer);
+            Assert.DoesNotContain(snapshot.Roster.TheirTeam,
+                player => player.IsLocalPlayer);
+
+            var local = Assert.Single(snapshot.Roster.MyTeam,
+                player => player.Puuid == "local-puuid");
+            Assert.Equal(201, local.ChampionId);
+            Assert.Equal(4, local.Spell1Id);
+            Assert.Equal(12, local.Spell2Id);
+            Assert.Equal("spell-4", local.Spell1Icon);
+            Assert.Equal("spell-12", local.Spell2Icon);
+
+            var enemy = Assert.Single(snapshot.Roster.TheirTeam,
+                player => player.Puuid == "enemy-1");
+            Assert.Equal(101, enemy.ChampionId);
+            Assert.Equal(32, enemy.Spell1Id);
+            Assert.Equal(4, enemy.Spell2Id);
+            Assert.Equal("spell-32", enemy.Spell1Icon);
+            Assert.Equal("spell-4", enemy.Spell2Icon);
+            Assert.False(enemy.IsHidden);
+
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetRankStatsByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetMatchesResultAsync(
+                "enemy-1", 0, 19, It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetCurrentSummoner(
+                It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
+        [Theory]
+        [InlineData("GameStart")]
+        [InlineData("InProgress")]
+        public async Task ChampionSelectThenGameflow_LoadsAlliesThenRevealsAndLoadsBothTeams(
+            string gameflowPhase)
+        {
+            var context = CreateContext();
+            context.Phase = "ChampSelect";
+            context.ChampionSelect = CreateChampionSelect(
+                "local-puuid", "ally-1", "ally-2", "ally-3", "ally-4");
+            context.ChampionSelect.GameId = 500838514588;
+            context.ChampionSelect.TheirTeam = Enumerable.Range(1, 5)
+                .Select(index => new ChampionSelectTeamMemberSnapshot
+                {
+                    CellId = 10 + index,
+                    ChampionId = 100 + index,
+                    Puuid = $"champ-select-enemy-{index}"
+                })
+                .ToList();
+            context.GameflowSession = CreateRealShapeGameflowSession(gameflowPhase);
+
+            await context.Service.StartAsync();
+            var championSelect = await WaitForSnapshotAsync(context.Service, value =>
+                value.Roster?.SourcePhase == GameflowPhase.ChampSelect &&
+                value.Roster.MyTeam.Count == 5 &&
+                value.Roster.MyTeam.All(player =>
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
+
+            Assert.Equal(new[]
+            {
+                "local-puuid", "ally-1", "ally-2", "ally-3", "ally-4"
+            }, championSelect.Roster.MyTeam.Select(player => player.Puuid));
+            Assert.All(championSelect.Roster.TheirTeam, player =>
+            {
+                Assert.True(player.IsHidden);
+                Assert.Equal(string.Empty, player.Puuid);
+                Assert.Equal(LiveMatchPlayerDataState.Hidden, player.DataState);
+            });
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Never);
+
+            var transitionSnapshots = new ConcurrentQueue<LiveMatchSnapshot>();
+            EventHandler<LiveMatchSnapshotChangedEventArgs> transitionHandler = (_, args) =>
+            {
+                if (args.Snapshot.GameflowPhase is GameflowPhase.GameStart or
+                    GameflowPhase.InProgress)
+                {
+                    transitionSnapshots.Enqueue(args.Snapshot);
+                }
+            };
+            context.Service.SnapshotChanged += transitionHandler;
+            context.PublishPhase(gameflowPhase);
+            var expectedPhase = Enum.Parse<GameflowPhase>(gameflowPhase);
+            var inGame = await WaitForSnapshotAsync(context.Service, value =>
+                value.GameflowPhase == expectedPhase &&
+                value.Roster?.SourcePhase == expectedPhase &&
+                value.Roster.MyTeam.Count == 5 &&
+                value.Roster.TheirTeam.Count == 5 &&
+                value.Roster.MyTeam.Concat(value.Roster.TheirTeam).All(player =>
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
+            context.Service.SnapshotChanged -= transitionHandler;
+
+            Assert.Contains(inGame.Roster.MyTeam, player =>
+                player.Puuid == "local-puuid" && player.IsLocalPlayer);
+            Assert.Equal(new[]
+            {
+                "local-puuid", "ally-1", "ally-2", "ally-3", "ally-4"
+            }, inGame.Roster.MyTeam.Select(player => player.Puuid));
+            Assert.Equal(new[]
+            {
+                "enemy-1", "enemy-2", "enemy-3", "enemy-4", "enemy-5"
+            }, inGame.Roster.TheirTeam.Select(player => player.Puuid));
+            Assert.All(inGame.Roster.MyTeam.Concat(inGame.Roster.TheirTeam), player =>
+                Assert.False(player.IsHidden));
+            Assert.DoesNotContain(transitionSnapshots, snapshot =>
+                snapshot.Roster is null || snapshot.Roster.MyTeam.Count == 0);
+
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetRankStatsByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetMatchesResultAsync(
+                "enemy-1", 0, 19, It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetCurrentSummoner(
+                It.IsAny<CancellationToken>()), Times.Never);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task ChampionSelect_WhenGameClientStarts_UsesCompleteGameflowRoster()
+        {
+            var context = CreateContext();
+            context.Phase = "ChampSelect";
+            context.ChampionSelect = CreateChampionSelect(
+                "local-puuid", "ally-1", "ally-2", "ally-3", "ally-4");
+            context.ChampionSelect.GameId = 500838514588;
+            context.GameflowSession = CreateRealShapeGameflowSession("ChampSelect");
+            context.GameflowSession.GameClient = new GameflowClientState
+            {
+                Running = false
+            };
+
+            await context.Service.StartAsync();
+            var championSelect = await WaitForSnapshotAsync(context.Service, value =>
+                value.Roster?.SourcePhase == GameflowPhase.ChampSelect &&
+                value.Roster.MyTeam.All(player =>
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
+            Assert.All(championSelect.Roster.TheirTeam, player =>
+                Assert.True(player.IsHidden));
+
+            context.GameflowSession.GameClient.Running = true;
+            context.PublishSession();
+            var inGameRoster = await WaitForSnapshotAsync(context.Service, value =>
+                value.GameflowPhase == GameflowPhase.ChampSelect &&
+                value.Roster?.MyTeam.Count == 5 &&
+                value.Roster.TheirTeam.Count == 5 &&
+                value.Roster.TheirTeam.Any(player => player.Puuid == "enemy-1") &&
+                value.Roster.MyTeam.Concat(value.Roster.TheirTeam).All(player =>
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
+
+            Assert.Contains(inGameRoster.Roster.MyTeam, player =>
+                player.Puuid == "local-puuid" && player.IsLocalPlayer);
+            Assert.All(inGameRoster.Roster.TheirTeam, player =>
+                Assert.False(player.IsHidden));
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Never);
 
             await context.Service.StopAsync();
@@ -566,6 +750,53 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                             SummonerName = $"Enemy {index}",
                             TeamId = 200
                         }).ToList()
+                }
+            };
+        }
+
+        private static GameflowSessionSnapshot CreateRealShapeGameflowSession(string phase)
+        {
+            var teamOne = Enumerable.Range(1, 5).Select(index =>
+                new GameflowTeamMember
+                {
+                    ChampionId = 100 + index,
+                    ProfileIconId = 2000 + index,
+                    Puuid = $"enemy-{index}",
+                    SelectedPosition = "NONE",
+                    SummonerId = 200 + index,
+                    TeamParticipantId = 5 + index
+                }).ToList();
+            var teamTwo = Enumerable.Range(0, 5).Select(index =>
+                new GameflowTeamMember
+                {
+                    ChampionId = 201 + index,
+                    ProfileIconId = 3000 + index,
+                    Puuid = index == 0 ? "local-puuid" : $"ally-{index}",
+                    SelectedPosition = "NONE",
+                    SummonerId = index == 0 ? 100 : 100 + index,
+                    TeamParticipantId = index + 1
+                }).ToList();
+            var selections = teamTwo.AsEnumerable().Reverse()
+                .Concat(teamOne.AsEnumerable().Reverse())
+                .Select(member => new GameflowPlayerSelection
+                {
+                    ChampionId = member.ChampionId,
+                    Puuid = member.Puuid,
+                    SelectedSkinIndex = member.ChampionId % 7,
+                    Spell1Id = member.Puuid == "enemy-1" ? 32 : 4,
+                    Spell2Id = member.Puuid == "local-puuid" ? 12 : 4
+                })
+                .ToList();
+
+            return new GameflowSessionSnapshot
+            {
+                Phase = phase,
+                GameData = new GameflowGameData
+                {
+                    GameId = 500838514588,
+                    PlayerChampionSelections = selections,
+                    TeamOne = teamOne,
+                    TeamTwo = teamTwo
                 }
             };
         }

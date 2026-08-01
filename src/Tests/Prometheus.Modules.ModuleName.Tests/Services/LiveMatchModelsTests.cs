@@ -15,6 +15,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                   "cellId": 7,
                   "championId": 134,
                   "championPickIntent": 99,
+                  "gameName": "Visible Player",
                   "nameVisibilityType": "VISIBLE",
                   "obfuscatedPuuid": "hidden-puuid",
                   "obfuscatedSummonerId": 123,
@@ -23,6 +24,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                   "spell1Id": 4,
                   "spell2Id": 32,
                   "summonerId": 16016705290,
+                  "tagLine": "CN1",
                   "team": 2,
                   "wardSkinId": 1
                 }
@@ -33,6 +35,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.NotNull(member);
             Assert.Equal("visible-puuid", member.Puuid);
             Assert.Equal(16016705290, member.SummonerId);
+            Assert.Equal("Visible Player", member.GameName);
+            Assert.Equal("CN1", member.TagLine);
             Assert.Equal("VISIBLE", member.NameVisibilityType);
             Assert.Equal("hidden-puuid", member.ObfuscatedPuuid);
             Assert.Equal(123, member.ObfuscatedSummonerId);
@@ -72,6 +76,78 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.Equal(4, member.Spell1Id);
             Assert.Equal(7, member.Spell2Id);
             Assert.Equal(100, member.TeamId);
+        }
+
+        [Fact]
+        public void GameflowGameData_DeserializesRealTeamAndChampionSelectionShape()
+        {
+            const string json = """
+                {
+                  "gameId": 500838514588,
+                  "playerChampionSelections": [
+                    {
+                      "championId": 910,
+                      "puuid": "team-two-local",
+                      "selectedSkinIndex": 3,
+                      "spell1Id": 6,
+                      "spell2Id": 4
+                    },
+                    {
+                      "championId": 161,
+                      "puuid": "team-one-enemy",
+                      "selectedSkinIndex": 5,
+                      "spell1Id": 32,
+                      "spell2Id": 4
+                    }
+                  ],
+                  "teamOne": [
+                    {
+                      "championId": 161,
+                      "profileIconId": 19,
+                      "puuid": "team-one-enemy",
+                      "selectedPosition": "NONE",
+                      "summonerId": 16330908587,
+                      "summonerName": "",
+                      "teamParticipantId": 1
+                    }
+                  ],
+                  "teamTwo": [
+                    {
+                      "championId": 910,
+                      "profileIconId": 6379,
+                      "puuid": "team-two-local",
+                      "selectedPosition": "NONE",
+                      "summonerId": 15615783905,
+                      "summonerName": "",
+                      "teamParticipantId": 5
+                    }
+                  ]
+                }
+                """;
+
+            var gameData = JsonConvert.DeserializeObject<GameflowGameData>(json);
+
+            Assert.NotNull(gameData);
+            Assert.Equal(500838514588, gameData.GameId);
+            var enemy = Assert.Single(gameData.TeamOne);
+            Assert.Equal("team-one-enemy", enemy.Puuid);
+            Assert.Equal(16330908587, enemy.SummonerId);
+            Assert.Equal(1, enemy.TeamParticipantId);
+            var local = Assert.Single(gameData.TeamTwo);
+            Assert.Equal("team-two-local", local.Puuid);
+            Assert.Equal(15615783905, local.SummonerId);
+            Assert.Equal(5, local.TeamParticipantId);
+
+            var localSelection = Assert.Single(gameData.PlayerChampionSelections,
+                selection => selection.Puuid == "team-two-local");
+            Assert.Equal(910, localSelection.ChampionId);
+            Assert.Equal(3, localSelection.SelectedSkinIndex);
+            Assert.Equal(6, localSelection.Spell1Id);
+            Assert.Equal(4, localSelection.Spell2Id);
+            var enemySelection = Assert.Single(gameData.PlayerChampionSelections,
+                selection => selection.Puuid == "team-one-enemy");
+            Assert.Equal(32, enemySelection.Spell1Id);
+            Assert.Equal(4, enemySelection.Spell2Id);
         }
     }
 }

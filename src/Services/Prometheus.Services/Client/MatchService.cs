@@ -854,20 +854,15 @@ namespace Prometheus.Services.Client
                 }
 
                 RosterDefinition definition;
-                if (source.GameflowPhase == GameflowPhase.ChampSelect)
+                if (source.GameflowPhase == GameflowPhase.ChampSelect &&
+                    !ShouldUseGameflowRoster(source))
                 {
                     definition = BuildChampionSelectRoster(source, sourceSignature);
                 }
                 else
                 {
                     PublishRoster(generation, cancellationToken,
-                        new LiveMatchRosterSnapshot
-                        {
-                            GameId = GetGameId(source),
-                            SourcePhase = source.GameflowPhase,
-                            Signature = sourceSignature,
-                            IsResolving = true
-                        });
+                        CreateTransitionRoster(source, sourceSignature, true));
                     definition = await BuildGameflowRosterAsync(source, sourceSignature,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -876,13 +871,7 @@ namespace Prometheus.Services.Client
                 if (definition is null)
                 {
                     PublishRoster(generation, cancellationToken,
-                        new LiveMatchRosterSnapshot
-                        {
-                            GameId = GetGameId(source),
-                            SourcePhase = source.GameflowPhase,
-                            Signature = sourceSignature,
-                            IsResolving = false
-                        });
+                        CreateTransitionRoster(source, sourceSignature, false));
                     MarkRosterRetryable(generation);
                     return;
                 }
@@ -935,12 +924,17 @@ namespace Prometheus.Services.Client
             var currentSummoner = _currentSummoner;
             if (!CanLocateCurrentSummoner(gameData, currentSummoner))
             {
+                currentSummoner = GetChampionSelectLocalSummoner(source.ChampionSelect);
+            }
+
+            if (!CanLocateCurrentSummoner(gameData, currentSummoner))
+            {
                 currentSummoner = await _summonerService.GetCurrentSummoner(cancellationToken)
                     .ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
             }
 
-            if (currentSummoner is null)
+            if (!CanLocateCurrentSummoner(gameData, currentSummoner))
             {
                 return null;
             }
@@ -956,9 +950,11 @@ namespace Prometheus.Services.Client
             var mySource = currentInTeamOne ? gameData.TeamOne : gameData.TeamTwo;
             var theirSource = currentInTeamOne ? gameData.TeamTwo : gameData.TeamOne;
             var myTeam = NormalizeRoster(mySource.Select((member, index) =>
-                FromGameflowMember(member, index, currentSummoner)), false);
+                FromGameflowMember(member, FindPlayerSelection(gameData, member), index,
+                    currentSummoner)), false);
             var theirTeam = NormalizeRoster(theirSource.Select((member, index) =>
-                FromGameflowMember(member, index, currentSummoner)), false);
+                FromGameflowMember(member, FindPlayerSelection(gameData, member), index,
+                    currentSummoner)), false);
             return new RosterDefinition(gameData.GameId, sourceSignature, myTeam, theirTeam);
         }
 
@@ -1371,6 +1367,9 @@ namespace Prometheus.Services.Client
                 Spell2Id = member.Spell2Id,
                 Puuid = puuid,
                 Position = member.AssignedPosition ?? string.Empty,
+                DisplayName = hidden
+                    ? string.Empty
+                    : FormatRiotId(member.GameName, member.TagLine),
                 IsLocalPlayer = member.CellId == localPlayerCellId,
                 IsHidden = hidden,
                 DataState = hidden
@@ -1382,7 +1381,8 @@ namespace Prometheus.Services.Client
         }
 
         private static LiveMatchPlayerSnapshot FromGameflowMember(
-            GameflowTeamMember member, int index, SummonerAccount currentSummoner)
+            GameflowTeamMember member, GameflowPlayerSelection selection, int index,
+            SummonerAccount currentSummoner)
         {
             member ??= new GameflowTeamMember();
             var puuid = member.Puuid ?? string.Empty;
@@ -1392,10 +1392,16 @@ namespace Prometheus.Services.Client
             return new LiveMatchPlayerSnapshot
             {
                 Slot = index,
-                CellId = member.CellId,
-                ChampionId = member.ChampionId,
-                Spell1Id = member.Spell1Id,
-                Spell2Id = member.Spell2Id,
+                CellId = member.CellId != 0 ? member.CellId : member.TeamParticipantId,
+                ChampionId = member.ChampionId > 0
+                    ? member.ChampionId
+                    : selection?.ChampionId ?? 0,
+                Spell1Id = member.Spell1Id > 0
+                    ? member.Spell1Id
+                    : selection?.Spell1Id ?? 0,
+                Spell2Id = member.Spell2Id > 0
+                    ? member.Spell2Id
+                    : selection?.Spell2Id ?? 0,
                 Puuid = puuid,
                 Position = FirstNotEmpty(member.SelectedPosition, member.AssignedPosition),
                 DisplayName = displayName,
@@ -1433,26 +1439,55 @@ namespace Prometheus.Services.Client
             return values;
         }
 
+        private static LiveMatchRosterSnapshot CreateTransitionRoster(
+            LiveMatchSnapshot source, string sourceSignature, bool isResolving)
+        {
+            var gameId = GetGameId(source);
+            var previous = source?.Roster;
+            var canRetainPrevious = previous is not null &&
+                (gameId <= 0 || previous.GameId <= 0 || previous.GameId == gameId);
+            return new LiveMatchRosterSnapshot
+            {
+                GameId = gameId,
+                SourcePhase = source?.GameflowPhase ?? GameflowPhase.Unknown,
+                Signature = sourceSignature,
+                IsResolving = isResolving,
+                MyTeam = canRetainPrevious
+                    ? (previous.MyTeam ?? Array.Empty<LiveMatchPlayerSnapshot>())
+                        .Select(ClonePlayer).ToArray()
+                    : Array.Empty<LiveMatchPlayerSnapshot>(),
+                TheirTeam = canRetainPrevious
+                    ? (previous.TheirTeam ?? Array.Empty<LiveMatchPlayerSnapshot>())
+                        .Select(ClonePlayer).ToArray()
+                    : Array.Empty<LiveMatchPlayerSnapshot>()
+            };
+        }
+
         private static string BuildRosterSourceSignature(LiveMatchSnapshot snapshot)
         {
             var builder = new StringBuilder()
                 .Append(snapshot.GameflowPhase)
                 .Append(':')
                 .Append(GetGameId(snapshot));
-            if (snapshot.GameflowPhase == GameflowPhase.ChampSelect)
+            var useGameflowRoster = ShouldUseGameflowRoster(snapshot);
+            var isGameflowPhase = snapshot.GameflowPhase is GameflowPhase.GameStart or
+                GameflowPhase.InProgress or GameflowPhase.Reconnect;
+            if (snapshot.GameflowPhase == GameflowPhase.ChampSelect &&
+                !useGameflowRoster)
             {
                 var championSelect = snapshot.ChampionSelect;
                 builder.Append(':').Append(championSelect?.LocalPlayerCellId ?? 0);
                 AppendChampionSelectSignature(builder, championSelect?.MyTeam, false);
                 AppendChampionSelectSignature(builder, championSelect?.TheirTeam, true);
             }
-            else if (snapshot.GameflowPhase is GameflowPhase.GameStart or
-                     GameflowPhase.InProgress or GameflowPhase.Reconnect)
+            else if (isGameflowPhase || useGameflowRoster)
             {
                 AppendGameflowSignature(builder,
                     snapshot.GameflowSession?.GameData?.TeamOne);
                 AppendGameflowSignature(builder,
                     snapshot.GameflowSession?.GameData?.TeamTwo);
+                AppendGameflowSelectionSignature(builder,
+                    snapshot.GameflowSession?.GameData?.PlayerChampionSelections);
             }
             return builder.ToString();
         }
@@ -1472,7 +1507,9 @@ namespace Prometheus.Services.Client
                     .Append(member?.NameVisibilityType).Append(',');
                 if (!hideIdentity)
                 {
-                    builder.Append(member?.Puuid);
+                    builder.Append(member?.Puuid).Append(',')
+                        .Append(member?.GameName).Append(',')
+                        .Append(member?.TagLine);
                 }
                 builder.Append(';');
             }
@@ -1485,6 +1522,7 @@ namespace Prometheus.Services.Client
             foreach (var member in team ?? [])
             {
                 builder.Append(member?.CellId ?? 0).Append(',')
+                    .Append(member?.TeamParticipantId ?? 0).Append(',')
                     .Append(member?.ChampionId ?? 0).Append(',')
                     .Append(member?.Spell1Id ?? 0).Append(',')
                     .Append(member?.Spell2Id ?? 0).Append(',')
@@ -1496,10 +1534,29 @@ namespace Prometheus.Services.Client
             }
         }
 
+        private static void AppendGameflowSelectionSignature(StringBuilder builder,
+            IEnumerable<GameflowPlayerSelection> selections)
+        {
+            builder.Append('|');
+            foreach (var selection in selections ?? [])
+            {
+                builder.Append(selection?.Puuid).Append(',')
+                    .Append(selection?.ChampionId ?? 0).Append(',')
+                    .Append(selection?.Spell1Id ?? 0).Append(',')
+                    .Append(selection?.Spell2Id ?? 0).Append(';');
+            }
+        }
+
         private static bool HasGameflowTeams(GameflowGameData gameData)
         {
             return gameData is not null && (gameData.TeamOne?.Count ?? 0) > 0 &&
                 (gameData.TeamTwo?.Count ?? 0) > 0;
+        }
+
+        private static bool ShouldUseGameflowRoster(LiveMatchSnapshot snapshot)
+        {
+            return snapshot?.GameflowSession?.GameClient?.Running == true &&
+                HasGameflowTeams(snapshot.GameflowSession.GameData);
         }
 
         private static bool CanLocateCurrentSummoner(GameflowGameData gameData,
@@ -1508,6 +1565,40 @@ namespace Prometheus.Services.Client
             return gameData is not null && summoner is not null &&
                 (ContainsAccount(gameData.TeamOne, summoner) ||
                  ContainsAccount(gameData.TeamTwo, summoner));
+        }
+
+        private static SummonerAccount GetChampionSelectLocalSummoner(
+            ChampionSelectSnapshot championSelect)
+        {
+            var member = championSelect?.MyTeam?.FirstOrDefault(value =>
+                value is not null && value.CellId == championSelect.LocalPlayerCellId);
+            if (member is null ||
+                (string.IsNullOrWhiteSpace(member.Puuid) && member.SummonerId <= 0))
+            {
+                return null;
+            }
+
+            return new SummonerAccount
+            {
+                Puuid = member.Puuid,
+                SummonerId = member.SummonerId,
+                GameName = member.GameName,
+                TagLine = member.TagLine
+            };
+        }
+
+        private static GameflowPlayerSelection FindPlayerSelection(
+            GameflowGameData gameData, GameflowTeamMember member)
+        {
+            var puuid = NormalizePuuid(member?.Puuid);
+            if (string.IsNullOrWhiteSpace(puuid))
+            {
+                return null;
+            }
+
+            return (gameData?.PlayerChampionSelections ?? []).FirstOrDefault(selection =>
+                string.Equals(NormalizePuuid(selection?.Puuid), puuid,
+                    StringComparison.Ordinal));
         }
 
         private static bool ContainsAccount(IEnumerable<GameflowTeamMember> team,
@@ -1582,6 +1673,18 @@ namespace Prometheus.Services.Client
         {
             return values?.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ??
                 string.Empty;
+        }
+
+        private static string FormatRiotId(string gameName, string tagLine)
+        {
+            if (string.IsNullOrWhiteSpace(gameName))
+            {
+                return string.Empty;
+            }
+
+            return string.IsNullOrWhiteSpace(tagLine)
+                ? gameName
+                : $"{gameName}#{tagLine}";
         }
 
         private static string FormatSummonerName(SummonerAccount summoner,

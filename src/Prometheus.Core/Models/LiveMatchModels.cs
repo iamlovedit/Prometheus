@@ -257,6 +257,14 @@ namespace Prometheus.Core.Models
         public long CellId { get; set; }
 
         public int ChampionId { get; set; }
+
+        public string Puuid { get; set; } = string.Empty;
+
+        public int SelectedSkinIndex { get; set; }
+
+        public int Spell1Id { get; set; }
+
+        public int Spell2Id { get; set; }
     }
 
     public class GameflowTeamMember
@@ -282,6 +290,8 @@ namespace Prometheus.Core.Models
         public int Spell2Id { get; set; }
 
         public int TeamId { get; set; }
+
+        public int TeamParticipantId { get; set; }
     }
 
     public class LobbySnapshot
@@ -489,6 +499,8 @@ namespace Prometheus.Core.Models
 
         public string AssignedPosition { get; set; } = string.Empty;
 
+        public string GameName { get; set; } = string.Empty;
+
         public string NameVisibilityType { get; set; } = string.Empty;
 
         public string ObfuscatedPuuid { get; set; } = string.Empty;
@@ -502,6 +514,8 @@ namespace Prometheus.Core.Models
         public int Spell2Id { get; set; }
 
         public long SummonerId { get; set; }
+
+        public string TagLine { get; set; } = string.Empty;
 
         public int Team { get; set; }
 
