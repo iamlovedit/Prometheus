@@ -59,10 +59,15 @@
                     <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Career.MatchHistory.List}" />
                     <local:MatchList
                         Grid.Row="2"
+                        IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}"
                         ItemsSource="{Binding Matches}"
                         SelectedItem="{Binding SelectedMatch}"
                         SelectionChangedCommand="{Binding MatchChangedCommand}" />
                     <Grid Grid.Row="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="36" />
                             <ColumnDefinition />
@@ -76,7 +81,7 @@
                             hc:IconElement.Height="14"
                             hc:IconElement.Width="14"
                             Command="{Binding PreviousPageCommand}"
-                            IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}"
+                            IsEnabled="{Binding CanGoToPreviousPage}"
                             Style="{DynamicResource ButtonIcon}" />
                         <TextBlock
                             Grid.Column="1"
@@ -93,8 +98,24 @@
                             hc:IconElement.Height="14"
                             hc:IconElement.Width="14"
                             Command="{Binding NextPageCommand}"
-                            IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}"
+                            IsEnabled="{Binding CanGoToNextPage}"
                             Style="{DynamicResource ButtonIcon}" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.ColumnSpan="3"
+                            Margin="0,6,0,0"
+                            HorizontalAlignment="Center"
+                            Style="{DynamicResource PageCaption}"
+                            Text="{DynamicResource Career.MatchHistory.NoMoreMatches}"
+                            Visibility="{Binding ShowNoMoreMatches, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.ColumnSpan="3"
+                            Margin="0,6,0,0"
+                            HorizontalAlignment="Center"
+                            Style="{DynamicResource PageCaption}"
+                            Text="{DynamicResource Career.MatchHistory.LoadFailed}"
+                            Visibility="{Binding ShowPaginationError, Converter={StaticResource Boolean2VisibilityConverter}}" />
                     </Grid>
                 </Grid>
             </Border>

@@ -16,6 +16,8 @@ namespace Prometheus.Services.Client
         private const string RankedStatsEndpoint = "lol-ranked/v1/ranked-stats/{0}";
         private const string MatchHistoryEndpoint =
             "lol-match-history/v1/products/lol/{0}/matches";
+        private const int MatchHistoryWindowStartIndex = 0;
+        private const int MatchHistoryWindowEndIndex = 199;
         private const string BackdropEndpoint =
             "lol-collections/v1/inventories/{0}/backdrop";
 
@@ -51,7 +53,11 @@ namespace Prometheus.Services.Client
         public async Task<string> GetRecentMatchesByPuuid(string puuid)
         {
             return await _httpService.GetAsync(string.Format(
-                MatchHistoryEndpoint, Uri.EscapeDataString(puuid)));
+                MatchHistoryEndpoint, Uri.EscapeDataString(puuid)),
+                [
+                    $"begIndex={MatchHistoryWindowStartIndex}",
+                    $"endIndex={MatchHistoryWindowEndIndex}"
+                ]);
         }
 
         public async Task<SummonerAccount> SearchSummonerByName(string nickname)
@@ -95,8 +101,8 @@ namespace Prometheus.Services.Client
                 var response = await _httpService.GetAsync<MatchHistoryResponse>(
                     string.Format(MatchHistoryEndpoint, Uri.EscapeDataString(puuid)),
                     [
-                        $"begIndex={start}",
-                        $"endIndex={end}"
+                        $"begIndex={MatchHistoryWindowStartIndex}",
+                        $"endIndex={MatchHistoryWindowEndIndex}"
                     ], cancellationToken).ConfigureAwait(false);
 
                 if (response?.Games is null)
@@ -108,7 +114,14 @@ namespace Prometheus.Services.Client
                     };
                 }
 
-                var matches = response.Games.Games ?? [];
+                // Some LCU builds cache this endpoint by path while ignoring the query string.
+                // Fetch a stable 200-match window and page it locally so a first-page request
+                // cannot poison all later page requests with the same cached response.
+                var requestedCount = end - start + 1;
+                var matches = (response.Games.Games ?? [])
+                    .Skip(start)
+                    .Take(requestedCount)
+                    .ToList();
                 var queues = await _clientService.GetQueuesAsync(cancellationToken)
                     .ConfigureAwait(false);
                 MatchGameModeResolver.Apply(matches, queues);

@@ -33,6 +33,8 @@ namespace Prometheus.Services.Interfaces.Client
         /// <summary>
         /// Gets a page of matches from
         /// <c>lol-match-history/v1/products/lol/{puuid}/matches</c>.
+        /// The implementation retrieves a stable 200-match LCU window and slices it locally because
+        /// some clients cache this endpoint without including its query string in the cache key.
         /// Returns an empty list when LCU is unavailable or the response contains no games.
         /// </summary>
         Task<List<Match>> GetMatchesAsync(string puuid, int start, int end,

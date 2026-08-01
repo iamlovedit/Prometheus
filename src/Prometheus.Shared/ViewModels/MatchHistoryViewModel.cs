@@ -1,5 +1,4 @@
 using Prism.Commands;
-using Prism.Ioc;
 using Prism.Regions;
 using Prometheus.Core;
 using Prometheus.Core.Models;
@@ -7,22 +6,30 @@ using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.Models;
+using Serilog;
 using Team = Prometheus.Shared.Models.Team;
 
 namespace Prometheus.Shared.ViewModels
 {
     public class MatchHistoryViewModel : RegionViewModelBase
     {
+        private const int PageSize = 20;
+
         private bool _canEdit;
         private SummonerAccount _summoner;
         private readonly IGameService _gameService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly ISummonerService _summonerServices;
-        public MatchHistoryViewModel(IRegionManager regionManager, IContainerExtension containerExtension) : base(regionManager)
+
+        public MatchHistoryViewModel(IRegionManager regionManager, IGameService gameService,
+            IGameResourceManager gameResourceManager, ISummonerService summonerServices)
+            : base(regionManager)
         {
-            _gameService = containerExtension.Resolve<IGameService>();
-            _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
-            _summonerServices = containerExtension.Resolve<ISummonerService>();
+            _gameService = gameService ?? throw new ArgumentNullException(nameof(gameService));
+            _gameResourceManager = gameResourceManager
+                ?? throw new ArgumentNullException(nameof(gameResourceManager));
+            _summonerServices = summonerServices
+                ?? throw new ArgumentNullException(nameof(summonerServices));
         }
 
         private List<Match> _matches;
@@ -53,14 +60,62 @@ namespace Prometheus.Shared.ViewModels
         public bool IsLoading
         {
             get { return _isLoading; }
-            set { SetProperty(ref _isLoading, value); }
+            set
+            {
+                if (SetProperty(ref _isLoading, value))
+                {
+                    RaisePaginationCommandCanExecuteChanged();
+                    RaisePropertyChanged(nameof(CanGoToNextPage));
+                    RaisePropertyChanged(nameof(CanGoToPreviousPage));
+                }
+            }
         }
+
         private int _currentPage = 1;
         public int CurrentPage
         {
             get { return _currentPage; }
-            set { SetProperty(ref _currentPage, value); }
+            set
+            {
+                if (SetProperty(ref _currentPage, value))
+                {
+                    RaisePaginationCommandCanExecuteChanged();
+                    RaisePropertyChanged(nameof(CanGoToPreviousPage));
+                }
+            }
         }
+
+        private bool _hasNextPage = true;
+        public bool HasNextPage
+        {
+            get { return _hasNextPage; }
+            private set
+            {
+                if (SetProperty(ref _hasNextPage, value))
+                {
+                    RaisePaginationCommandCanExecuteChanged();
+                    RaisePropertyChanged(nameof(CanGoToNextPage));
+                }
+            }
+        }
+
+        private bool _showNoMoreMatches;
+        public bool ShowNoMoreMatches
+        {
+            get { return _showNoMoreMatches; }
+            private set { SetProperty(ref _showNoMoreMatches, value); }
+        }
+
+        private bool _showPaginationError;
+        public bool ShowPaginationError
+        {
+            get { return _showPaginationError; }
+            private set { SetProperty(ref _showPaginationError, value); }
+        }
+
+        public bool CanGoToNextPage => !IsLoading && HasNextPage && _summoner is not null;
+
+        public bool CanGoToPreviousPage => !IsLoading && CurrentPage > 1 && _summoner is not null;
 
         private Team _blueTeam;
         public Team BlueTeam
@@ -113,14 +168,18 @@ namespace Prometheus.Shared.ViewModels
 
         private async Task ExecuteMatchChangedCommandAsync(object obj)
         {
-            if (obj is Match match)
+            if (IsLoading || obj is not Match match)
+            {
+                return;
+            }
+
+            try
             {
                 IsLoading = true;
-                MatchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
-                if (_matchDetail != null)
-                {
-                    await UpdateDetailAsync(_matchDetail);
-                }
+                await LoadMatchDetailAsync(match);
+            }
+            finally
+            {
                 IsLoading = false;
             }
         }
@@ -135,46 +194,84 @@ namespace Prometheus.Shared.ViewModels
 
         private DelegateCommand _nextPageCommand;
         public DelegateCommand NextPageCommand =>
-            _nextPageCommand ?? (_nextPageCommand = new DelegateCommand(ExecuteNextPageCommand));
+            _nextPageCommand ??= new DelegateCommand(
+                ExecuteNextPageCommand, () => CanGoToNextPage);
+
         void ExecuteNextPageCommand()
         {
+            if (!CanGoToNextPage)
+            {
+                return;
+            }
+
             ExecuteNextPageCommandAsync().Observe("Loading the next match-history page");
         }
 
         private async Task ExecuteNextPageCommandAsync()
         {
-            try
-            {
-                IsLoading = true;
-                CurrentPage++;
-                await GetMatchesAsync(_summoner.Puuid, _currentPage);
-            }
-            finally
-            {
-                IsLoading = false;
-            }
+            await TryLoadPageAsync(CurrentPage + 1);
         }
 
         private DelegateCommand _previousPageCommand;
         public DelegateCommand PreviousPageCommand =>
-            _previousPageCommand ?? (_previousPageCommand = new DelegateCommand(ExecutePreviosPageCommand));
+            _previousPageCommand ??= new DelegateCommand(
+                ExecutePreviosPageCommand, () => CanGoToPreviousPage);
+
         void ExecutePreviosPageCommand()
         {
+            if (!CanGoToPreviousPage)
+            {
+                return;
+            }
+
             ExecutePreviousPageCommandAsync().Observe("Loading the previous match-history page");
         }
 
         private async Task ExecutePreviousPageCommandAsync()
         {
-            if (_currentPage == 1)
-            {
-                return;
-            }
+            await TryLoadPageAsync(CurrentPage - 1);
+        }
 
+        private async Task TryLoadPageAsync(int targetPageIndex)
+        {
+            var currentPage = CurrentPage;
             try
             {
                 IsLoading = true;
-                CurrentPage--;
-                await GetMatchesAsync(_summoner.Puuid, _currentPage);
+                ClearPaginationFeedback();
+
+                var startIndex = (targetPageIndex - 1) * PageSize;
+                var endIndex = startIndex + PageSize - 1;
+                var result = await _summonerServices.GetMatchesResultAsync(
+                    _summoner.Puuid, startIndex, endIndex);
+
+                if (result?.Succeeded != true)
+                {
+                    ShowPaginationError = true;
+                    Log.Error("Unable to load match-history page {PageIndex}: {Reason}",
+                        targetPageIndex, result?.Error ?? "No result was returned.");
+                    return;
+                }
+
+                var matches = result.Matches?.ToList() ?? [];
+                if (matches.Count == 0)
+                {
+                    if (targetPageIndex > currentPage)
+                    {
+                        HasNextPage = false;
+                        ShowNoMoreMatches = true;
+                    }
+                    else
+                    {
+                        ShowPaginationError = true;
+                        Log.Error("Match-history page {PageIndex} unexpectedly returned no matches",
+                            targetPageIndex);
+                    }
+
+                    return;
+                }
+
+                await ApplyMatchPageAsync(matches, targetPageIndex);
             }
             finally
             {
@@ -182,34 +279,52 @@ namespace Prometheus.Shared.ViewModels
             }
         }
 
-        private async Task GetMatchesAsync(string puuid, int pageIndex)
+        private async Task ApplyMatchPageAsync(List<Match> matches, int pageIndex)
         {
-            var startIndex = pageIndex * 20 - 20;
-            var endIndex = pageIndex * 20 - 1;
-            Matches = await _summonerServices.GetMatchesAsync(puuid, startIndex, endIndex);
-            if (_matches != null)
-            {
-                var iconTasks = _matches
-                    .Where(match => match.Participants?.Count > 0)
-                    .Select(async match =>
-                    {
-                        var participant = match.Participants[0];
-                        participant.ChampionIcon = await _gameResourceManager
-                            .GetChampoinIconByIdAsync(participant.ChampionId);
-                    });
-                await Task.WhenAll(iconTasks);
-                SelectedMatch = Matches.FirstOrDefault();
-                if (_selectedMatch is null)
+            var iconTasks = matches
+                .Where(match => match.Participants?.Count > 0)
+                .Select(async match =>
                 {
-                    return;
-                }
+                    var participant = match.Participants[0];
+                    participant.ChampionIcon = await _gameResourceManager
+                        .GetChampoinIconByIdAsync(participant.ChampionId);
+                });
+            await Task.WhenAll(iconTasks);
 
-                MatchDetail = await _gameService.GetMatchDetailAsync(_selectedMatch.GameId);
-                if (_matchDetail != null)
-                {
-                    await UpdateDetailAsync(_matchDetail);
-                }
+            Matches = matches;
+            CurrentPage = pageIndex;
+            HasNextPage = matches.Count >= PageSize;
+            SelectedMatch = Matches.FirstOrDefault();
+            await LoadMatchDetailAsync(SelectedMatch);
+        }
+
+        private async Task LoadMatchDetailAsync(Match match)
+        {
+            MatchDetail = null;
+            BlueTeam = null;
+            PurPleTeam = null;
+            if (match is null)
+            {
+                return;
             }
+
+            MatchDetail = await _gameService.GetMatchDetailAsync(match.GameId);
+            if (_matchDetail != null)
+            {
+                await UpdateDetailAsync(_matchDetail);
+            }
+        }
+
+        private void ClearPaginationFeedback()
+        {
+            ShowNoMoreMatches = false;
+            ShowPaginationError = false;
+        }
+
+        private void RaisePaginationCommandCanExecuteChanged()
+        {
+            _nextPageCommand?.RaiseCanExecuteChanged();
+            _previousPageCommand?.RaiseCanExecuteChanged();
         }
 
 
@@ -220,40 +335,47 @@ namespace Prometheus.Shared.ViewModels
 
         private async Task OnNavigatedToAsync(NavigationContext navigationContext)
         {
-            if (navigationContext.Parameters.TryGetValue(ParameterNames.Matches, out _matches))
+            try
             {
-                RaisePropertyChanged(nameof(Matches));
-            }
-            if (navigationContext.Parameters.TryGetValue(ParameterNames.CanEdit, out _canEdit))
-            {
+                IsLoading = true;
+                CurrentPage = 1;
+                ClearPaginationFeedback();
 
-            }
-            if (navigationContext.Parameters.TryGetValue(ParameterNames.Summoner, out _summoner))
-            {
+                if (navigationContext.Parameters.TryGetValue<List<Match>>(
+                        ParameterNames.Matches, out var matches))
+                {
+                    Matches = matches ?? [];
+                }
+                else
+                {
+                    Matches = [];
+                }
 
-            }
+                navigationContext.Parameters.TryGetValue(
+                    ParameterNames.CanEdit, out _canEdit);
+                navigationContext.Parameters.TryGetValue(
+                    ParameterNames.Summoner, out _summoner);
+                HasNextPage = Matches.Count >= PageSize;
+                RaisePaginationCommandCanExecuteChanged();
+                RaisePropertyChanged(nameof(CanGoToNextPage));
+                RaisePropertyChanged(nameof(CanGoToPreviousPage));
 
-            if (navigationContext.Parameters.TryGetValue<Match>(ParameterNames.SelectedMatch, out var match))
-            {
-                SelectedMatch = match;
-            }
-            else
-            {
-                SelectedMatch = _matches?.FirstOrDefault();
-            }
+                if (navigationContext.Parameters.TryGetValue<Match>(
+                        ParameterNames.SelectedMatch, out var match))
+                {
+                    SelectedMatch = match;
+                }
+                else
+                {
+                    SelectedMatch = Matches.FirstOrDefault();
+                }
 
-            if (_selectedMatch is null)
+                await LoadMatchDetailAsync(_selectedMatch);
+            }
+            finally
             {
                 IsLoading = false;
-                return;
             }
-
-            MatchDetail = await _gameService.GetMatchDetailAsync(_selectedMatch.GameId);
-            if (_matchDetail != null)
-            {
-                await UpdateDetailAsync(_matchDetail);
-            }
-            IsLoading = false;
         }
 
         private async Task UpdateDetailAsync(MatchDetail match)

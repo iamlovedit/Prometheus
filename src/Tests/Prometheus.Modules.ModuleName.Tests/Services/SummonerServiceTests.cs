@@ -102,11 +102,87 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 
             var result = await service.GetMatchesAsync("test-puuid", 0, 19, cancellationToken);
 
-            Assert.Same(expectedMatches, result);
+            Assert.Equal(expectedMatches.Select(match => match.GameId),
+                result.Select(match => match.GameId));
             httpService.Verify(service => service.GetAsync<MatchHistoryResponse>(
                 "lol-match-history/v1/products/lol/test-puuid/matches",
                 It.Is<IEnumerable<string>>(parameters => parameters.SequenceEqual(
-                    new[] { "begIndex=0", "endIndex=19" })), cancellationToken), Times.Once);
+                    new[] { "begIndex=0", "endIndex=199" })), cancellationToken), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetMatchesResultAsync_WhenSecondPageRequested_SlicesFullLcuWindow()
+        {
+            var httpService = new Mock<IHttpService>();
+            var allMatches = Enumerable.Range(1, 200)
+                .Select(gameId => new MatchModel { GameId = gameId })
+                .ToList();
+            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
+                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new MatchHistoryResponse
+                {
+                    Games = new MatchHistoryPage { Games = allMatches }
+                });
+            var service = CreateService(httpService);
+
+            var result = await service.GetMatchesResultAsync("test-puuid", 20, 39);
+
+            Assert.True(result.Succeeded);
+            Assert.Equal(Enumerable.Range(21, 20).Select(value => (long)value),
+                result.Matches.Select(match => match.GameId));
+            httpService.Verify(service => service.GetAsync<MatchHistoryResponse>(
+                "lol-match-history/v1/products/lol/test-puuid/matches",
+                It.Is<IEnumerable<string>>(parameters => parameters.SequenceEqual(
+                    new[] { "begIndex=0", "endIndex=199" })),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetMatchesResultAsync_WhenTenthPageRequested_ReturnsLastWindowPage()
+        {
+            var httpService = new Mock<IHttpService>();
+            var allMatches = Enumerable.Range(1, 200)
+                .Select(gameId => new MatchModel { GameId = gameId })
+                .ToList();
+            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
+                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new MatchHistoryResponse
+                {
+                    Games = new MatchHistoryPage { Games = allMatches }
+                });
+            var service = CreateService(httpService);
+
+            var result = await service.GetMatchesResultAsync("test-puuid", 180, 199);
+
+            Assert.True(result.Succeeded);
+            Assert.Equal(Enumerable.Range(181, 20).Select(value => (long)value),
+                result.Matches.Select(match => match.GameId));
+        }
+
+        [Fact]
+        public async Task GetMatchesResultAsync_WhenRequestedPageIsOutsideWindow_ReturnsEmptyPage()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
+                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new MatchHistoryResponse
+                {
+                    Games = new MatchHistoryPage
+                    {
+                        Games = Enumerable.Range(1, 20)
+                            .Select(gameId => new MatchModel { GameId = gameId })
+                            .ToList()
+                    }
+                });
+            var service = CreateService(httpService);
+
+            var result = await service.GetMatchesResultAsync("test-puuid", 20, 39);
+
+            Assert.True(result.Succeeded);
+            Assert.Empty(result.Matches);
         }
 
         [Fact]
