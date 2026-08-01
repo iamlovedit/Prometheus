@@ -79,6 +79,30 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public void MatchmakingSnapshot_DeserializesFloatingPointPenaltyTime()
+        {
+            const string json = """
+                {
+                  "estimatedQueueTime": 0.0,
+                  "isCurrentlyInQueue": true,
+                  "lowPriorityData": {
+                    "penaltyTime": 0.0,
+                    "penaltyTimeRemaining": 0.0,
+                    "reason": ""
+                  },
+                  "searchState": "Searching",
+                  "timeInQueue": 0.0
+                }
+                """;
+
+            var snapshot = JsonConvert.DeserializeObject<MatchmakingSnapshot>(json);
+
+            Assert.NotNull(snapshot);
+            Assert.NotNull(snapshot.LowPriorityData);
+            Assert.Equal(0.0, snapshot.LowPriorityData.PenaltyTime);
+        }
+
+        [Fact]
         public void GameflowGameData_DeserializesRealTeamAndChampionSelectionShape()
         {
             const string json = """

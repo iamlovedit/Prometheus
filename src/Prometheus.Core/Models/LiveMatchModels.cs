@@ -399,7 +399,7 @@ namespace Prometheus.Core.Models
     {
         public bool IsLowPriority { get; set; }
 
-        public int PenaltyTime { get; set; }
+        public double PenaltyTime { get; set; }
     }
 
     public class ReadyCheckSnapshot
