@@ -167,11 +167,10 @@
                         <TextBlock
                             Grid.Column="2"
                             VerticalAlignment="Center"
-                            FontSize="15"
+                            FontSize="14"
                             FontWeight="Bold"
                             Foreground="{DynamicResource PrimaryTextBrush}"
-                            Text="PROMETHEUS"
-                            TextTrimming="CharacterEllipsis" />
+                            Text="PROMETHEUS" />
                     </Grid>
 
                     <Border
