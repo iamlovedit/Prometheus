@@ -527,6 +527,7 @@ namespace Prometheus.Services.Client
                 .ForContext("EventName", "lcu.websocket.event.received")
                 .ForContext("Category", "WebSocket")
                 .ForContext("Origin", "Observed")
+                .ForContext("Data", sanitizedData.Data)
                 .ForContext("DataRedactedFieldCount", sanitizedData.RedactedFieldCount)
                 .ForContext("DataSanitizationFailed", sanitizedData.Failed);
 
@@ -536,10 +537,9 @@ namespace Prometheus.Services.Client
             }
 
             logger.Information(
-                "Received League client websocket event {EventType} for {Uri}. Data: {Data:l}",
+                "Received League client websocket event {EventType} for {Uri}",
                 sanitizedEventType,
-                sanitizedUri,
-                sanitizedData.Data);
+                sanitizedUri);
         }
 
         private void HandleDisconnected(ClientWebSocket socket)

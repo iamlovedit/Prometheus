@@ -12,6 +12,8 @@ namespace Prometheus.Modules.Setting.Views
     /// </summary>
     public partial class LogView : UserControl
     {
+        private bool _scrollPending;
+
         public LogView()
         {
             InitializeComponent();
@@ -29,6 +31,7 @@ namespace Prometheus.Modules.Setting.Views
 
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
+            _scrollPending = false;
             if (LogList.Items is INotifyCollectionChanged notifier)
             {
                 notifier.CollectionChanged -= OnItemsChanged;
@@ -52,9 +55,18 @@ namespace Prometheus.Modules.Setting.Views
                 return;
             }
 
+            if (_scrollPending)
+            {
+                return;
+            }
+
+            _scrollPending = true;
             LogList.Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
             {
-                if (LogList.Items.Count > 0)
+                _scrollPending = false;
+                if (DataContext is LogViewModel currentViewModel
+                    && currentViewModel.AutoScroll
+                    && LogList.Items.Count > 0)
                 {
                     LogList.ScrollIntoView(LogList.Items[LogList.Items.Count - 1]);
                 }

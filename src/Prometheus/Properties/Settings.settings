@@ -3,4 +3,9 @@
   <Profiles>
     <Profile Name="(Default)" />
   </Profiles>
+  <Settings>
+    <Setting Name="EnableLogging" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>

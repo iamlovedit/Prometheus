@@ -20,7 +20,9 @@ using Prometheus.Shared.Views;
 using Prometheus.Update;
 using Prometheus.ViewModels;
 using Prometheus.Views;
+using Prometheus.Properties;
 using Serilog;
+using Serilog.Events;
 using Serilog.Formatting.Json;
 using System.Diagnostics;
 using System.Reflection;
@@ -32,7 +34,9 @@ namespace Prometheus
 {
     public partial class App : PrismApplication
     {
-        private const int RetainedLogFileCount = 14;
+        private const int RetainedLogFileCount = 7;
+        private const string LogFileSearchPattern = "prometheus-*.jsonl";
+        private static readonly TimeSpan LogFileRetentionPeriod = TimeSpan.FromDays(7);
 
         [DllImport("user32.dll")]
         public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -41,6 +45,7 @@ namespace Prometheus
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
         private LogHistoryService _logHistory;
+        private LoggingControlService _loggingControl;
 
         protected override Window CreateShell()
         {
@@ -64,6 +69,7 @@ namespace Prometheus
             containerRegistry.RegisterInstance(UpdateRuntime.CreateOptions());
             containerRegistry.RegisterSingleton<IUpdateService, UpdateService>();
             containerRegistry.RegisterInstance<ILogHistoryService>(_logHistory);
+            containerRegistry.RegisterInstance<ILoggingControlService>(_loggingControl);
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
             containerRegistry.RegisterDialogWindow<DialogWindow>();
@@ -127,16 +133,40 @@ namespace Prometheus
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Prometheus",
                     "Logs");
-                Directory.CreateDirectory(logDirectory);
+                var cleanupResult = LogFileRetentionCleaner.DeleteExpiredFiles(
+                    logDirectory,
+                    LogFileSearchPattern,
+                    LogFileRetentionPeriod,
+                    DateTimeOffset.UtcNow);
 
-                _logHistory = new LogHistoryService(1000);
+                _logHistory = new LogHistoryService(5000);
+                _loggingControl = new LoggingControlService(
+                    Settings.Default.EnableLogging,
+                    _logHistory,
+                    PersistLoggingSetting);
+#if DEBUG
+                var minimumLogLevel = LogEventLevel.Debug;
+#else
+                var minimumLogLevel = LogEventLevel.Information;
+#endif
                 Log.Logger = new LoggerConfiguration()
-                    .WriteTo.File(new JsonFormatter(renderMessage: true),
-                        Path.Combine(logDirectory, "prometheus-.jsonl"),
-                        rollingInterval: RollingInterval.Day,
-                        retainedFileCountLimit: RetainedLogFileCount)
-                    .WriteTo.Sink(_logHistory.Sink)
+                    .MinimumLevel.Is(minimumLogLevel)
+                    .Filter.With(_loggingControl)
+                    .WriteTo.Sink(new LoggingControlledSink(
+                        _loggingControl,
+                        new DeferredFileLogSink(
+                            Path.Combine(
+                                logDirectory,
+                                "prometheus-.jsonl"),
+                            new JsonFormatter(renderMessage: true),
+                            RollingInterval.Day,
+                            RetainedLogFileCount,
+                            LogFileRetentionPeriod)))
+                    .WriteTo.Sink(new LoggingControlledSink(
+                        _loggingControl,
+                        _logHistory.Sink))
                     .CreateLogger();
+                ReportLogCleanupResult(cleanupResult);
                 RegisterExceptionHandlers();
                 TextInputContextMenu.Register();
                 base.OnStartup(e);
@@ -232,6 +262,29 @@ namespace Prometheus
 
                 Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
                 File.Copy(sourcePath, destinationPath);
+            }
+        }
+
+        private static void PersistLoggingSetting(bool enabled)
+        {
+            Settings.Default.EnableLogging = enabled;
+            Settings.Default.Save();
+        }
+
+        private static void ReportLogCleanupResult(LogFileCleanupResult result)
+        {
+            if (result.DeletedCount > 0)
+            {
+                Log.Information(
+                    "Deleted {DeletedCount} application log files older than seven days",
+                    result.DeletedCount);
+            }
+
+            if (result.FailureCount > 0)
+            {
+                Log.Warning(
+                    "Failed to delete {FailureCount} expired application log files",
+                    result.FailureCount);
             }
         }
     }

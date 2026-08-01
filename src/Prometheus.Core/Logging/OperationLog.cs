@@ -9,6 +9,50 @@ namespace Prometheus.Core.Logging
     /// </summary>
     public static class OperationLog
     {
+        private const int MaximumStringPropertyLength = 2048;
+
+        private static readonly HashSet<string> AllowedPropertyNames = new(
+            StringComparer.Ordinal)
+        {
+            "ClientSessionId",
+            "TargetType",
+            "TargetId",
+            "ActionId",
+            "ChampionId",
+            "RunePageId",
+            "OldValue",
+            "NewValue",
+            "OldCount",
+            "NewCount",
+            "OldLength",
+            "NewLength",
+            "GameflowPhase",
+            "ConnectionState",
+            "PhaseInstance",
+            "DurationMs",
+            "AttemptCount",
+            "ErrorType",
+            "ErrorCode",
+            "HttpStatusCode",
+            "HasPassword",
+            "SkinId",
+            "ProfileIconId",
+            "QueueType",
+            "Tier",
+            "Division",
+            "IsEmpty",
+            "TextLength",
+            "QueryLength",
+            "ResultCount",
+            "Found",
+            "AssetType",
+            "AssetId",
+            "FileExtension",
+            "PreviousCount",
+            "ClearScope",
+            "SkipInMemoryLog",
+        };
+
         private static readonly Guid _appSessionId = Guid.NewGuid();
 
         public static void Write(
@@ -37,7 +81,16 @@ namespace Prometheus.Core.Logging
             {
                 foreach (var property in properties)
                 {
-                    logger = logger.ForContext(property.Key, property.Value);
+                    if (!AllowedPropertyNames.Contains(property.Key))
+                    {
+                        continue;
+                    }
+
+                    var value = property.Value is string text
+                        && text.Length > MaximumStringPropertyLength
+                            ? string.Concat(text.AsSpan(0, MaximumStringPropertyLength), "…")
+                            : property.Value;
+                    logger = logger.ForContext(property.Key, value);
                 }
             }
 

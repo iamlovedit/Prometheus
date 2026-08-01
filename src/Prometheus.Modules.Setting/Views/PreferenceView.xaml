@@ -497,6 +497,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="16" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="16" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <Grid>
@@ -516,10 +518,32 @@
                         VerticalAlignment="Center"
                         Command="{Binding DataContext.OpenDiagnosticsCommand, RelativeSource={RelativeSource AncestorType={x:Type views:SettingView}}}"
                         Content="{DynamicResource Setting.Diagnostics.Open}"
-                        Style="{DynamicResource ButtonPrimary}" />
+                        Style="{DynamicResource ButtonPrimary}"
+                        Visibility="{Binding LoggingEnabled, Converter={StaticResource Boolean2VisibilityConverter}}" />
                 </Grid>
 
                 <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock
+                            Style="{StaticResource SettingName}"
+                            Text="{DynamicResource Setting.Diagnostics.Logging.Enable}" />
+                        <TextBlock
+                            Margin="0,3,0,0"
+                            Style="{StaticResource CaptionText}"
+                            Text="{DynamicResource Setting.Diagnostics.Logging.Description}" />
+                    </StackPanel>
+                    <ToggleButton
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        IsChecked="{Binding LoggingEnabled, Mode=TwoWay}"
+                        Style="{StaticResource SettingToggleSwitch}" />
+                </Grid>
+
+                <Grid Grid.Row="4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
                         <ColumnDefinition Width="12" />

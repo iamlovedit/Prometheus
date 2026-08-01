@@ -8,86 +8,298 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Setting.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:LogViewModel}"
-    d:DesignHeight="600"
-    d:DesignWidth="640"
+    d:DesignHeight="760"
+    d:DesignWidth="980"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
-    <Grid Margin="0,0">
+    <UserControl.Resources>
+        <Style x:Key="LogViewToggle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinWidth" Value="132" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" />
+                    <Setter Property="Foreground" Value="White" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="LogBadge" TargetType="{x:Type Border}">
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="Padding" Value="6,1" />
+            <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style x:Key="FilterCaption" TargetType="{x:Type TextBlock}">
+            <Setter Property="Margin" Value="1,0,0,3" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        </Style>
+        <Style x:Key="LogCategoryText" TargetType="{x:Type TextBlock}">
+            <Setter Property="Text" Value="{Binding DisplayCategory}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DisplayCategory}" Value="Application">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Category.Application}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DisplayCategory}" Value="Automation">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Category.Automation}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DisplayCategory}" Value="ChampionSelect">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Category.ChampionSelect}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DisplayCategory}" Value="Diagnostics">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Category.Diagnostics}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DisplayCategory}" Value="Match">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Category.Match}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DisplayCategory}" Value="WebSocket">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Category.WebSocket}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="LogOriginText" TargetType="{x:Type TextBlock}">
+            <Setter Property="Text" Value="{Binding Origin}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Origin}" Value="Manual">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Origin.Manual}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Origin}" Value="Automation">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Origin.Automation}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Origin}" Value="Observed">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Origin.Observed}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Origin}" Value="System">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Origin.System}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="LogOutcomeText" TargetType="{x:Type TextBlock}">
+            <Setter Property="Text" Value="{Binding Outcome}" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Outcome}" Value="Succeeded">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Outcome.Succeeded}" />
+                    <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Outcome}" Value="Failed">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Outcome.Failed}" />
+                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Outcome}" Value="Cancelled">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Outcome.Cancelled}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Outcome}" Value="Rejected">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Outcome.Rejected}" />
+                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Outcome}" Value="Skipped">
+                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Outcome.Skipped}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid IsEnabled="{Binding IsLoggingEnabled}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <hc:UniformSpacingPanel
-            Grid.Row="0"
-            VerticalAlignment="Center"
-            HorizontalSpacing="10"
-            ItemVerticalAlignment="Center"
-            Orientation="Horizontal">
-            <TextBox
-                Width="220"
-                Height="34"
-                VerticalContentAlignment="Center"
-                hc:InfoElement.Placeholder="{DynamicResource Setting.Log.Search}"
-                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
-            <TextBlock
-                VerticalAlignment="Center"
-                Foreground="{DynamicResource SecondaryTextBrush}"
-                Text="{DynamicResource Setting.Log.MinimumLevel}" />
-            <ComboBox
-                Width="130"
-                Height="34"
-                VerticalContentAlignment="Center"
-                SelectedIndex="{Binding MinimumLevelIndex}">
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.All}" />
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Verbose}" />
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Debug}" />
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Information}" />
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Warning}" />
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Error}" />
-                <ComboBoxItem Content="{DynamicResource Setting.Log.Level.Fatal}" />
-            </ComboBox>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal">
+                <ToggleButton
+                    Command="{Binding ShowOperationsCommand}"
+                    IsChecked="{Binding IsOperationView, Mode=OneWay}"
+                    Style="{StaticResource LogViewToggle}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{DynamicResource Setting.Log.View.Operations}" />
+                        <Border
+                            Margin="8,0,0,0"
+                            Padding="5,0"
+                            Background="#22000000"
+                            CornerRadius="8">
+                            <TextBlock Text="{Binding OperationCount}" />
+                        </Border>
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton
+                    Margin="8,0,0,0"
+                    Command="{Binding ShowDiagnosticsCommand}"
+                    IsChecked="{Binding IsDiagnosticView, Mode=OneWay}"
+                    Style="{StaticResource LogViewToggle}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            Text="{DynamicResource Setting.Log.View.Diagnostics}" />
+                        <Border
+                            Margin="8,0,0,0"
+                            Padding="5,0"
+                            Background="#22000000"
+                            CornerRadius="8">
+                            <TextBlock Text="{Binding DiagnosticCount}" />
+                        </Border>
+                    </StackPanel>
+                </ToggleButton>
+            </StackPanel>
+
+            <StackPanel
+                Grid.Column="2"
+                HorizontalAlignment="Right"
+                Orientation="Horizontal">
+                <TextBlock
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource WarningBrush}"
+                    Text="{Binding PendingText}"
+                    Visibility="{Binding HasPendingEntries, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                <ToggleButton
+                    Height="36"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    Content="{DynamicResource Setting.Log.AutoScroll}"
+                    IsChecked="{Binding AutoScroll}" />
+                <ToggleButton
+                    Height="36"
+                    Margin="8,0,0,0"
+                    Padding="10,0"
+                    VerticalContentAlignment="Center"
+                    IsChecked="{Binding IsPaused}">
+                    <TextBlock>
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Text" Value="{DynamicResource Setting.Log.Pause}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                        <Setter Property="Text" Value="{DynamicResource Setting.Log.Resume}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </ToggleButton>
+                <Button
+                    Height="36"
+                    Margin="8,0,0,0"
+                    Padding="10,0"
+                    Command="{Binding ClearCommand}"
+                    Content="{DynamicResource Setting.Log.Clear.Panel}"
+                    IsEnabled="{Binding HasAnyEntries}"
+                    ToolTip="{DynamicResource Setting.Log.Clear.ToolTip}" />
+            </StackPanel>
+        </Grid>
+
+        <WrapPanel Grid.Row="1" Margin="0,12,0,0">
+            <StackPanel Margin="0,0,10,8">
+                <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.Search.Label}" />
+                <TextBox
+                    Width="280"
+                    Height="34"
+                    VerticalContentAlignment="Center"
+                    hc:InfoElement.Placeholder="{DynamicResource Setting.Log.Search.Syntax}"
+                    Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+            </StackPanel>
+            <StackPanel Margin="0,0,10,8">
+                <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.Filter.Category}" />
+                <ComboBox
+                    Width="140"
+                    Height="34"
+                    DisplayMemberPath="DisplayName"
+                    ItemsSource="{Binding CategoryOptions}"
+                    SelectedValue="{Binding SelectedCategory, Mode=TwoWay}"
+                    SelectedValuePath="Value" />
+            </StackPanel>
+            <StackPanel Margin="0,0,10,8">
+                <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.Filter.Origin}" />
+                <ComboBox
+                    Width="130"
+                    Height="34"
+                    DisplayMemberPath="DisplayName"
+                    ItemsSource="{Binding OriginOptions}"
+                    SelectedValue="{Binding SelectedOrigin, Mode=TwoWay}"
+                    SelectedValuePath="Value" />
+            </StackPanel>
+            <StackPanel
+                Margin="0,0,10,8"
+                Visibility="{Binding IsOperationView, Converter={StaticResource Boolean2VisibilityConverter}}">
+                <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.Filter.Outcome}" />
+                <ComboBox
+                    Width="130"
+                    Height="34"
+                    DisplayMemberPath="DisplayName"
+                    ItemsSource="{Binding OutcomeOptions}"
+                    SelectedValue="{Binding SelectedOutcome, Mode=TwoWay}"
+                    SelectedValuePath="Value" />
+            </StackPanel>
+            <StackPanel Margin="0,0,10,8">
+                <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.MinimumLevel}" />
+                <ComboBox
+                    Width="140"
+                    Height="34"
+                    DisplayMemberPath="DisplayName"
+                    ItemsSource="{Binding LevelOptions}"
+                    SelectedValue="{Binding SelectedMinimumLevel, Mode=TwoWay}"
+                    SelectedValuePath="Value" />
+            </StackPanel>
+            <StackPanel Margin="0,0,10,8">
+                <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.Filter.Time}" />
+                <ComboBox
+                    Width="155"
+                    Height="34"
+                    DisplayMemberPath="DisplayName"
+                    ItemsSource="{Binding TimeRangeOptions}"
+                    SelectedValue="{Binding SelectedTimeRange, Mode=TwoWay}"
+                    SelectedValuePath="Value" />
+            </StackPanel>
             <ToggleButton
                 Height="34"
-                VerticalContentAlignment="Center"
-                Content="{DynamicResource Setting.Log.AutoScroll}"
-                IsChecked="{Binding AutoScroll}" />
-            <ToggleButton
-                Height="34"
-                VerticalContentAlignment="Center"
-                IsChecked="{Binding IsPaused}">
-                <TextBlock>
-                    <TextBlock.Style>
-                        <Style TargetType="{x:Type TextBlock}">
-                            <Setter Property="Text" Value="{DynamicResource Setting.Log.Pause}" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsPaused}" Value="True">
-                                    <Setter Property="Text" Value="{DynamicResource Setting.Log.Resume}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-            </ToggleButton>
+                Margin="0,18,10,8"
+                Padding="10,0"
+                Content="{DynamicResource Setting.Log.ShowIntermediate}"
+                IsChecked="{Binding ShowIntermediateOperations}"
+                Visibility="{Binding IsOperationView, Converter={StaticResource Boolean2VisibilityConverter}}" />
             <Button
                 Height="34"
-                VerticalContentAlignment="Center"
-                Command="{Binding ClearCommand}"
-                Content="{DynamicResource Setting.Log.Clear}"
-                IsEnabled="{Binding HasAnyEntries}"
-                ToolTip="{DynamicResource Setting.Log.Clear.ToolTip}" />
+                Margin="0,18,0,8"
+                Padding="12,0"
+                Command="{Binding ResetFiltersCommand}"
+                Content="{DynamicResource Setting.Log.Filter.Reset}" />
+        </WrapPanel>
+
+        <Grid Grid.Row="2" Margin="0,0,0,8">
             <TextBlock
-                VerticalAlignment="Center"
                 Foreground="{DynamicResource SecondaryTextBrush}"
                 Text="{Binding CountText}" />
-        </hc:UniformSpacingPanel>
+            <TextBlock
+                HorizontalAlignment="Right"
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                Text="{DynamicResource Setting.Log.Query.Help}" />
+        </Grid>
 
-        <Grid Grid.Row="1" Margin="0,8,0,0">
+        <Grid Grid.Row="3">
             <Border
                 Background="{DynamicResource RegionBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
-                CornerRadius="6">
+                CornerRadius="8">
                 <ListBox
                     x:Name="LogList"
                     Background="Transparent"
@@ -95,77 +307,57 @@
                     ItemsSource="{Binding Entries}"
                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                     VirtualizingPanel.IsVirtualizing="True"
                     VirtualizingPanel.VirtualizationMode="Recycling"
                     Visibility="{Binding HasVisibleEntries, Converter={StaticResource Boolean2VisibilityConverter}}">
                     <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Padding" Value="8,2" />
+                        <Style TargetType="{x:Type ListBoxItem}">
+                            <Setter Property="Padding" Value="10,7" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                         </Style>
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="44" />
+                                    <ColumnDefinition Width="78" />
+                                    <ColumnDefinition Width="52" />
                                     <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+
                                 <TextBlock
                                     Grid.Column="0"
-                                    Margin="0,0,10,0"
                                     VerticalAlignment="Top"
                                     FontFamily="Consolas"
                                     FontSize="11"
                                     Foreground="{DynamicResource SecondaryTextBrush}"
                                     Text="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}" />
-                                <TextBlock
+
+                                <Border
                                     Grid.Column="1"
-                                    HorizontalAlignment="Center"
+                                    Width="42"
+                                    Height="21"
+                                    HorizontalAlignment="Left"
                                     VerticalAlignment="Top"
-                                    FontFamily="Consolas"
-                                    FontWeight="Bold">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Level}" Value="Verbose">
-                                                    <Setter Property="Text" Value="VRB" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource ThirdlyTextBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Debug">
-                                                    <Setter Property="Text" Value="DBG" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Information">
-                                                    <Setter Property="Text" Value="INF" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Warning">
-                                                    <Setter Property="Text" Value="WRN" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                    <Setter Property="Text" Value="ERR" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Fatal">
-                                                    <Setter Property="Text" Value="FTL" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <StackPanel Grid.Column="2">
+                                    Background="{DynamicResource SecondaryRegionBrush}"
+                                    CornerRadius="4">
                                     <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
                                         FontFamily="Consolas"
-                                        Text="{Binding Message}"
-                                        TextWrapping="Wrap">
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                        Text="{Binding LevelCode}">
                                         <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                            <Style TargetType="{x:Type TextBlock}">
+                                                <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
                                                 <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Level}" Value="Information">
+                                                        <Setter Property="Foreground" Value="{DynamicResource InfoBrush}" />
+                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding Level}" Value="Warning">
                                                         <Setter Property="Foreground" Value="{DynamicResource WarningBrush}" />
                                                     </DataTrigger>
@@ -179,25 +371,57 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
+                                </Border>
+
+                                <StackPanel Grid.Column="2">
                                     <TextBlock
-                                        Margin="0,2,0,0"
-                                        FontFamily="Consolas"
-                                        FontSize="11"
-                                        Foreground="{DynamicResource DangerBrush}"
-                                        Text="{Binding Exception}"
-                                        TextWrapping="Wrap">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Exception}" Value="{x:Null}">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Text="{Binding Message}"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTip="{Binding Message}" />
+                                    <WrapPanel Margin="0,4,0,0">
+                                        <Border Style="{StaticResource LogBadge}">
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                                Style="{StaticResource LogCategoryText}" />
+                                        </Border>
+                                        <Border
+                                            Style="{StaticResource LogBadge}"
+                                            Visibility="{Binding HasOrigin, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                                Style="{StaticResource LogOriginText}" />
+                                        </Border>
+                                        <Border
+                                            Style="{StaticResource LogBadge}"
+                                            Visibility="{Binding HasOutcome, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                            <TextBlock FontSize="11" Style="{StaticResource LogOutcomeText}" />
+                                        </Border>
+                                        <Border
+                                            Style="{StaticResource LogBadge}"
+                                            Visibility="{Binding HasEventName, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                            <TextBlock
+                                                MaxWidth="330"
+                                                FontFamily="Consolas"
+                                                FontSize="11"
+                                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                                Text="{Binding EventName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </Border>
+                                    </WrapPanel>
                                 </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Margin="10,0,2,0"
+                                    VerticalAlignment="Top"
+                                    FontFamily="Consolas"
+                                    FontSize="11"
+                                    Foreground="{DynamicResource SecondaryTextBrush}"
+                                    Text="{Binding DurationMs, StringFormat={}{0} ms}"
+                                    Visibility="{Binding HasDuration, Converter={StaticResource Boolean2VisibilityConverter}}" />
                             </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -208,8 +432,8 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Foreground="{DynamicResource SecondaryTextBrush}"
-                Text="{DynamicResource Setting.Log.Empty}"
-                Visibility="{Binding IsLogEmpty, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                Text="{Binding EmptyText}"
+                Visibility="{Binding IsViewEmpty, Converter={StaticResource Boolean2VisibilityConverter}}" />
             <TextBlock
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
@@ -217,5 +441,177 @@
                 Text="{DynamicResource Setting.Log.NoResults}"
                 Visibility="{Binding HasNoFilterResults, Converter={StaticResource Boolean2VisibilityConverter}}" />
         </Grid>
+
+        <Border
+            Grid.Row="4"
+            MaxHeight="280"
+            Margin="0,10,0,0"
+            Padding="14"
+            Background="{DynamicResource RegionBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Visibility="{Binding HasSelectedEntry, Converter={StaticResource Boolean2VisibilityConverter}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <TextBlock Style="{StaticResource PageSectionTitle}" Text="{DynamicResource Setting.Log.Details}" />
+                    <Button
+                        HorizontalAlignment="Right"
+                        Padding="10,3"
+                        Command="{Binding CloseDetailsCommand}"
+                        Content="{DynamicResource Setting.Log.Details.Close}" />
+                </Grid>
+
+                <ScrollViewer
+                    Grid.Row="1"
+                    Margin="0,10,0,0"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <WrapPanel Margin="0,0,0,8">
+                            <Border Style="{StaticResource LogBadge}">
+                                <TextBlock Text="{Binding SelectedEntry.Level}" />
+                            </Border>
+                            <Border Style="{StaticResource LogBadge}">
+                                <TextBlock Text="{Binding SelectedEntry.DisplayCategory}" />
+                            </Border>
+                            <Border
+                                Style="{StaticResource LogBadge}"
+                                Visibility="{Binding SelectedEntry.HasOrigin, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <TextBlock Text="{Binding SelectedEntry.Origin}" />
+                            </Border>
+                            <Border
+                                Style="{StaticResource LogBadge}"
+                                Visibility="{Binding SelectedEntry.HasOutcome, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <TextBlock Text="{Binding SelectedEntry.Outcome}" />
+                            </Border>
+                            <Border
+                                Style="{StaticResource LogBadge}"
+                                Visibility="{Binding SelectedEntry.HasModule, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <TextBlock Text="{Binding SelectedEntry.Module}" />
+                            </Border>
+                        </WrapPanel>
+
+                        <TextBlock Style="{StaticResource FilterCaption}" Text="{DynamicResource Setting.Log.Details.Message}" />
+                        <TextBox
+                            Padding="6"
+                            AcceptsReturn="True"
+                            Background="{DynamicResource SecondaryRegionBrush}"
+                            BorderThickness="0"
+                            IsReadOnly="True"
+                            Text="{Binding SelectedEntry.Message, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Margin="0,3,0,0"
+                            FontSize="11"
+                            Foreground="{DynamicResource WarningBrush}"
+                            Text="{DynamicResource Setting.Log.Details.Truncated}"
+                            Visibility="{Binding SelectedEntry.IsMessageTruncated, Converter={StaticResource Boolean2VisibilityConverter}}" />
+
+                        <Grid Margin="0,10,0,0" Visibility="{Binding SelectedEntry.HasEventName, Converter={StaticResource Boolean2VisibilityConverter}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource FilterCaption}" Text="EventName" />
+                            <TextBox
+                                Grid.Column="1"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                FontFamily="Consolas"
+                                IsReadOnly="True"
+                                Text="{Binding SelectedEntry.EventName, Mode=OneWay}" />
+                        </Grid>
+
+                        <ItemsControl
+                            Margin="0,6,0,0"
+                            ItemsSource="{Binding SelectedEntry.Properties}"
+                            Visibility="{Binding SelectedEntry.HasProperties, Converter={StaticResource Boolean2VisibilityConverter}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="160" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Top"
+                                            FontFamily="Consolas"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource SecondaryTextBrush}"
+                                            Text="{Binding Name}" />
+                                        <TextBox
+                                            Grid.Column="1"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            FontFamily="Consolas"
+                                            FontSize="11"
+                                            IsReadOnly="True"
+                                            Text="{Binding Value, Mode=OneWay}"
+                                            TextWrapping="Wrap" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Margin="6,0,0,0"
+                                            Foreground="{DynamicResource WarningBrush}"
+                                            Text="…"
+                                            Visibility="{Binding IsTruncated, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Expander
+                            Margin="0,8,0,0"
+                            Header="{DynamicResource Setting.Log.Details.Exception}"
+                            Visibility="{Binding SelectedEntry.HasException, Converter={StaticResource Boolean2VisibilityConverter}}">
+                            <TextBox
+                                MaxHeight="150"
+                                Padding="8"
+                                AcceptsReturn="True"
+                                Background="{DynamicResource SecondaryRegionBrush}"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource DangerBrush}"
+                                IsReadOnly="True"
+                                Text="{Binding SelectedEntry.Exception, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                VerticalScrollBarVisibility="Auto" />
+                        </Expander>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        </Grid>
+
+        <Border
+            Padding="32"
+            Background="{DynamicResource RegionBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Visibility="{Binding IsLoggingDisabled, Converter={StaticResource Boolean2VisibilityConverter}}">
+            <StackPanel
+                MaxWidth="520"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="SemiBold"
+                    Text="{DynamicResource Setting.Log.Disabled.Title}" />
+                <TextBlock
+                    Margin="0,10,0,0"
+                    HorizontalAlignment="Center"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    Text="{DynamicResource Setting.Log.Disabled.Description}"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>

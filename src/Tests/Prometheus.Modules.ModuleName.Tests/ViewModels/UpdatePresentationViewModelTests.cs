@@ -127,6 +127,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             logHistory.SetupGet(service => service.Capacity).Returns(1000);
             logHistory.Setup(service => service.GetSnapshot())
                 .Returns(Array.Empty<LogEntry>());
+            var loggingControl = new Mock<ILoggingControlService>();
 
             return new PreferenceViewModel(
                 new EventAggregator(),
@@ -134,6 +135,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IGameAutomationSettings>().Object,
                 matchService.Object,
                 logHistory.Object,
+                loggingControl.Object,
                 updateService,
                 new Mock<IDialogService>().Object);
         }

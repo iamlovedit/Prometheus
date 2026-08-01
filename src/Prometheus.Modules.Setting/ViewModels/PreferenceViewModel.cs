@@ -21,6 +21,7 @@ namespace Prometheus.Modules.Setting.ViewModels
         private readonly IGameAutomationSettings _automationSettings;
         private readonly IMatchService _matchService;
         private readonly ILogHistoryService _logHistory;
+        private readonly ILoggingControlService _loggingControl;
         private readonly IUpdateService _updateService;
         private readonly IDialogService _dialogService;
 
@@ -32,6 +33,7 @@ namespace Prometheus.Modules.Setting.ViewModels
             IGameAutomationSettings automationSettings,
             IMatchService matchService,
             ILogHistoryService logHistory,
+            ILoggingControlService loggingControl,
             IUpdateService updateService,
             IDialogService dialogService)
             : base(eventAggregator, resourceService)
@@ -39,13 +41,14 @@ namespace Prometheus.Modules.Setting.ViewModels
             _automationSettings = automationSettings;
             _matchService = matchService;
             _logHistory = logHistory;
+            _loggingControl = loggingControl;
             _updateService = updateService;
             _dialogService = dialogService;
 
             _selectedLanguageIndex = Settings.Default.LanguageIndex;
             _selectedThemeIndex = Settings.Default.ThemeIndex;
             _connectionState = matchService.Current?.ConnectionState ?? ConnectionState.Disconnected;
-            _logCount = logHistory.GetSnapshot().Count;
+            _logCount = loggingControl.IsEnabled ? logHistory.GetSnapshot().Count : 0;
 
             ApplicationVersion = GetApplicationVersion();
             LogCapacity = logHistory.Capacity;
@@ -58,6 +61,7 @@ namespace Prometheus.Modules.Setting.ViewModels
             matchService.SnapshotChanged += HandleSnapshotChanged;
             logHistory.EntryLogged += HandleLogChanged;
             logHistory.Cleared += HandleLogChanged;
+            loggingControl.EnabledChanged += HandleLoggingEnabledChanged;
             updateService.StateChanged += HandleUpdateStateChanged;
             EventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(RefreshConnectionStatus);
             EventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(RefreshUpdateState);
@@ -158,6 +162,18 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         public int LogCapacity { get; }
 
+        public bool LoggingEnabled
+        {
+            get => _loggingControl.IsEnabled;
+            set
+            {
+                if (_loggingControl.IsEnabled != value)
+                {
+                    _loggingControl.SetEnabled(value);
+                }
+            }
+        }
+
         public string ApplicationVersion { get; }
 
         public DelegateCommand CheckForUpdatesCommand { get; }
@@ -209,6 +225,7 @@ namespace Prometheus.Modules.Setting.ViewModels
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _logHistory.EntryLogged -= HandleLogChanged;
             _logHistory.Cleared -= HandleLogChanged;
+            _loggingControl.EnabledChanged -= HandleLoggingEnabledChanged;
             _updateService.StateChanged -= HandleUpdateStateChanged;
             EventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(RefreshConnectionStatus);
             EventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(RefreshUpdateState);
@@ -231,7 +248,18 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         private void HandleLogChanged(object sender, EventArgs args)
         {
-            Dispatch(() => LogCount = _logHistory.GetSnapshot().Count);
+            Dispatch(() => LogCount = _loggingControl.IsEnabled
+                ? _logHistory.GetSnapshot().Count
+                : 0);
+        }
+
+        private void HandleLoggingEnabledChanged(object? sender, EventArgs args)
+        {
+            Dispatch(() =>
+            {
+                RaisePropertyChanged(nameof(LoggingEnabled));
+                LogCount = _loggingControl.IsEnabled ? _logHistory.GetSnapshot().Count : 0;
+            });
         }
 
         private void HandleUpdateStateChanged(object sender, UpdateStateChangedEventArgs args)
