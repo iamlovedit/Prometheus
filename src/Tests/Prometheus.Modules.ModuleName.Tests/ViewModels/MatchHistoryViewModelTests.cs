@@ -17,8 +17,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             var initialMatches = CreateMatches(1, 20);
             var nextMatches = CreateMatches(21, 20);
             using var context = new TestContext();
-            context.SummonerService.Setup(service => service.GetMatchesResultAsync(
-                    "test-puuid", 20, 39, It.IsAny<CancellationToken>()))
+            context.SummonerService.Setup(service => service.GetMatchHistoryPageAsync(
+                    "test-puuid", 2, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MatchHistoryQueryResult
                 {
                     Succeeded = true,
@@ -36,8 +36,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.True(context.ViewModel.CanGoToPreviousPage);
             Assert.False(context.ViewModel.ShowNoMoreMatches);
             Assert.False(context.ViewModel.ShowPaginationError);
-            context.SummonerService.Verify(service => service.GetMatchesResultAsync(
-                "test-puuid", 20, 39, It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetMatchHistoryPageAsync(
+                "test-puuid", 2, It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
@@ -45,8 +45,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         {
             var initialMatches = CreateMatches(1, 20);
             using var context = new TestContext();
-            context.SummonerService.Setup(service => service.GetMatchesResultAsync(
-                    "test-puuid", 20, 39, It.IsAny<CancellationToken>()))
+            context.SummonerService.Setup(service => service.GetMatchHistoryPageAsync(
+                    "test-puuid", 2, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MatchHistoryQueryResult
                 {
                     Succeeded = true,
@@ -71,8 +71,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         {
             var initialMatches = CreateMatches(1, 20);
             using var context = new TestContext();
-            context.SummonerService.Setup(service => service.GetMatchesResultAsync(
-                    "test-puuid", 20, 39, It.IsAny<CancellationToken>()))
+            context.SummonerService.Setup(service => service.GetMatchHistoryPageAsync(
+                    "test-puuid", 2, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MatchHistoryQueryResult
                 {
                     Succeeded = false,
@@ -96,8 +96,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         public async Task OnNavigatedTo_WhenViewModelIsReused_ResetsPaginationState()
         {
             using var context = new TestContext();
-            context.SummonerService.Setup(service => service.GetMatchesResultAsync(
-                    "first-puuid", 20, 39, It.IsAny<CancellationToken>()))
+            context.SummonerService.Setup(service => service.GetMatchHistoryPageAsync(
+                    "first-puuid", 2, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MatchHistoryQueryResult
                 {
                     Succeeded = true,

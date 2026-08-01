@@ -240,10 +240,8 @@ namespace Prometheus.Shared.ViewModels
                 IsLoading = true;
                 ClearPaginationFeedback();
 
-                var startIndex = (targetPageIndex - 1) * PageSize;
-                var endIndex = startIndex + PageSize - 1;
-                var result = await _summonerServices.GetMatchesResultAsync(
-                    _summoner.Puuid, startIndex, endIndex);
+                var result = await _summonerServices.GetMatchHistoryPageAsync(
+                    _summoner.Puuid, targetPageIndex);
 
                 if (result?.Succeeded != true)
                 {

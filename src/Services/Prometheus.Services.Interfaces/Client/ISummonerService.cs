@@ -26,26 +26,24 @@ namespace Prometheus.Services.Interfaces.Client
         Task<string> GetRankStatsByPuuid(string puuid,
             CancellationToken cancellationToken = default);
 
-        Task<string> GetRecentMatchesByPuuid(string puuid);
-
         Task<string> GetBackdorpByIdAsync(long summonerId);
 
         /// <summary>
-        /// Gets a page of matches from
+        /// Gets the five recent matches used by the Home dashboard from
         /// <c>lol-match-history/v1/products/lol/{puuid}/matches</c>.
-        /// The implementation retrieves a stable 200-match LCU window and slices it locally because
-        /// some clients cache this endpoint without including its query string in the cache key.
         /// Returns an empty list when LCU is unavailable or the response contains no games.
+        /// Supports cancellation.
         /// </summary>
-        Task<List<Match>> GetMatchesAsync(string puuid, int start, int end,
+        Task<List<Match>> GetHomeRecentMatchesAsync(string puuid,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gets a match-history page while preserving the distinction between
-        /// a successful empty page and an unavailable/malformed LCU response.
-        /// Supports cancellation.
+        /// Gets a 20-match page from
+        /// <c>lol-match-history/v1/products/lol/{puuid}/matches</c> while preserving
+        /// the distinction between a successful empty page and an unavailable/malformed
+        /// LCU response. Page indexes are one-based and cancellation is supported.
         /// </summary>
-        Task<MatchHistoryQueryResult> GetMatchesResultAsync(string puuid,
-            int start, int end, CancellationToken cancellationToken = default);
+        Task<MatchHistoryQueryResult> GetMatchHistoryPageAsync(string puuid,
+            int pageIndex, CancellationToken cancellationToken = default);
     }
 }

@@ -34,8 +34,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 .ReturnsAsync("""
                     {"queueMap":{"RANKED_SOLO_5x5":{"tier":"GOLD","division":"II","leaguePoints":45}}}
                     """);
-            context.SummonerService.Setup(service => service.GetMatchesResultAsync(
-                    "ally-puuid", 0, 19, It.IsAny<CancellationToken>()))
+            context.SummonerService.Setup(service => service.GetMatchHistoryPageAsync(
+                    "ally-puuid", 1, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MatchHistoryQueryResult
                 {
                     Succeeded = true,
@@ -81,8 +81,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 "enemy-secret-puuid", It.IsAny<CancellationToken>()), Times.Never);
             context.SummonerService.Verify(service => service.GetRankStatsByPuuid(
                 "enemy-secret-puuid", It.IsAny<CancellationToken>()), Times.Never);
-            context.SummonerService.Verify(service => service.GetMatchesResultAsync(
-                "enemy-secret-puuid", It.IsAny<int>(), It.IsAny<int>(),
+            context.SummonerService.Verify(service => service.GetMatchHistoryPageAsync(
+                "enemy-secret-puuid", It.IsAny<int>(),
                 It.IsAny<CancellationToken>()), Times.Never);
 
             await context.Service.StopAsync();
@@ -129,8 +129,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
             context.SummonerService.Verify(service => service.GetRankStatsByPuuid(
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
-            context.SummonerService.Verify(service => service.GetMatchesResultAsync(
-                "enemy-1", 0, 19, It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetMatchHistoryPageAsync(
+                "enemy-1", 1, It.IsAny<CancellationToken>()), Times.Once);
             context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Once);
 
@@ -218,8 +218,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
             context.SummonerService.Verify(service => service.GetRankStatsByPuuid(
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
-            context.SummonerService.Verify(service => service.GetMatchesResultAsync(
-                "enemy-1", 0, 19, It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetMatchHistoryPageAsync(
+                "enemy-1", 1, It.IsAny<CancellationToken>()), Times.Once);
             context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Never);
 
@@ -667,8 +667,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             context.SummonerService.Setup(service => service.GetRankStatsByPuuid(
                     It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync("{\"queueMap\":{}}");
-            context.SummonerService.Setup(service => service.GetMatchesResultAsync(
-                    It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(),
+            context.SummonerService.Setup(service => service.GetMatchHistoryPageAsync(
+                    It.IsAny<string>(), It.IsAny<int>(),
                     It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new MatchHistoryQueryResult
                 {

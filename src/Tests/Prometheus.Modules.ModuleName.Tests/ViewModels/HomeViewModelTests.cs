@@ -28,8 +28,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
             context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Once);
-            context.SummonerService.Verify(service => service.GetMatchesAsync(
-                "test-puuid", 0, 19,
+            context.SummonerService.Verify(service => service.GetHomeRecentMatchesAsync(
+                "test-puuid",
                 It.IsAny<CancellationToken>()), Times.Once);
             Assert.Equal("Prometheus", context.ViewModel.SummonerName);
             Assert.Equal("#TST", context.ViewModel.SummonerTag);
@@ -119,9 +119,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
-        public void ConnectedIdleSnapshot_RequestsTwentyMatchesButDisplaysOnlyFive()
+        public void ConnectedIdleSnapshot_RequestsFiveMatchesForHome()
         {
-            var matches = Enumerable.Range(1, 20)
+            var matches = Enumerable.Range(1, 5)
                 .Select(index => new MatchModel
                 {
                     GameId = index,
@@ -152,8 +152,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 UpdatedAt = DateTimeOffset.UtcNow
             });
 
-            context.SummonerService.Verify(service => service.GetMatchesAsync(
-                "test-puuid", 0, 19,
+            context.SummonerService.Verify(service => service.GetHomeRecentMatchesAsync(
+                "test-puuid",
                 It.IsAny<CancellationToken>()), Times.Once);
             Assert.Equal(5, context.ViewModel.RecentMatches.Count);
             Assert.Equal([1L, 2L, 3L, 4L, 5L],
@@ -272,8 +272,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 SummonerService.Setup(service => service.GetRankStatsByPuuid(
                         "test-puuid", It.IsAny<CancellationToken>()))
                     .ReturnsAsync((string)null);
-                SummonerService.Setup(service => service.GetMatchesAsync(
-                        "test-puuid", 0, 19, It.IsAny<CancellationToken>()))
+                SummonerService.Setup(service => service.GetHomeRecentMatchesAsync(
+                        "test-puuid", It.IsAny<CancellationToken>()))
                     .ReturnsAsync((recentMatches ?? []).ToList());
                 GameResourceManager.Setup(service => service.GetProfileIconByIdAsync(29))
                     .ReturnsAsync("profile-icon.png");

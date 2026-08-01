@@ -1112,8 +1112,8 @@ namespace Prometheus.Services.Client
             var summonerTask = _summonerService.SearchSummonerByPuuid(
                 puuid, cancellationToken);
             var rankTask = _summonerService.GetRankStatsByPuuid(puuid, cancellationToken);
-            var matchesTask = _summonerService.GetMatchesResultAsync(
-                puuid, 0, RecentMatchCount - 1, cancellationToken);
+            var matchesTask = _summonerService.GetMatchHistoryPageAsync(
+                puuid, 1, cancellationToken);
 
             await Task.WhenAll(summonerTask, rankTask, matchesTask).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();

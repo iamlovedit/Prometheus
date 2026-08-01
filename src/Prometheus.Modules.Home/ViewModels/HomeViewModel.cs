@@ -960,11 +960,8 @@ namespace Prometheus.Modules.Home.ViewModels
         {
             try
             {
-                var matches = await _summonerService.GetMatchesAsync(
-                    puuid,
-                    0,
-                    19,
-                    cancellationToken);
+                var matches = await _summonerService.GetHomeRecentMatchesAsync(
+                    puuid, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (matches is null || matches.Count == 0)
                 {

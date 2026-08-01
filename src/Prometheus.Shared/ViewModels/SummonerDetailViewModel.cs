@@ -86,7 +86,11 @@ namespace Prometheus.Shared.ViewModels
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
                 }
-                var matches = await _summonerService.GetMatchesAsync(_summoner.Puuid, 0, 19);
+                var matchResult = await _summonerService.GetMatchHistoryPageAsync(
+                    _summoner.Puuid, 1);
+                var matches = matchResult?.Succeeded == true
+                    ? matchResult.Matches?.ToList() ?? []
+                    : [];
                 if (matches != null)
                 {
                     Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
