@@ -3,6 +3,9 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Client;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.Services
@@ -80,7 +83,97 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             await context.Service.StopAsync();
         }
 
-        private static TestContext CreateContext()
+        [Fact]
+        public async Task StartFailure_LogsSnapshotErrorDiagnosticWithExceptionStack()
+        {
+            var sink = new CollectingSink();
+            using var logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.Sink(sink)
+                .CreateLogger();
+            var context = CreateContext(logger);
+            context.LeagueClient
+                .Setup(client => client.StartAsync(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException(
+                    "Sensitive connection failure containing test-token."));
+
+            await context.Service.StartAsync();
+
+            var logEvent = Assert.Single(sink.Events.Where(IsSnapshotErrorEvent));
+            Assert.Equal(LogEventLevel.Error, logEvent.Level);
+            Assert.Equal("Unable to start the League client connection.",
+                GetScalar<string>(logEvent, "SnapshotError"));
+            Assert.Equal("System.InvalidOperationException",
+                GetScalar<string>(logEvent, "ErrorType"));
+            Assert.Equal(1, GetScalar<int>(logEvent, "ExceptionCount"));
+            Assert.Equal("Exception", GetScalar<string>(logEvent, "CallStackKind"));
+            Assert.False(string.IsNullOrWhiteSpace(
+                GetScalar<string>(logEvent, "SafeStackTrace")));
+            Assert.DoesNotContain("Sensitive connection failure", logEvent.RenderMessage());
+            Assert.DoesNotContain("test-token", logEvent.RenderMessage());
+            Assert.Equal(ConnectionState.Error, context.Service.Current.ConnectionState);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task RepeatedSnapshotError_LogsOnlyTheErrorTransitionWithPublicationStack()
+        {
+            var sink = new CollectingSink();
+            using var logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.Sink(sink)
+                .CreateLogger();
+            var context = CreateContext(logger);
+            await context.Service.StartAsync();
+            sink.Events.Clear();
+
+            context.Connected = false;
+            context.LeagueClient.Raise(client => client.OnDisconnected += null);
+            context.LeagueClient.Raise(client => client.OnDisconnected += null);
+
+            var logEvent = Assert.Single(sink.Events.Where(IsSnapshotErrorEvent));
+            Assert.Equal("The League client disconnected; reconnecting.",
+                GetScalar<string>(logEvent, "SnapshotError"));
+            Assert.Equal(0, GetScalar<int>(logEvent, "ExceptionCount"));
+            Assert.Equal("Publication", GetScalar<string>(logEvent, "CallStackKind"));
+            Assert.Contains("HandleLeagueDisconnected",
+                GetScalar<string>(logEvent, "SafeStackTrace"));
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task ResourceRefreshFailure_LogsResourceNameAndExceptionStack()
+        {
+            var sink = new CollectingSink();
+            using var logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.Sink(sink)
+                .CreateLogger();
+            var context = CreateContext(logger);
+            context.GameService
+                .Setup(service => service.GetLobbySnapshotAsync(
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException(
+                    "Sensitive lobby URL: https://127.0.0.1/private."));
+
+            await context.Service.StartAsync();
+
+            var logEvent = Assert.Single(sink.Events.Where(IsSnapshotErrorEvent));
+            Assert.Equal("Unable to refresh live-match resources: lobby.",
+                GetScalar<string>(logEvent, "SnapshotError"));
+            Assert.Equal("System.Net.Http.HttpRequestException",
+                GetScalar<string>(logEvent, "ErrorType"));
+            Assert.Equal("Exception", GetScalar<string>(logEvent, "CallStackKind"));
+            Assert.False(string.IsNullOrWhiteSpace(
+                GetScalar<string>(logEvent, "SafeStackTrace")));
+            Assert.DoesNotContain("https://127.0.0.1/private", logEvent.RenderMessage());
+
+            await context.Service.StopAsync();
+        }
+
+        private static TestContext CreateContext(ILogger logger = null)
         {
             var context = new TestContext();
 
@@ -139,8 +232,30 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             context.Service = new MatchService(context.LeagueClient.Object,
                 context.HttpService.Object, context.GameService.Object,
                 context.SummonerService.Object, context.GameResourceManager.Object,
-                context.AutomationSettings.Object);
+                context.AutomationSettings.Object, logger ?? Log.Logger);
             return context;
+        }
+
+        private static bool IsSnapshotErrorEvent(LogEvent logEvent)
+        {
+            return logEvent.Properties.TryGetValue("EventName", out var value) &&
+                   value is ScalarValue { Value: "match.snapshot.error" };
+        }
+
+        private static T GetScalar<T>(LogEvent logEvent, string propertyName)
+        {
+            var property = Assert.IsType<ScalarValue>(logEvent.Properties[propertyName]);
+            return Assert.IsType<T>(property.Value);
+        }
+
+        private sealed class CollectingSink : ILogEventSink
+        {
+            public List<LogEvent> Events { get; } = [];
+
+            public void Emit(LogEvent logEvent)
+            {
+                Events.Add(logEvent);
+            }
         }
 
         private sealed class TestContext
