@@ -5,6 +5,7 @@ using Prism.Regions;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System.Collections.ObjectModel;
@@ -30,11 +31,17 @@ namespace Prometheus.Modules.Home.ViewModels
         private int _teamVersion;
         private bool _dashboardLoaded;
         private bool _dashboardLoading;
+        private bool _recentMatchesLoaded;
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
         private DateTimeOffset _timerAnchor;
         private TimeSpan _timerValue;
         private TimerMode _timerMode;
         private Dictionary<int, string> _championNames;
+        private int[] _preferredAramChampionIds = [];
+        private int _preferredAramChampionVersion;
+        private bool _preferredAramChampionDetailsLoaded;
+        private bool _preferredAramChampionLoading;
+        private MenuName _summaryDestination = MenuName.Match;
 
         public HomeViewModel(
             IRegionManager regionManager,
@@ -58,6 +65,8 @@ namespace Prometheus.Modules.Home.ViewModels
 
             MyTeam = [];
             TheirTeam = [];
+            PreferredAramChampions = [];
+            RecentMatches = [];
 
             _displayTimer = new DispatcherTimer(DispatcherPriority.Background)
             {
@@ -71,11 +80,31 @@ namespace Prometheus.Modules.Home.ViewModels
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(HandleLanguageChanged);
 
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty);
+            RefreshPreferredAramChampions(retryUnavailable: true);
         }
 
         public ObservableCollection<HomeTeamMemberViewModel> MyTeam { get; }
 
         public ObservableCollection<HomeTeamMemberViewModel> TheirTeam { get; }
+
+        public ObservableCollection<HomePreferredChampionViewModel> PreferredAramChampions { get; }
+
+        public ObservableCollection<HomeRecentMatchViewModel> RecentMatches { get; }
+
+        private bool _hasPreferredAramChampions;
+        public bool HasPreferredAramChampions
+        {
+            get => _hasPreferredAramChampions;
+            private set
+            {
+                if (SetProperty(ref _hasPreferredAramChampions, value))
+                {
+                    RaisePropertyChanged(nameof(ShowPreferredAramChampionEmpty));
+                }
+            }
+        }
+
+        public bool ShowPreferredAramChampionEmpty => !HasPreferredAramChampions;
 
         private string _connectionStatus;
         public string ConnectionStatus
@@ -175,6 +204,13 @@ namespace Prometheus.Modules.Home.ViewModels
             set => SetProperty(ref _emptySummaryText, value);
         }
 
+        private string _summaryActionText;
+        public string SummaryActionText
+        {
+            get => _summaryActionText;
+            set => SetProperty(ref _summaryActionText, value);
+        }
+
         private bool _showSummaryCard = true;
         public bool ShowSummaryCard
         {
@@ -187,6 +223,13 @@ namespace Prometheus.Modules.Home.ViewModels
         {
             get => _showTeamSummary;
             set => SetProperty(ref _showTeamSummary, value);
+        }
+
+        private bool _showRecentMatches;
+        public bool ShowRecentMatches
+        {
+            get => _showRecentMatches;
+            set => SetProperty(ref _showRecentMatches, value);
         }
 
         private bool _showEmptySummary = true;
@@ -349,6 +392,10 @@ namespace Prometheus.Modules.Home.ViewModels
         public DelegateCommand OpenMatchCommand =>
             _openMatchCommand ??= new DelegateCommand(() => Navigate(MenuName.Match));
 
+        private DelegateCommand _openSummaryCommand;
+        public DelegateCommand OpenSummaryCommand =>
+            _openSummaryCommand ??= new DelegateCommand(() => Navigate(_summaryDestination));
+
         private DelegateCommand _openCareerCommand;
         public DelegateCommand OpenCareerCommand =>
             _openCareerCommand ??= new DelegateCommand(() => Navigate(MenuName.Career));
@@ -368,6 +415,7 @@ namespace Prometheus.Modules.Home.ViewModels
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty);
+            RefreshPreferredAramChampions(retryUnavailable: true);
         }
 
         public override void Destroy()
@@ -377,6 +425,7 @@ namespace Prometheus.Modules.Home.ViewModels
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationChanged;
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(HandleLanguageChanged);
+            _preferredAramChampionVersion++;
             CancelDashboardLoad();
             base.Destroy();
         }
@@ -393,6 +442,7 @@ namespace Prometheus.Modules.Home.ViewModels
                 RaisePropertyChanged(nameof(AutoAccept));
                 RaisePropertyChanged(nameof(AutoReconnect));
                 UpdateAutomationStatus();
+                RefreshPreferredAramChampions();
             });
         }
 
@@ -404,8 +454,10 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ApplySnapshot(LiveMatchSnapshot snapshot)
         {
+            var previousPhase = _snapshot.GameflowPhase;
             _snapshot = snapshot ?? LiveMatchSnapshot.Empty;
             _teamVersion++;
+            var wasConnected = IsConnected;
 
             IsConnected = _snapshot.ConnectionState == ConnectionState.Connected;
             IsError = _snapshot.ConnectionState == ConnectionState.Error ||
@@ -420,7 +472,10 @@ namespace Prometheus.Modules.Home.ViewModels
             ResetStageFlags();
             ShowSummaryCard = true;
             ShowTeamSummary = false;
+            ShowRecentMatches = false;
             ShowEmptySummary = true;
+            SummaryActionText = Text("HomePage.OpenDetails");
+            _summaryDestination = MenuName.Match;
             CanPrimaryAction = true;
             CanSecondaryAction = true;
             _timerMode = TimerMode.None;
@@ -446,7 +501,20 @@ namespace Prometheus.Modules.Home.ViewModels
 
             if (IsConnected)
             {
+                if (_snapshot.GameflowPhase == GameflowPhase.None &&
+                    previousPhase is GameflowPhase.WaitingForStats or
+                        GameflowPhase.PreEndOfGame or
+                        GameflowPhase.EndOfGame)
+                {
+                    _dashboardLoaded = false;
+                    _recentMatchesLoaded = false;
+                }
+
                 _ = EnsureDashboardLoadedAsync();
+                if (!wasConnected)
+                {
+                    RefreshPreferredAramChampions(retryUnavailable: true);
+                }
             }
             else
             {
@@ -542,7 +610,14 @@ namespace Prometheus.Modules.Home.ViewModels
             PhaseTitle = Text("HomePage.Phase.Idle.Title");
             PhaseDescription = Text("HomePage.Phase.Idle.Description");
             PhaseDetail = SummonerName ?? Text("HomePage.Phase.Idle.Detail");
-            ShowSummaryCard = false;
+            SummaryTitle = Text("HomePage.Summary.Recent");
+            SummaryActionText = Text("HomePage.ViewCareer");
+            _summaryDestination = MenuName.Career;
+            ShowRecentMatches = RecentMatches.Count > 0;
+            ShowEmptySummary = !ShowRecentMatches;
+            EmptySummaryText = _recentMatchesLoaded
+                ? Text("HomePage.Summary.NoMatches")
+                : Text("HomePage.Summary.LoadingRecent");
             PrimaryActionText = Text("HomePage.ViewCareer");
             SecondaryActionText = Text("Menu.Utility");
         }
@@ -816,6 +891,7 @@ namespace Prometheus.Modules.Home.ViewModels
                 var profileTask = _gameResourceManager.GetProfileIconByIdAsync(summoner.ProfileIconId);
                 var backgroundTask = LoadBackgroundAsync();
                 var rankTask = _summonerService.GetRankStatsByPuuid(summoner.Puuid, token);
+                var recentMatchesTask = LoadRecentMatchesAsync(summoner.Puuid, token);
 
                 await Task.WhenAll(profileTask, backgroundTask, rankTask);
                 token.ThrowIfCancellationRequested();
@@ -846,6 +922,23 @@ namespace Prometheus.Modules.Home.ViewModels
                         ConfigureIdle();
                     }
                 });
+
+                var recentMatches = await recentMatchesTask;
+                token.ThrowIfCancellationRequested();
+                Dispatch(() =>
+                {
+                    if (version != _dashboardVersion)
+                    {
+                        return;
+                    }
+
+                    Replace(RecentMatches, recentMatches);
+                    _recentMatchesLoaded = true;
+                    if (_snapshot.GameflowPhase == GameflowPhase.None)
+                    {
+                        ConfigureIdle();
+                    }
+                });
             }
             catch (OperationCanceledException)
             {
@@ -859,6 +952,99 @@ namespace Prometheus.Modules.Home.ViewModels
             {
                 _dashboardLoading = false;
             }
+        }
+
+        private async Task<IReadOnlyList<HomeRecentMatchViewModel>> LoadRecentMatchesAsync(
+            string puuid,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var matches = await _summonerService.GetMatchesAsync(
+                    puuid,
+                    0,
+                    19,
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (matches is null || matches.Count == 0)
+                {
+                    return [];
+                }
+
+                try
+                {
+                    await EnsureChampionNamesAsync();
+                }
+                catch (Exception exception)
+                {
+                    Log.Warning(exception,
+                        "Unable to load champion names for Home recent matches");
+                }
+
+                var tasks = matches
+                    .Where(match => match?.Participants?.FirstOrDefault()?.Stats is not null)
+                    .Take(5)
+                    .Select(match => BuildRecentMatchAsync(match, cancellationToken));
+                var items = await Task.WhenAll(tasks);
+                cancellationToken.ThrowIfCancellationRequested();
+                return items.Where(item => item is not null).ToArray();
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load Home recent matches");
+                return [];
+            }
+        }
+
+        private async Task<HomeRecentMatchViewModel> BuildRecentMatchAsync(
+            Match match,
+            CancellationToken cancellationToken)
+        {
+            var participant = match?.Participants?.FirstOrDefault();
+            var stats = participant?.Stats;
+            if (participant is null || stats is null)
+            {
+                return null;
+            }
+
+            string championIcon = null;
+            try
+            {
+                championIcon = await _gameResourceManager
+                    .GetChampoinIconByIdAsync(participant.ChampionId);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception,
+                    "Unable to load recent match champion icon {ChampionId}",
+                    participant.ChampionId);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var championName = _championNames is not null &&
+                               _championNames.TryGetValue(
+                                   participant.ChampionId,
+                                   out var resolvedName)
+                ? resolvedName
+                : $"#{participant.ChampionId}";
+            var gameMode = string.IsNullOrWhiteSpace(match.DisplayGameMode)
+                ? match.GameMode
+                : match.DisplayGameMode;
+
+            return new HomeRecentMatchViewModel
+            {
+                GameId = match.GameId,
+                ChampionIcon = championIcon,
+                ChampionName = championName,
+                GameMode = string.IsNullOrWhiteSpace(gameMode) ? "—" : gameMode,
+                Kda = stats.KDA,
+                PlayedAt = match.CreationDate?.ToString("MM/dd HH:mm") ?? string.Empty,
+                IsWin = stats.Win
+            };
         }
 
         private async Task<string> LoadBackgroundAsync()
@@ -1027,6 +1213,130 @@ namespace Prometheus.Modules.Home.ViewModels
             }
         }
 
+        private void RefreshPreferredAramChampions(bool retryUnavailable = false)
+        {
+            var championIds = _automationSettings.PreferredAramChampionIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+            var idsChanged = !_preferredAramChampionIds.SequenceEqual(championIds);
+
+            if (idsChanged)
+            {
+                _preferredAramChampionIds = championIds;
+                _preferredAramChampionDetailsLoaded = championIds.Length == 0;
+                _preferredAramChampionLoading = false;
+                Replace(PreferredAramChampions, championIds.Select(
+                    (championId, index) => new HomePreferredChampionViewModel
+                    {
+                        Priority = index + 1,
+                        ChampionId = championId,
+                        Name = $"#{championId}"
+                    }));
+                HasPreferredAramChampions = championIds.Length > 0;
+            }
+
+            if (championIds.Length == 0)
+            {
+                _preferredAramChampionVersion++;
+                return;
+            }
+
+            if (!idsChanged &&
+                (!retryUnavailable ||
+                 _preferredAramChampionDetailsLoaded ||
+                 _preferredAramChampionLoading))
+            {
+                return;
+            }
+
+            var version = ++_preferredAramChampionVersion;
+            _preferredAramChampionLoading = true;
+            LoadPreferredAramChampionsAsync(championIds, version).Observe(
+                "Loading Home ARAM champion preferences");
+        }
+
+        private async Task LoadPreferredAramChampionsAsync(
+            IReadOnlyList<int> championIds,
+            int version)
+        {
+            try
+            {
+                var champions = await _gameResourceManager.GetChampionSummarysAsync();
+                if (champions is null || champions.Count == 0)
+                {
+                    return;
+                }
+
+                var championMap = champions
+                    .Where(champion => champion is not null && champion.Id > 0)
+                    .GroupBy(champion => champion.Id)
+                    .ToDictionary(group => group.Key, group => group.First());
+                var items = championIds.Select((championId, index) =>
+                {
+                    championMap.TryGetValue(championId, out var champion);
+                    return new HomePreferredChampionViewModel
+                    {
+                        Priority = index + 1,
+                        ChampionId = championId,
+                        Name = champion?.Name ?? $"#{championId}",
+                        IconUri = null
+                    };
+                }).ToArray();
+
+                var iconTasks = items.Select(async item =>
+                {
+                    try
+                    {
+                        return await _gameResourceManager
+                            .GetChampoinIconByIdAsync(item.ChampionId);
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.Warning(exception,
+                            "Unable to load preferred ARAM champion icon {ChampionId}",
+                            item.ChampionId);
+                        return null;
+                    }
+                }).ToArray();
+                var iconUris = await Task.WhenAll(iconTasks);
+                var enrichedItems = items.Select((item, index) =>
+                    new HomePreferredChampionViewModel
+                    {
+                        Priority = item.Priority,
+                        ChampionId = item.ChampionId,
+                        Name = item.Name,
+                        IconUri = iconUris[index]
+                    }).ToArray();
+
+                Dispatch(() =>
+                {
+                    if (version != _preferredAramChampionVersion)
+                    {
+                        return;
+                    }
+
+                    Replace(PreferredAramChampions, enrichedItems);
+                    HasPreferredAramChampions = enrichedItems.Length > 0;
+                    _preferredAramChampionDetailsLoaded = true;
+                });
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load Home ARAM champion preferences");
+            }
+            finally
+            {
+                Dispatch(() =>
+                {
+                    if (version == _preferredAramChampionVersion)
+                    {
+                        _preferredAramChampionLoading = false;
+                    }
+                });
+            }
+        }
+
         private void SetCountdown(double value)
         {
             var seconds = value > 300 ? value / 1000d : value;
@@ -1100,6 +1410,8 @@ namespace Prometheus.Modules.Home.ViewModels
             FlexTierText = "--";
             MyTeam.Clear();
             TheirTeam.Clear();
+            RecentMatches.Clear();
+            _recentMatchesLoaded = false;
         }
 
         private void ResetStageFlags()

@@ -63,7 +63,7 @@
 
         <Border
             Grid.Row="0"
-            Padding="14,0"
+            Padding="12,0"
             Style="{StaticResource HomeCard}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -162,9 +162,9 @@
             </Grid.ColumnDefinitions>
             <Grid Grid.Column="0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="360" />
+                    <RowDefinition Height="*" MinHeight="360" />
                     <RowDefinition Height="12" />
-                    <RowDefinition />
+                    <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
                 <Border
                     Grid.Row="0"
@@ -251,11 +251,86 @@
                             <TextBlock Style="{StaticResource HomeTitle}" Text="{Binding SummaryTitle}" />
                             <Button
                                 HorizontalAlignment="Right"
-                                Command="{Binding OpenMatchCommand}"
-                                Content="{DynamicResource HomePage.OpenDetails}"
+                                Command="{Binding OpenSummaryCommand}"
+                                Content="{Binding SummaryActionText}"
                                 Style="{DynamicResource ButtonIcon}" />
                         </DockPanel>
                         <Grid Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding RecentMatches}" Visibility="{Binding ShowRecentMatches, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="5" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="4"
+                                            Padding="10"
+                                            Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                                            BorderBrush="{DynamicResource BorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="9">
+                                            <Grid VerticalAlignment="Center">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="8" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="8" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <hc:Gravatar
+                                                        Width="44"
+                                                        Height="44"
+                                                        HorizontalAlignment="Center"
+                                                        Style="{StaticResource GravatarCircleImg}">
+                                                        <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                                                    </hc:Gravatar>
+                                                    <TextBlock
+                                                        Margin="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding ChampionName}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        Margin="0,2,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        Style="{StaticResource HomeCaption}"
+                                                        Text="{Binding GameMode}"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+
+                                                <hc:SimplePanel Grid.Row="2" HorizontalAlignment="Center">
+                                                    <TextBlock
+                                                        FontWeight="SemiBold"
+                                                        Foreground="ForestGreen"
+                                                        Text="{DynamicResource Career.Match.Victory}"
+                                                        Visibility="{Binding IsWin, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                                    <TextBlock
+                                                        FontWeight="SemiBold"
+                                                        Foreground="OrangeRed"
+                                                        Text="{DynamicResource Career.Match.Defeated}"
+                                                        Visibility="{Binding IsWin, Converter={StaticResource Boolean2VisibilityReConverter}}" />
+                                                </hc:SimplePanel>
+
+                                                <StackPanel Grid.Row="4" HorizontalAlignment="Center">
+                                                    <TextBlock HorizontalAlignment="Center">
+                                                        <Run Text="{DynamicResource Career.Match.KDA}" />
+                                                        <Run Text=" " />
+                                                        <Run Text="{Binding Kda}" />
+                                                    </TextBlock>
+                                                    <TextBlock
+                                                        Margin="0,3,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        Style="{StaticResource HomeCaption}"
+                                                        Text="{Binding PlayedAt}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                             <Grid Visibility="{Binding ShowTeamSummary, Converter={StaticResource Boolean2VisibilityConverter}}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition />
@@ -411,36 +486,128 @@
                     Grid.Row="4"
                     Padding="14"
                     Style="{StaticResource HomeCard}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource HomeTitle}" Text="{DynamicResource HomePage.QuickActions}" />
-                        <hc:SearchBar
-                            Height="34"
-                            Margin="0,12,0,0"
-                            hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
-                            hc:InfoElement.ShowClearButton="True"
-                            Command="{Binding SearchCommand}"
-                            CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
-                            Style="{DynamicResource SearchBarPlus}" />
-                        <TextBlock
-                            Margin="0,7,0,12"
-                            Style="{StaticResource HomeCaption}"
-                            Text="{DynamicResource Search.SearchNameTips}"
-                            TextWrapping="Wrap" />
-                        <UniformGrid Columns="3">
-                            <Button
-                                Command="{Binding OpenCareerCommand}"
-                                Content="{DynamicResource Menu.Career}"
-                                Style="{DynamicResource ButtonIcon}" />
-                            <Button
-                                Command="{Binding OpenInventoryCommand}"
-                                Content="{DynamicResource Menu.Inventory}"
-                                Style="{DynamicResource ButtonIcon}" />
-                            <Button
-                                Command="{Binding OpenUtilityCommand}"
-                                Content="{DynamicResource Menu.Utility}"
-                                Style="{DynamicResource ButtonIcon}" />
-                        </UniformGrid>
-                    </StackPanel>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="110" />
+                            <RowDefinition Height="9" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <DockPanel LastChildFill="True">
+                                <Button
+                                    MinWidth="76"
+                                    Command="{Binding OpenUtilityCommand}"
+                                    Content="{DynamicResource HomePage.AramPreferences.Manage}"
+                                    DockPanel.Dock="Right"
+                                    Style="{DynamicResource ButtonIcon}" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource HomeTitle}"
+                                    Text="{DynamicResource HomePage.AramPreferences}" />
+                            </DockPanel>
+                            <TextBlock
+                                Grid.Row="1"
+                                Margin="0,1,0,0"
+                                Style="{StaticResource HomeCaption}"
+                                Text="{DynamicResource HomePage.AramPreferences.Description}"
+                                TextTrimming="CharacterEllipsis" />
+                            <Grid Grid.Row="2" Margin="0,4,0,0">
+                                <ScrollViewer
+                                    HorizontalScrollBarVisibility="Auto"
+                                    VerticalScrollBarVisibility="Disabled"
+                                    Visibility="{Binding HasPreferredAramChampions, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                    <ItemsControl ItemsSource="{Binding PreferredAramChampions}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid
+                                                    Width="38"
+                                                    Height="38"
+                                                    Margin="0,0,8,0"
+                                                    ToolTip="{Binding Name}">
+                                                    <hc:Gravatar
+                                                        Width="36"
+                                                        Height="36"
+                                                        VerticalAlignment="Bottom"
+                                                        Style="{DynamicResource GravatarCircleImg}">
+                                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                                    </hc:Gravatar>
+                                                    <Border
+                                                        Height="17"
+                                                        MinWidth="17"
+                                                        Padding="3,0"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Top"
+                                                        Background="{DynamicResource PrimaryBrush}"
+                                                        CornerRadius="9">
+                                                        <TextBlock
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="10"
+                                                            Foreground="White"
+                                                            Text="{Binding Priority}" />
+                                                    </Border>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource HomeCaption}"
+                                    Text="{DynamicResource HomePage.AramPreferences.Empty}"
+                                    Visibility="{Binding ShowPreferredAramChampionEmpty, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                            </Grid>
+                        </Grid>
+
+                        <Border
+                            Grid.Row="1"
+                            Margin="0,4"
+                            Background="{DynamicResource BorderBrush}" />
+
+                        <StackPanel Grid.Row="2">
+                            <TextBlock Style="{StaticResource HomeTitle}" Text="{DynamicResource HomePage.QuickActions}" />
+                            <hc:SearchBar
+                                Height="32"
+                                Margin="0,6,0,0"
+                                hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
+                                hc:InfoElement.ShowClearButton="True"
+                                Command="{Binding SearchCommand}"
+                                CommandParameter="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+                                Style="{DynamicResource SearchBarPlus}" />
+                            <TextBlock
+                                Margin="0,4,0,6"
+                                Style="{StaticResource HomeCaption}"
+                                Text="{DynamicResource Search.SearchNameTips}"
+                                TextTrimming="CharacterEllipsis"
+                                ToolTip="{DynamicResource Search.SearchNameTips}" />
+                            <UniformGrid Columns="3">
+                                <Button
+                                    Command="{Binding OpenCareerCommand}"
+                                    Content="{DynamicResource Menu.Career}"
+                                    Style="{DynamicResource ButtonIcon}" />
+                                <Button
+                                    Command="{Binding OpenInventoryCommand}"
+                                    Content="{DynamicResource Menu.Inventory}"
+                                    Style="{DynamicResource ButtonIcon}" />
+                                <Button
+                                    Command="{Binding OpenUtilityCommand}"
+                                    Content="{DynamicResource Menu.Utility}"
+                                    Style="{DynamicResource ButtonIcon}" />
+                            </UniformGrid>
+                        </StackPanel>
+                    </Grid>
                 </Border>
             </Grid>
         </Grid>

@@ -18,4 +18,32 @@ namespace Prometheus.Modules.Home.ViewModels
 
         public bool IsHidden { get; init; }
     }
+
+    public sealed class HomePreferredChampionViewModel
+    {
+        public int Priority { get; init; }
+
+        public int ChampionId { get; init; }
+
+        public string Name { get; init; }
+
+        public string IconUri { get; init; }
+    }
+
+    public sealed class HomeRecentMatchViewModel
+    {
+        public long GameId { get; init; }
+
+        public string ChampionIcon { get; init; }
+
+        public string ChampionName { get; init; }
+
+        public string GameMode { get; init; }
+
+        public string Kda { get; init; }
+
+        public string PlayedAt { get; init; }
+
+        public bool IsWin { get; init; }
+    }
 }

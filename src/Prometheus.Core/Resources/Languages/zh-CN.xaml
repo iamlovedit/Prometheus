@@ -113,6 +113,10 @@
     <sys:String x:Key="HomePage.TeamSlot">队员 {0}</sys:String>
     <sys:String x:Key="HomePage.Automation">助手自动化</sys:String>
     <sys:String x:Key="HomePage.QuickActions">快捷操作</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences">快捷选英雄</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences.Description">大乱斗交换优先级，按从左到右排列</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences.Empty">尚未设置快捷英雄</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences.Manage">前往设置</sys:String>
     <sys:String x:Key="HomePage.Action.Accept">接受对局</sys:String>
     <sys:String x:Key="HomePage.Action.Reconnect">重新连接游戏</sys:String>
     <sys:String x:Key="HomePage.Action.Retry">重新同步</sys:String>
@@ -162,6 +166,7 @@
     <sys:String x:Key="HomePage.Summary.Offline">连接后会显示你的实时状态</sys:String>
     <sys:String x:Key="HomePage.Summary.Error">请重试同步或检查英雄联盟客户端</sys:String>
     <sys:String x:Key="HomePage.Summary.Recent">最近 5 场</sys:String>
+    <sys:String x:Key="HomePage.Summary.LoadingRecent">正在加载近期战绩</sys:String>
     <sys:String x:Key="HomePage.Summary.NoMatches">暂无可展示的近期战绩</sys:String>
     <sys:String x:Key="HomePage.Summary.Lobby">大厅摘要</sys:String>
     <sys:String x:Key="HomePage.Summary.WaitingTeam">等待队伍信息</sys:String>

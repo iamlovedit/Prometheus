@@ -113,6 +113,10 @@
     <sys:String x:Key="HomePage.TeamSlot">Player {0}</sys:String>
     <sys:String x:Key="HomePage.Automation">Assistant automation</sys:String>
     <sys:String x:Key="HomePage.QuickActions">Quick actions</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences">Quick champion picks</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences.Description">ARAM swap priority, highest first</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences.Empty">No quick champions configured</sys:String>
+    <sys:String x:Key="HomePage.AramPreferences.Manage">Settings</sys:String>
     <sys:String x:Key="HomePage.Action.Accept">Accept match</sys:String>
     <sys:String x:Key="HomePage.Action.Reconnect">Reconnect game</sys:String>
     <sys:String x:Key="HomePage.Action.Retry">Synchronize again</sys:String>
@@ -162,6 +166,7 @@
     <sys:String x:Key="HomePage.Summary.Offline">Live status appears after connecting</sys:String>
     <sys:String x:Key="HomePage.Summary.Error">Retry or check League Client</sys:String>
     <sys:String x:Key="HomePage.Summary.Recent">Last 5 matches</sys:String>
+    <sys:String x:Key="HomePage.Summary.LoadingRecent">Loading recent matches</sys:String>
     <sys:String x:Key="HomePage.Summary.NoMatches">No recent matches are available</sys:String>
     <sys:String x:Key="HomePage.Summary.Lobby">Lobby summary</sys:String>
     <sys:String x:Key="HomePage.Summary.WaitingTeam">Waiting for party data</sys:String>
