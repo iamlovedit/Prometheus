@@ -61,6 +61,7 @@ namespace Prometheus.Services.Client
         private readonly IGameService _gameService;
         private readonly ISummonerService _summonerService;
         private readonly IGameResourceManager _gameResourceManager;
+        private readonly ILogger _logger;
         private readonly object _publicationSync = new();
         private readonly object _snapshotSync = new();
         private readonly object _stateSync = new();
@@ -101,6 +102,15 @@ namespace Prometheus.Services.Client
             IGameService gameService, ISummonerService summonerService,
             IGameResourceManager gameResourceManager,
             IGameAutomationSettings automationSettings = null)
+            : this(leagueClient, httpService, gameService, summonerService,
+                gameResourceManager, automationSettings, Log.ForContext<MatchService>())
+        {
+        }
+
+        internal MatchService(ILeagueClient leagueClient, IHttpService httpService,
+            IGameService gameService, ISummonerService summonerService,
+            IGameResourceManager gameResourceManager,
+            IGameAutomationSettings automationSettings, ILogger logger)
         {
             _leagueClient = leagueClient ?? throw new ArgumentNullException(nameof(leagueClient));
             _httpService = httpService ?? throw new ArgumentNullException(nameof(httpService));
@@ -109,6 +119,7 @@ namespace Prometheus.Services.Client
                 throw new ArgumentNullException(nameof(summonerService));
             _gameResourceManager = gameResourceManager ??
                 throw new ArgumentNullException(nameof(gameResourceManager));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             AutomationSettings = automationSettings ?? GameAutomationSettings.Default;
         }
 
@@ -255,6 +266,7 @@ namespace Prometheus.Services.Client
 
             string rawPhase = null;
             string phaseError = null;
+            Exception phaseException = null;
             try
             {
                 rawPhase = await _gameService.GetGameflowPhaseAsync(probeCts.Token)
@@ -266,6 +278,7 @@ namespace Prometheus.Services.Client
             }
             catch (Exception exception)
             {
+                phaseException = exception;
                 phaseError = FormatError("gameflow-phase", exception);
             }
 
@@ -288,7 +301,7 @@ namespace Prometheus.Services.Client
                 ? GetCurrentPhaseContext()
                 : TransitionPhase(rawPhase);
 
-            await RefreshForPhaseAsync(context, phaseError, cancellationToken)
+            await RefreshForPhaseAsync(context, phaseError, phaseException, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -604,7 +617,8 @@ namespace Prometheus.Services.Client
         {
             try
             {
-                await RefreshForPhaseAsync(context, null, CancellationToken.None).ConfigureAwait(false);
+                await RefreshForPhaseAsync(context, null, null, CancellationToken.None)
+                    .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (context.Token.IsCancellationRequested)
             {
@@ -683,7 +697,7 @@ namespace Prometheus.Services.Client
         }
 
         private async Task RefreshForPhaseAsync(PhaseContext context, string phaseError,
-            CancellationToken cancellationToken)
+            Exception phaseException, CancellationToken cancellationToken)
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                 context.Token, cancellationToken);
@@ -738,6 +752,31 @@ namespace Prometheus.Services.Client
                 AddError(errors, championSelect.Error);
                 AddError(errors, postGame.Error);
 
+                var failedResources = new List<string>();
+                var failureExceptions = new List<Exception>();
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "gameflow-phase", phaseException);
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "gameflow-session", session.Exception);
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "lobby", lobby.Exception);
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "matchmaking", matchmaking.Exception);
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "ready-check", readyCheck.Exception);
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "champion-select", championSelect.Exception);
+                AddRefreshFailure(failedResources, failureExceptions,
+                    "post-game", postGame.Exception);
+                var errorLogContext = errors.Count == 0
+                    ? null
+                    : new SnapshotErrorLogContext(
+                        failedResources.Count == 0
+                            ? "Live-match snapshot refresh reported an error."
+                            : $"Unable to refresh live-match resources: " +
+                              $"{string.Join(", ", failedResources)}.",
+                        failureExceptions);
+
                 PublishSnapshot(snapshot =>
                 {
                     var next = CopySnapshot(snapshot);
@@ -779,7 +818,7 @@ namespace Prometheus.Services.Client
                         : HasAnyData(next) ? DataQuality.Partial : DataQuality.Error;
                     ApplyRosterDataQuality(next);
                     return next;
-                });
+                }, errorLogContext);
                 ScheduleRosterRefresh();
                 TriggerAutomation(context);
             }
@@ -904,9 +943,8 @@ namespace Prometheus.Services.Client
             }
             catch (Exception exception)
             {
-                Log.Error(exception, "Unable to assemble the live-match roster");
                 PublishRosterFailure(generation, cancellationToken,
-                    "Unable to assemble the live-match roster.");
+                    "Unable to assemble the live-match roster.", exception);
                 MarkRosterRetryable(generation);
             }
         }
@@ -1112,8 +1150,8 @@ namespace Prometheus.Services.Client
             var summonerTask = _summonerService.SearchSummonerByPuuid(
                 puuid, cancellationToken);
             var rankTask = _summonerService.GetRankStatsByPuuid(puuid, cancellationToken);
-            var matchesTask = _summonerService.GetMatchHistoryPageAsync(
-                puuid, 1, cancellationToken);
+            var matchesTask = _summonerService.GetSummonerRecentMatchesAsync(
+                puuid, cancellationToken);
 
             await Task.WhenAll(summonerTask, rankTask, matchesTask).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -1175,7 +1213,7 @@ namespace Prometheus.Services.Client
         }
 
         private void PublishRosterFailure(long generation,
-            CancellationToken cancellationToken, string error)
+            CancellationToken cancellationToken, string error, Exception exception)
         {
             PublishSnapshot(snapshot =>
             {
@@ -1196,7 +1234,8 @@ namespace Prometheus.Services.Client
                     .ToArray();
                 next.DataQuality = DataQuality.Partial;
                 return next;
-            });
+            }, new SnapshotErrorLogContext(
+                "Unable to assemble the live-match roster.", [exception]));
         }
 
         private void PublishPlayerUpdate(long generation,
@@ -2297,14 +2336,18 @@ namespace Prometheus.Services.Client
                 }
 
                 return next;
-            });
+            }, new SnapshotErrorLogContext(
+                message,
+                exception is null ? Array.Empty<Exception>() : [exception]));
         }
 
-        private void PublishSnapshot(Func<LiveMatchSnapshot, LiveMatchSnapshot> update)
+        private void PublishSnapshot(Func<LiveMatchSnapshot, LiveMatchSnapshot> update,
+            SnapshotErrorLogContext errorLogContext = null)
         {
             lock (_publicationSync)
             {
                 LiveMatchSnapshot next;
+                bool shouldLogError;
                 lock (_snapshotSync)
                 {
                     var current = _current;
@@ -2315,7 +2358,22 @@ namespace Prometheus.Services.Client
                     }
                     next.Version = ++_snapshotVersion;
                     next.UpdatedAt = DateTimeOffset.UtcNow;
+                    shouldLogError = !string.IsNullOrWhiteSpace(next.Error) &&
+                                     !string.Equals(current.Error, next.Error,
+                                         StringComparison.Ordinal);
                     _current = next;
+                }
+
+                if (shouldLogError)
+                {
+                    var safeError = errorLogContext?.SafeMessage ??
+                                    LiveMatchSnapshotErrorLog.SanitizeStateError(
+                                        next.Error, _leagueClient.Token);
+                    LiveMatchSnapshotErrorLog.Write(
+                        _logger,
+                        next,
+                        safeError,
+                        errorLogContext?.Exceptions);
                 }
 
                 // Keep version assignment and observer notification in one
@@ -2627,7 +2685,7 @@ namespace Prometheus.Services.Client
             }
             catch (Exception exception)
             {
-                return FetchResult<T>.Failure(FormatError(name, exception));
+                return FetchResult<T>.Failure(FormatError(name, exception), exception);
             }
         }
 
@@ -2642,6 +2700,18 @@ namespace Prometheus.Services.Client
             {
                 errors.Add(error);
             }
+        }
+
+        private static void AddRefreshFailure(ICollection<string> resources,
+            ICollection<Exception> exceptions, string resource, Exception exception)
+        {
+            if (exception is null)
+            {
+                return;
+            }
+
+            resources.Add(resource);
+            exceptions.Add(exception);
         }
 
         private static async Task AwaitAutomationTaskAsync(Task task)
@@ -2733,11 +2803,12 @@ namespace Prometheus.Services.Client
 
         private sealed class FetchResult<T> where T : class
         {
-            private FetchResult(T value, bool failed, string error)
+            private FetchResult(T value, bool failed, string error, Exception exception)
             {
                 Value = value;
                 Failed = failed;
                 Error = error;
+                Exception = exception;
             }
 
             public T Value { get; }
@@ -2746,11 +2817,18 @@ namespace Prometheus.Services.Client
 
             public string Error { get; }
 
-            public static FetchResult<T> Success(T value) => new(value, false, null);
+            public Exception Exception { get; }
 
-            public static FetchResult<T> Unavailable() => new(null, false, null);
+            public static FetchResult<T> Success(T value) => new(value, false, null, null);
 
-            public static FetchResult<T> Failure(string error) => new(null, true, error);
+            public static FetchResult<T> Unavailable() => new(null, false, null, null);
+
+            public static FetchResult<T> Failure(string error, Exception exception) =>
+                new(null, true, error, exception);
         }
+
+        private sealed record SnapshotErrorLogContext(
+            string SafeMessage,
+            IReadOnlyList<Exception> Exceptions);
     }
 }

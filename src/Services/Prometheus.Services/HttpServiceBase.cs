@@ -75,7 +75,7 @@ namespace Prometheus.Services
             {
                 BaseAddress = baseAddress,
                 DefaultRequestVersion = new Version(2, 0),
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(60)
             };
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(_jsonType));
             client.DefaultRequestHeaders.TryAddWithoutValidation(

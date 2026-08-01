@@ -86,8 +86,8 @@ namespace Prometheus.Shared.ViewModels
                     FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
                 }
-                var matchResult = await _summonerService.GetMatchHistoryPageAsync(
-                    _summoner.Puuid, 1);
+                var matchResult = await _summonerService.GetSummonerRecentMatchesAsync(
+                    _summoner.Puuid);
                 var matches = matchResult?.Succeeded == true
                     ? matchResult.Matches?.ToList() ?? []
                     : [];
@@ -280,7 +280,6 @@ namespace Prometheus.Shared.ViewModels
             {
                 {ParameterNames.CanEdit,CanModify },
                 {ParameterNames.Summoner,_summoner },
-                {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
             RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);
         }
@@ -295,7 +294,6 @@ namespace Prometheus.Shared.ViewModels
                 {ParameterNames.CanEdit,CanModify },
                 {ParameterNames.SelectedMatch,match},
                 {ParameterNames.Summoner,_summoner },
-                {ParameterNames.Matches,_recentMatches.OfType<Match>().ToList()},
             };
             RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);
         }

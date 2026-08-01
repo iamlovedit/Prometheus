@@ -2,6 +2,7 @@ using Prism.DryIoc;
 using Prism.Ioc;
 using Prism.Modularity;
 using Prometheus.Core;
+using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
 using Prometheus.Modules.Home;
 using Prometheus.Modules.Inventory;
@@ -197,27 +198,57 @@ namespace Prometheus
         {
             if (IsRecoverableClientFailure(args.Exception))
             {
-                Log.Warning(args.Exception,
+                GlobalExceptionLog.Write(
+                    Log.Logger,
+                    LogEventLevel.Warning,
+                    "application.exception.ui.recovered",
+                    "Dispatcher",
+                    args.Exception,
+                    isTerminating: false,
                     "Recovered from an unhandled League client transport failure on the UI thread");
                 args.Handled = true;
                 return;
             }
 
-            Log.Fatal(args.Exception, "Unhandled UI thread exception");
+            GlobalExceptionLog.Write(
+                Log.Logger,
+                LogEventLevel.Fatal,
+                "application.exception.ui.unhandled",
+                "Dispatcher",
+                args.Exception,
+                isTerminating: true,
+                "Unhandled UI thread exception");
+            Log.CloseAndFlush();
         }
 
         private static void HandleUnobservedTaskException(object sender,
             UnobservedTaskExceptionEventArgs args)
         {
-            Log.Error(args.Exception, "Unobserved background task exception");
+            GlobalExceptionLog.Write(
+                Log.Logger,
+                LogEventLevel.Error,
+                "application.exception.task.unobserved",
+                "TaskScheduler",
+                args.Exception,
+                isTerminating: false,
+                "Unobserved background task exception");
             args.SetObserved();
         }
 
         private static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs args)
         {
-            if (args.ExceptionObject is Exception exception)
+            GlobalExceptionLog.Write(
+                Log.Logger,
+                LogEventLevel.Fatal,
+                "application.exception.domain.unhandled",
+                "AppDomain",
+                args.ExceptionObject,
+                args.IsTerminating,
+                "Unhandled application exception");
+
+            if (args.IsTerminating)
             {
-                Log.Fatal(exception, "Unhandled application exception");
+                Log.CloseAndFlush();
             }
         }
 

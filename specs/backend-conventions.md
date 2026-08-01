@@ -120,7 +120,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 |------|----|------|
 | BaseAddress | `https://127.0.0.1:{port}/` | LCU 本地服务 |
 | DefaultRequestVersion | HTTP/2.0 | LCU 支持 |
-| Timeout | 10 秒 | 本地调用不应更长 |
+| Timeout | 60 秒 | 大批量历史战绩请求可能需要更长时间 |
 | Accept | `application/json` | LCU 默认返回 JSON |
 | User-Agent | `LeagueOfLegendsClient/12.7.433.4138 (CEF 91)` | 模拟客户端 UA，避免被 LCU 拒绝 |
 | Connection | `keep-alive` | 复用连接 |

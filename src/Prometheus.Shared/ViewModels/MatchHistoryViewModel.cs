@@ -17,6 +17,7 @@ namespace Prometheus.Shared.ViewModels
 
         private bool _canEdit;
         private SummonerAccount _summoner;
+        private List<Match> _matchHistory = [];
         private readonly IGameService _gameService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly ISummonerService _summonerServices;
@@ -240,18 +241,11 @@ namespace Prometheus.Shared.ViewModels
                 IsLoading = true;
                 ClearPaginationFeedback();
 
-                var result = await _summonerServices.GetMatchHistoryPageAsync(
-                    _summoner.Puuid, targetPageIndex);
-
-                if (result?.Succeeded != true)
-                {
-                    ShowPaginationError = true;
-                    Log.Error("Unable to load match-history page {PageIndex}: {Reason}",
-                        targetPageIndex, result?.Error ?? "No result was returned.");
-                    return;
-                }
-
-                var matches = result.Matches?.ToList() ?? [];
+                var startIndex = (targetPageIndex - 1) * PageSize;
+                var matches = _matchHistory
+                    .Skip(startIndex)
+                    .Take(PageSize)
+                    .ToList();
                 if (matches.Count == 0)
                 {
                     if (targetPageIndex > currentPage)
@@ -277,7 +271,8 @@ namespace Prometheus.Shared.ViewModels
             }
         }
 
-        private async Task ApplyMatchPageAsync(List<Match> matches, int pageIndex)
+        private async Task ApplyMatchPageAsync(List<Match> matches, int pageIndex,
+            long? selectedGameId = null)
         {
             var iconTasks = matches
                 .Where(match => match.Participants?.Count > 0)
@@ -291,8 +286,11 @@ namespace Prometheus.Shared.ViewModels
 
             Matches = matches;
             CurrentPage = pageIndex;
-            HasNextPage = matches.Count >= PageSize;
-            SelectedMatch = Matches.FirstOrDefault();
+            HasNextPage = pageIndex * PageSize < _matchHistory.Count;
+            SelectedMatch = selectedGameId.HasValue
+                ? Matches.FirstOrDefault(match => match.GameId == selectedGameId.Value)
+                    ?? Matches.FirstOrDefault()
+                : Matches.FirstOrDefault();
             await LoadMatchDetailAsync(SelectedMatch);
         }
 
@@ -338,37 +336,56 @@ namespace Prometheus.Shared.ViewModels
                 IsLoading = true;
                 CurrentPage = 1;
                 ClearPaginationFeedback();
-
-                if (navigationContext.Parameters.TryGetValue<List<Match>>(
-                        ParameterNames.Matches, out var matches))
-                {
-                    Matches = matches ?? [];
-                }
-                else
-                {
-                    Matches = [];
-                }
+                _matchHistory = [];
+                Matches = [];
+                SelectedMatch = null;
+                MatchDetail = null;
+                BlueTeam = null;
+                PurPleTeam = null;
+                HasNextPage = false;
 
                 navigationContext.Parameters.TryGetValue(
                     ParameterNames.CanEdit, out _canEdit);
                 navigationContext.Parameters.TryGetValue(
                     ParameterNames.Summoner, out _summoner);
-                HasNextPage = Matches.Count >= PageSize;
-                RaisePaginationCommandCanExecuteChanged();
-                RaisePropertyChanged(nameof(CanGoToNextPage));
-                RaisePropertyChanged(nameof(CanGoToPreviousPage));
 
+                Match selectedMatch = null;
                 if (navigationContext.Parameters.TryGetValue<Match>(
                         ParameterNames.SelectedMatch, out var match))
                 {
-                    SelectedMatch = match;
-                }
-                else
-                {
-                    SelectedMatch = Matches.FirstOrDefault();
+                    selectedMatch = match;
                 }
 
-                await LoadMatchDetailAsync(_selectedMatch);
+                if (string.IsNullOrWhiteSpace(_summoner?.Puuid))
+                {
+                    HasNextPage = false;
+                    ShowPaginationError = true;
+                    Log.Error("Unable to load match history because the summoner is unavailable");
+                    return;
+                }
+
+                var result = await _summonerServices.GetMatchHistoryAsync(_summoner.Puuid);
+                if (result?.Succeeded != true)
+                {
+                    HasNextPage = false;
+                    ShowPaginationError = true;
+                    Log.Error("Unable to load match history: {Reason}",
+                        result?.Error ?? "No result was returned.");
+                    return;
+                }
+
+                _matchHistory = result.Matches?.ToList() ?? [];
+                var firstPage = _matchHistory.Take(PageSize).ToList();
+                if (firstPage.Count == 0)
+                {
+                    HasNextPage = false;
+                    SelectedMatch = null;
+                    await LoadMatchDetailAsync(null);
+                    return;
+                }
+
+                await ApplyMatchPageAsync(
+                    firstPage, 1, selectedMatch?.GameId);
             }
             finally
             {
