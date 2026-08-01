@@ -122,7 +122,7 @@
                             <local:StatusBar Title="{DynamicResource Match.Date}" Value="{Binding MatchDetail.CreationDate}" />
                         </Border>
                         <Border Grid.Column="2" Style="{DynamicResource PageMetricCard}">
-                            <local:StatusBar Title="{DynamicResource Match.GameMode}" Value="{Binding MatchDetail.GameMode}" />
+                            <local:StatusBar Title="{DynamicResource Match.GameMode}" Value="{Binding MatchDetail.DisplayGameMode}" />
                         </Border>
                         <Border Grid.Column="4" Style="{DynamicResource PageMetricCard}">
                             <local:StatusBar Title="{DynamicResource Match.GameDuration}" Value="{Binding MatchDetail.Duration}" />

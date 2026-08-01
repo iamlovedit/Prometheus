@@ -20,10 +20,12 @@ namespace Prometheus.Services.Client
             "lol-collections/v1/inventories/{0}/backdrop";
 
         private readonly IHttpService _httpService;
+        private readonly IClientService _clientService;
 
-        public SummonerService(IHttpService httpService)
+        public SummonerService(IHttpService httpService, IClientService clientService)
         {
             _httpService = httpService ?? throw new ArgumentNullException(nameof(httpService));
+            _clientService = clientService ?? throw new ArgumentNullException(nameof(clientService));
         }
 
         public async Task<string> GetBackdorpByIdAsync(long summonerId)
@@ -106,10 +108,15 @@ namespace Prometheus.Services.Client
                     };
                 }
 
+                var matches = response.Games.Games ?? [];
+                var queues = await _clientService.GetQueuesAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                MatchGameModeResolver.Apply(matches, queues);
+
                 return new MatchHistoryQueryResult
                 {
                     Succeeded = true,
-                    Matches = response.Games.Games ?? []
+                    Matches = matches
                 };
             }
             catch (HttpRequestException exception)

@@ -1,5 +1,8 @@
+using Newtonsoft.Json;
+using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
+using Serilog;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Management;
@@ -10,6 +13,8 @@ namespace Prometheus.Services.Client
 {
     public class ClientService : IClientService
     {
+        private const string QueuesEndpoint = "lol-game-queues/v1/queues";
+
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern bool PathCanonicalize(StringBuilder dst, string src);
 
@@ -18,6 +23,9 @@ namespace Prometheus.Services.Client
 
         private readonly string _client = "riotclient/{0}";
         private readonly IHttpService _httpService;
+        private readonly SemaphoreSlim _queuesGate = new(1, 1);
+        private IReadOnlyList<GameQueue> _queues = Array.Empty<GameQueue>();
+
         public ClientService(IHttpService httpService)
         {
             _httpService = httpService;
@@ -44,9 +52,53 @@ namespace Prometheus.Services.Client
             return path.Replace(pathParts[0], pathParts[0].ToUpper()).Replace(@"\\", @"\");
         }
 
-        public async Task<string> GetQueuesAsync()
+        public async Task<IReadOnlyList<GameQueue>> GetQueuesAsync(
+            CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync("lol-game-queues/v1/queues");
+            var cachedQueues = _queues;
+            if (cachedQueues.Count > 0)
+            {
+                return cachedQueues;
+            }
+
+            await _queuesGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                cachedQueues = _queues;
+                if (cachedQueues.Count > 0)
+                {
+                    return cachedQueues;
+                }
+
+                try
+                {
+                    var queues = await _httpService.GetAsync<List<GameQueue>>(
+                        QueuesEndpoint, cancellationToken: cancellationToken)
+                        .ConfigureAwait(false);
+                    if (queues is null || queues.Count == 0)
+                    {
+                        return Array.Empty<GameQueue>();
+                    }
+
+                    cachedQueues = queues.ToArray();
+                    _queues = cachedQueues;
+                    return cachedQueues;
+                }
+                catch (HttpRequestException exception)
+                {
+                    Log.Error(exception, "Unable to load LCU game queues");
+                    return Array.Empty<GameQueue>();
+                }
+                catch (JsonException exception)
+                {
+                    Log.Error(exception, "Unable to parse LCU game queues");
+                    return Array.Empty<GameQueue>();
+                }
+            }
+            finally
+            {
+                _queuesGate.Release();
+            }
         }
 
         public async Task SetForgeground()

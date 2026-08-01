@@ -20,7 +20,13 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task BanChampionAsync(int actionId, int championId);
 
-        Task<MatchDetail> GetMatchDetailAsync(long gameId);
+        /// <summary>
+        /// Gets a match from <c>lol-match-history/v1/games/{gameId}</c> and resolves
+        /// its display mode from LCU queue metadata when available.
+        /// Returns <see langword="null"/> when LCU is unavailable and supports cancellation.
+        /// </summary>
+        Task<MatchDetail> GetMatchDetailAsync(long gameId,
+            CancellationToken cancellationToken = default);
 
         Task<string> GetCurrentGameInfoAsync();
 

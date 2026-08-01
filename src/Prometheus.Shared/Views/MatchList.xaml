@@ -31,7 +31,7 @@
                         VerticalAlignment="Center">
                         <TextBlock
                             FontWeight="SemiBold"
-                            Text="{Binding GameMode}"
+                            Text="{Binding DisplayGameMode}"
                             TextTrimming="CharacterEllipsis" />
                         <TextBlock
                             Margin="0,3,0,0"

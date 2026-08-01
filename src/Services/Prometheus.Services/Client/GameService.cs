@@ -34,9 +34,12 @@ namespace Prometheus.Services.Client
         private const string _recommendPerks = "https://www.wegame.com.cn/lol/resources/js/champion/recommend/{0}.js ";
 
         private readonly IHttpService _httpService;
-        public GameService(IHttpService httpService)
+        private readonly IClientService _clientService;
+
+        public GameService(IHttpService httpService, IClientService clientService)
         {
-            _httpService = httpService;
+            _httpService = httpService ?? throw new ArgumentNullException(nameof(httpService));
+            _clientService = clientService ?? throw new ArgumentNullException(nameof(clientService));
         }
 
         public async Task CreateRunePage(object body)
@@ -69,9 +72,22 @@ namespace Prometheus.Services.Client
             return await _httpService.GetAsync(_currentRune);
         }
 
-        public async Task<MatchDetail> GetMatchDetailAsync(long gameId)
+        public async Task<MatchDetail> GetMatchDetailAsync(
+            long gameId,
+            CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync<MatchDetail>(string.Format(_matchDetails, gameId), null);
+            var match = await _httpService.GetAsync<MatchDetail>(
+                string.Format(_matchDetails, gameId), null, cancellationToken)
+                .ConfigureAwait(false);
+            if (match is null)
+            {
+                return null;
+            }
+
+            var queues = await _clientService.GetQueuesAsync(cancellationToken)
+                .ConfigureAwait(false);
+            MatchGameModeResolver.Apply([match], queues);
+            return match;
         }
 
         public async Task<string> GetGameSessionAsync()

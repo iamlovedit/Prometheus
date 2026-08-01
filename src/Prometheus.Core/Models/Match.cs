@@ -49,9 +49,20 @@ namespace Prometheus.Core.Models
 
         public string GameMode { get; set; }
 
-        public string DisplayGameMode { get; set; }
+        private string _displayGameMode;
+        public string DisplayGameMode
+        {
+            get => string.IsNullOrWhiteSpace(_displayGameMode)
+                ? GameMode
+                : _displayGameMode;
+            set => _displayGameMode = value;
+        }
+
+        public string GameType { get; set; }
 
         public int MapId { get; set; }
+
+        public int QueueId { get; set; }
 
         public List<Participant> Participants { get; set; }
 
