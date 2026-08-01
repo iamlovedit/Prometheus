@@ -192,9 +192,6 @@
     <sys:String x:Key="HomePage.Position.Bottom">下路</sys:String>
     <sys:String x:Key="HomePage.Position.Utility">辅助</sys:String>
     <sys:String x:Key="HomePage.Position.Unknown">待分配</sys:String>
-    <sys:String x:Key="HomePage.Alert.Ready">已找到对局，请及时接受</sys:String>
-    <sys:String x:Key="HomePage.Alert.Champion">已进入英雄选择阶段</sys:String>
-    <sys:String x:Key="HomePage.Alert.Action">返回主页查看</sys:String>
     <sys:String x:Key="Search.SearchNamePlaceHolder">搜索召唤师</sys:String>
     <sys:String x:Key="Search.SearchNameTips">只能搜索同一大区的召唤师 比如: 王慕霸#89757</sys:String>
     <sys:String x:Key="Search.UserNotFound">用户不存在</sys:String>
@@ -258,6 +255,8 @@
     <sys:String x:Key="Career.MatchHistory.Detail">对局详情</sys:String>
     <sys:String x:Key="Career.MatchHistory.BlueTeam">蓝色方</sys:String>
     <sys:String x:Key="Career.MatchHistory.PurpleTeam">红色方</sys:String>
+    <sys:String x:Key="Career.MatchHistory.NoMoreMatches">没有更多战绩</sys:String>
+    <sys:String x:Key="Career.MatchHistory.LoadFailed">战绩加载失败，请重试</sys:String>
     <sys:String x:Key="Inventory.Skins">英雄皮肤</sys:String>
     <sys:String x:Key="Inventory.Description">浏览并导出英雄皮肤与召唤师头像</sys:String>
     <sys:String x:Key="Inventory.Skins.Description">选择或搜索英雄，浏览并导出对应皮肤</sys:String>

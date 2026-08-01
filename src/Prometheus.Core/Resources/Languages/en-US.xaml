@@ -192,9 +192,6 @@
     <sys:String x:Key="HomePage.Position.Bottom">Bottom</sys:String>
     <sys:String x:Key="HomePage.Position.Utility">Support</sys:String>
     <sys:String x:Key="HomePage.Position.Unknown">Unassigned</sys:String>
-    <sys:String x:Key="HomePage.Alert.Ready">A match was found. Accept it before time expires.</sys:String>
-    <sys:String x:Key="HomePage.Alert.Champion">Champion select has started.</sys:String>
-    <sys:String x:Key="HomePage.Alert.Action">Open Home</sys:String>
     <sys:String x:Key="Search.SearchNamePlaceHolder">Search summoner</sys:String>
     <sys:String x:Key="Search.SearchNameTips">Only search for summoners in the same server eg: Yasuo#89757</sys:String>
     <sys:String x:Key="Search.UserNotFound">User not found</sys:String>
@@ -259,6 +256,8 @@
     <sys:String x:Key="Career.MatchHistory.Detail">Match details</sys:String>
     <sys:String x:Key="Career.MatchHistory.BlueTeam">Blue team</sys:String>
     <sys:String x:Key="Career.MatchHistory.PurpleTeam">Red team</sys:String>
+    <sys:String x:Key="Career.MatchHistory.NoMoreMatches">No more matches</sys:String>
+    <sys:String x:Key="Career.MatchHistory.LoadFailed">Unable to load matches. Please retry.</sys:String>
     <sys:String x:Key="Inventory.Skins">Skins</sys:String>
     <sys:String x:Key="Inventory.Description">Browse and export champion skins and summoner icons</sys:String>
     <sys:String x:Key="Inventory.Skins.Description">Select or search for a champion to browse and export their skins</sys:String>

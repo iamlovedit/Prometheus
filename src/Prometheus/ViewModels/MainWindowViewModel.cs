@@ -39,7 +39,7 @@ namespace Prometheus.ViewModels
         private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
         private bool _updateDialogShown;
 
-        private GameflowPhase _lastAlertPhase = GameflowPhase.Unknown;
+        private GameflowPhase _lastFlashedPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
 
         public MainWindowViewModel(
@@ -89,20 +89,6 @@ namespace Prometheus.ViewModels
         {
             get => _title;
             set => SetProperty(ref _title, value);
-        }
-
-        private bool _hasGlobalAlert;
-        public bool HasGlobalAlert
-        {
-            get => _hasGlobalAlert;
-            set => SetProperty(ref _hasGlobalAlert, value);
-        }
-
-        private string _globalAlertText;
-        public string GlobalAlertText
-        {
-            get => _globalAlertText;
-            set => SetProperty(ref _globalAlertText, value);
         }
 
         public bool IsHomeSelected => _currentMenu == MenuName.Home;
@@ -320,18 +306,6 @@ namespace Prometheus.ViewModels
         public DelegateCommand AcceptReadyCheckFromTrayCommand =>
             _acceptReadyCheckFromTrayCommand ??= new DelegateCommand(ExecuteAcceptReadyCheckFromTray);
 
-        private DelegateCommand _openAlertCommand;
-        public DelegateCommand OpenAlertCommand =>
-            _openAlertCommand ??= new DelegateCommand(() =>
-            {
-                HasGlobalAlert = false;
-                Navigate(MenuName.Home);
-            });
-
-        private DelegateCommand _dismissAlertCommand;
-        public DelegateCommand DismissAlertCommand =>
-            _dismissAlertCommand ??= new DelegateCommand(() => HasGlobalAlert = false);
-
         private void HandleNavigateMenu(MenuName menuName)
         {
             Dispatch(() => Navigate(menuName));
@@ -351,7 +325,6 @@ namespace Prometheus.ViewModels
 
         private void HandleLanguageChanged()
         {
-            UpdateAlertText(_matchService.Current?.GameflowPhase ?? GameflowPhase.Unknown);
             UpdateWindowTitle(_currentMenu);
             UpdateTrayLocalizedText();
             UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
@@ -387,21 +360,13 @@ namespace Prometheus.ViewModels
         {
             UpdateTrayState(snapshot);
             var phase = snapshot.GameflowPhase;
-            if (phase is GameflowPhase.ReadyCheck or GameflowPhase.ChampSelect)
+            if (_lastFlashedPhase != phase &&
+                phase is GameflowPhase.ReadyCheck or GameflowPhase.ChampSelect)
             {
-                if (_lastAlertPhase != phase)
-                {
-                    _lastAlertPhase = phase;
-                    HasGlobalAlert = true;
-                    UpdateAlertText(phase);
-                    _ = FlashClientSafelyAsync();
-                }
+                _ = FlashClientSafelyAsync();
             }
-            else
-            {
-                _lastAlertPhase = phase;
-                HasGlobalAlert = false;
-            }
+
+            _lastFlashedPhase = phase;
         }
 
         private void HandleAutomationSettingsChanged(object sender, EventArgs e)
@@ -432,18 +397,6 @@ namespace Prometheus.ViewModels
             catch (Exception exception)
             {
                 Log.Warning(exception, "Unable to accept ready check from the tray");
-            }
-        }
-
-        private void UpdateAlertText(GameflowPhase phase)
-        {
-            if (phase == GameflowPhase.ReadyCheck)
-            {
-                GlobalAlertText = Text("HomePage.Alert.Ready");
-            }
-            else if (phase == GameflowPhase.ChampSelect)
-            {
-                GlobalAlertText = Text("HomePage.Alert.Champion");
             }
         }
 
