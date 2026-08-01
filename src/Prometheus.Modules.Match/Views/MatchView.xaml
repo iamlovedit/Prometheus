@@ -121,6 +121,7 @@
                                 VerticalAlignment="Center"
                                 FontSize="11"
                                 FontWeight="SemiBold"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Text="{Binding PositionText}"
                                 TextTrimming="CharacterEllipsis" />
                         </Border>
@@ -166,6 +167,7 @@
                                     MaxWidth="176"
                                     FontSize="14"
                                     FontWeight="SemiBold"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                     Text="{Binding DisplayName}"
                                     TextTrimming="CharacterEllipsis" />
                                 <Border
@@ -187,6 +189,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock
                                     VerticalAlignment="Center"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                     Style="{StaticResource LiveCaption}"
                                     Text="{Binding RankText}"
                                     TextTrimming="CharacterEllipsis" />
@@ -225,6 +228,7 @@
                                     MaxWidth="132"
                                     Margin="8,0,0,0"
                                     VerticalAlignment="Center"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                     Text="{Binding StatusText}"
                                     TextAlignment="Right"
                                     TextTrimming="CharacterEllipsis">
@@ -254,14 +258,16 @@
                                 HorizontalAlignment="Right"
                                 FontSize="12"
                                 FontWeight="SemiBold"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Text="{Binding RecentRecordText}" />
                             <TextBlock
                                 Margin="0,4,0,0"
                                 HorizontalAlignment="Right"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Style="{StaticResource LiveCaption}"
                                 Text="{Binding KdaText}" />
                             <ItemsControl
-                                Margin="0,6,0,0"
+                                Margin="0,8,0,0"
                                 HorizontalAlignment="Right"
                                 ItemsSource="{Binding RecentResults}"
                                 ToolTip="{DynamicResource Match.Live.Recent20}">
@@ -400,9 +406,13 @@
                             Grid.Column="1"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource LiveCaption}" Text="{DynamicResource Match.Live.Recent20}" />
+                            <TextBlock
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{DynamicResource Match.Live.Recent20}" />
                             <TextBlock
                                 Margin="8,0,0,0"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Style="{StaticResource LiveCaption}"
                                 Text="{Binding MyTeamStatusText}" />
                         </StackPanel>
@@ -442,9 +452,13 @@
                             Grid.Column="1"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource LiveCaption}" Text="{DynamicResource Match.Live.Recent20}" />
+                            <TextBlock
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{DynamicResource Match.Live.Recent20}" />
                             <TextBlock
                                 Margin="8,0,0,0"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Style="{StaticResource LiveCaption}"
                                 Text="{Binding TheirTeamStatusText}" />
                         </StackPanel>
