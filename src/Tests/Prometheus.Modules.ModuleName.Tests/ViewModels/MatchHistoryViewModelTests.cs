@@ -12,66 +12,23 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
     public class MatchHistoryViewModelTests
     {
         [Fact]
-        public async Task OnNavigatedTo_LoadsFullHistoryAndDisplaysFirstTwentyMatches()
+        public async Task OnNavigatedTo_LoadsTwentyRecentMatches()
         {
-            var history = CreateMatches(1, 45);
+            var history = CreateMatches(1, 20);
             using var context = new TestContext();
             context.SetupHistory("test-puuid", history);
 
             await context.NavigateAsync("test-puuid");
 
-            Assert.Equal(1, context.ViewModel.CurrentPage);
-            Assert.Equal(history.Take(20).Select(match => match.GameId),
+            Assert.Equal(history.Select(match => match.GameId),
                 context.ViewModel.Matches.Select(match => match.GameId));
-            Assert.True(context.ViewModel.HasNextPage);
-            Assert.True(context.ViewModel.CanGoToNextPage);
-            Assert.False(context.ViewModel.ShowPaginationError);
+            Assert.False(context.ViewModel.ShowLoadError);
             context.SummonerService.Verify(service => service.GetMatchHistoryAsync(
                 "test-puuid", It.IsAny<CancellationToken>()), Times.Once);
         }
 
         [Fact]
-        public async Task NextPage_UsesLoadedHistoryWithoutAnotherRequest()
-        {
-            var history = CreateMatches(1, 45);
-            using var context = new TestContext();
-            context.SetupHistory("test-puuid", history);
-            await context.NavigateAsync("test-puuid");
-
-            context.ViewModel.NextPageCommand.Execute();
-            await WaitForIdleAsync(context.ViewModel);
-
-            Assert.Equal(2, context.ViewModel.CurrentPage);
-            Assert.Equal(history.Skip(20).Take(20).Select(match => match.GameId),
-                context.ViewModel.Matches.Select(match => match.GameId));
-            Assert.True(context.ViewModel.HasNextPage);
-            Assert.True(context.ViewModel.CanGoToPreviousPage);
-            Assert.False(context.ViewModel.ShowNoMoreMatches);
-            context.SummonerService.Verify(service => service.GetMatchHistoryAsync(
-                "test-puuid", It.IsAny<CancellationToken>()), Times.Once);
-        }
-
-        [Fact]
-        public async Task LastLocalPage_DisablesForwardNavigation()
-        {
-            var history = CreateMatches(1, 25);
-            using var context = new TestContext();
-            context.SetupHistory("test-puuid", history);
-            await context.NavigateAsync("test-puuid");
-
-            context.ViewModel.NextPageCommand.Execute();
-            await WaitForIdleAsync(context.ViewModel);
-
-            Assert.Equal(2, context.ViewModel.CurrentPage);
-            Assert.Equal(history.Skip(20).Select(match => match.GameId),
-                context.ViewModel.Matches.Select(match => match.GameId));
-            Assert.False(context.ViewModel.HasNextPage);
-            Assert.False(context.ViewModel.CanGoToNextPage);
-            Assert.True(context.ViewModel.CanGoToPreviousPage);
-        }
-
-        [Fact]
-        public async Task OnNavigatedTo_WhenFullHistoryQueryFails_ShowsError()
+        public async Task OnNavigatedTo_WhenHistoryQueryFails_ShowsError()
         {
             using var context = new TestContext();
             context.SummonerService.Setup(service => service.GetMatchHistoryAsync(
@@ -85,31 +42,23 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             await context.NavigateAsync("test-puuid");
 
             Assert.Empty(context.ViewModel.Matches);
-            Assert.False(context.ViewModel.HasNextPage);
-            Assert.True(context.ViewModel.ShowPaginationError);
+            Assert.True(context.ViewModel.ShowLoadError);
         }
 
         [Fact]
         public async Task OnNavigatedTo_WhenViewModelIsReused_ResetsLoadedHistory()
         {
             using var context = new TestContext();
-            context.SetupHistory("first-puuid", CreateMatches(1, 40));
+            context.SetupHistory("first-puuid", CreateMatches(1, 20));
             await context.NavigateAsync("first-puuid");
-            context.ViewModel.NextPageCommand.Execute();
-            await WaitForIdleAsync(context.ViewModel);
-            Assert.Equal(2, context.ViewModel.CurrentPage);
 
             var newHistory = CreateMatches(101, 5);
             context.SetupHistory("second-puuid", newHistory);
             await context.NavigateAsync("second-puuid");
 
-            Assert.Equal(1, context.ViewModel.CurrentPage);
             Assert.Equal(newHistory.Select(match => match.GameId),
                 context.ViewModel.Matches.Select(match => match.GameId));
-            Assert.False(context.ViewModel.HasNextPage);
-            Assert.False(context.ViewModel.CanGoToPreviousPage);
-            Assert.False(context.ViewModel.ShowNoMoreMatches);
-            Assert.False(context.ViewModel.ShowPaginationError);
+            Assert.False(context.ViewModel.ShowLoadError);
         }
 
         private static List<MatchModel> CreateMatches(int firstGameId, int count)

@@ -13,11 +13,8 @@ namespace Prometheus.Shared.ViewModels
 {
     public class MatchHistoryViewModel : RegionViewModelBase
     {
-        private const int PageSize = 20;
-
         private bool _canEdit;
         private SummonerAccount _summoner;
-        private List<Match> _matchHistory = [];
         private readonly IGameService _gameService;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly ISummonerService _summonerServices;
@@ -61,62 +58,15 @@ namespace Prometheus.Shared.ViewModels
         public bool IsLoading
         {
             get { return _isLoading; }
-            set
-            {
-                if (SetProperty(ref _isLoading, value))
-                {
-                    RaisePaginationCommandCanExecuteChanged();
-                    RaisePropertyChanged(nameof(CanGoToNextPage));
-                    RaisePropertyChanged(nameof(CanGoToPreviousPage));
-                }
-            }
+            set { SetProperty(ref _isLoading, value); }
         }
 
-        private int _currentPage = 1;
-        public int CurrentPage
+        private bool _showLoadError;
+        public bool ShowLoadError
         {
-            get { return _currentPage; }
-            set
-            {
-                if (SetProperty(ref _currentPage, value))
-                {
-                    RaisePaginationCommandCanExecuteChanged();
-                    RaisePropertyChanged(nameof(CanGoToPreviousPage));
-                }
-            }
+            get { return _showLoadError; }
+            private set { SetProperty(ref _showLoadError, value); }
         }
-
-        private bool _hasNextPage = true;
-        public bool HasNextPage
-        {
-            get { return _hasNextPage; }
-            private set
-            {
-                if (SetProperty(ref _hasNextPage, value))
-                {
-                    RaisePaginationCommandCanExecuteChanged();
-                    RaisePropertyChanged(nameof(CanGoToNextPage));
-                }
-            }
-        }
-
-        private bool _showNoMoreMatches;
-        public bool ShowNoMoreMatches
-        {
-            get { return _showNoMoreMatches; }
-            private set { SetProperty(ref _showNoMoreMatches, value); }
-        }
-
-        private bool _showPaginationError;
-        public bool ShowPaginationError
-        {
-            get { return _showPaginationError; }
-            private set { SetProperty(ref _showPaginationError, value); }
-        }
-
-        public bool CanGoToNextPage => !IsLoading && HasNextPage && _summoner is not null;
-
-        public bool CanGoToPreviousPage => !IsLoading && CurrentPage > 1 && _summoner is not null;
 
         private Team _blueTeam;
         public Team BlueTeam
@@ -193,85 +143,7 @@ namespace Prometheus.Shared.ViewModels
             RegionManager.Regions[RegionNames.SummonerContent].NavigationService.Journal.GoBack();
         }
 
-        private DelegateCommand _nextPageCommand;
-        public DelegateCommand NextPageCommand =>
-            _nextPageCommand ??= new DelegateCommand(
-                ExecuteNextPageCommand, () => CanGoToNextPage);
-
-        void ExecuteNextPageCommand()
-        {
-            if (!CanGoToNextPage)
-            {
-                return;
-            }
-
-            ExecuteNextPageCommandAsync().Observe("Loading the next match-history page");
-        }
-
-        private async Task ExecuteNextPageCommandAsync()
-        {
-            await TryLoadPageAsync(CurrentPage + 1);
-        }
-
-        private DelegateCommand _previousPageCommand;
-        public DelegateCommand PreviousPageCommand =>
-            _previousPageCommand ??= new DelegateCommand(
-                ExecutePreviosPageCommand, () => CanGoToPreviousPage);
-
-        void ExecutePreviosPageCommand()
-        {
-            if (!CanGoToPreviousPage)
-            {
-                return;
-            }
-
-            ExecutePreviousPageCommandAsync().Observe("Loading the previous match-history page");
-        }
-
-        private async Task ExecutePreviousPageCommandAsync()
-        {
-            await TryLoadPageAsync(CurrentPage - 1);
-        }
-
-        private async Task TryLoadPageAsync(int targetPageIndex)
-        {
-            var currentPage = CurrentPage;
-            try
-            {
-                IsLoading = true;
-                ClearPaginationFeedback();
-
-                var startIndex = (targetPageIndex - 1) * PageSize;
-                var matches = _matchHistory
-                    .Skip(startIndex)
-                    .Take(PageSize)
-                    .ToList();
-                if (matches.Count == 0)
-                {
-                    if (targetPageIndex > currentPage)
-                    {
-                        HasNextPage = false;
-                        ShowNoMoreMatches = true;
-                    }
-                    else
-                    {
-                        ShowPaginationError = true;
-                        Log.Error("Match-history page {PageIndex} unexpectedly returned no matches",
-                            targetPageIndex);
-                    }
-
-                    return;
-                }
-
-                await ApplyMatchPageAsync(matches, targetPageIndex);
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        private async Task ApplyMatchPageAsync(List<Match> matches, int pageIndex,
+        private async Task ApplyMatchesAsync(List<Match> matches,
             long? selectedGameId = null)
         {
             var iconTasks = matches
@@ -285,8 +157,6 @@ namespace Prometheus.Shared.ViewModels
             await Task.WhenAll(iconTasks);
 
             Matches = matches;
-            CurrentPage = pageIndex;
-            HasNextPage = pageIndex * PageSize < _matchHistory.Count;
             SelectedMatch = selectedGameId.HasValue
                 ? Matches.FirstOrDefault(match => match.GameId == selectedGameId.Value)
                     ?? Matches.FirstOrDefault()
@@ -311,19 +181,6 @@ namespace Prometheus.Shared.ViewModels
             }
         }
 
-        private void ClearPaginationFeedback()
-        {
-            ShowNoMoreMatches = false;
-            ShowPaginationError = false;
-        }
-
-        private void RaisePaginationCommandCanExecuteChanged()
-        {
-            _nextPageCommand?.RaiseCanExecuteChanged();
-            _previousPageCommand?.RaiseCanExecuteChanged();
-        }
-
-
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             OnNavigatedToAsync(navigationContext).Observe("Loading match history");
@@ -334,15 +191,12 @@ namespace Prometheus.Shared.ViewModels
             try
             {
                 IsLoading = true;
-                CurrentPage = 1;
-                ClearPaginationFeedback();
-                _matchHistory = [];
+                ShowLoadError = false;
                 Matches = [];
                 SelectedMatch = null;
                 MatchDetail = null;
                 BlueTeam = null;
                 PurPleTeam = null;
-                HasNextPage = false;
 
                 navigationContext.Parameters.TryGetValue(
                     ParameterNames.CanEdit, out _canEdit);
@@ -358,8 +212,7 @@ namespace Prometheus.Shared.ViewModels
 
                 if (string.IsNullOrWhiteSpace(_summoner?.Puuid))
                 {
-                    HasNextPage = false;
-                    ShowPaginationError = true;
+                    ShowLoadError = true;
                     Log.Error("Unable to load match history because the summoner is unavailable");
                     return;
                 }
@@ -367,25 +220,21 @@ namespace Prometheus.Shared.ViewModels
                 var result = await _summonerServices.GetMatchHistoryAsync(_summoner.Puuid);
                 if (result?.Succeeded != true)
                 {
-                    HasNextPage = false;
-                    ShowPaginationError = true;
+                    ShowLoadError = true;
                     Log.Error("Unable to load match history: {Reason}",
                         result?.Error ?? "No result was returned.");
                     return;
                 }
 
-                _matchHistory = result.Matches?.ToList() ?? [];
-                var firstPage = _matchHistory.Take(PageSize).ToList();
-                if (firstPage.Count == 0)
+                var matches = result.Matches?.ToList() ?? [];
+                if (matches.Count == 0)
                 {
-                    HasNextPage = false;
                     SelectedMatch = null;
                     await LoadMatchDetailAsync(null);
                     return;
                 }
 
-                await ApplyMatchPageAsync(
-                    firstPage, 1, selectedMatch?.GameId);
+                await ApplyMatchesAsync(matches, selectedMatch?.GameId);
             }
             finally
             {

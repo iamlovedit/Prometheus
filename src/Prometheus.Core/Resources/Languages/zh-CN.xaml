@@ -243,6 +243,8 @@
     <sys:String x:Key="Search.Section.Title">查询召唤师</sys:String>
     <sys:String x:Key="Search.NotFound.Description">请检查召唤师名称与标签，并确认目标账号位于同一大区</sys:String>
     <sys:String x:Key="Career.Description">查看召唤师资料、段位表现与近期对局</sys:String>
+    <sys:String x:Key="Career.Loading.Title">正在查询生涯数据</sys:String>
+    <sys:String x:Key="Career.Loading.Description">正在同步段位与近期战绩，请稍候</sys:String>
     <sys:String x:Key="Career.Rank.Solo">单双排</sys:String>
     <sys:String x:Key="Career.Rank.Flex">灵活组排</sys:String>
     <sys:String x:Key="Career.Rank.Description">查看当前排位表现、赛季最高与上赛季结算段位</sys:String>
@@ -294,13 +296,14 @@
     <sys:String x:Key="Career.Dialog.Title">生涯背景</sys:String>
     <sys:String x:Key="Career.Dialog.SearchPlaceholder">搜索英雄</sys:String>
     <sys:String x:Key="Career.MatchHistory.Title">历史战绩</sys:String>
-    <sys:String x:Key="Career.MatchHistory.Description">浏览完整对局记录并查看双方玩家详情</sys:String>
+    <sys:String x:Key="Career.MatchHistory.Description">浏览最近20场对局并查看双方玩家详情</sys:String>
     <sys:String x:Key="Career.MatchHistory.List">对局列表</sys:String>
     <sys:String x:Key="Career.MatchHistory.Detail">对局详情</sys:String>
     <sys:String x:Key="Career.MatchHistory.BlueTeam">蓝色方</sys:String>
     <sys:String x:Key="Career.MatchHistory.PurpleTeam">红色方</sys:String>
-    <sys:String x:Key="Career.MatchHistory.NoMoreMatches">没有更多战绩</sys:String>
     <sys:String x:Key="Career.MatchHistory.LoadFailed">战绩加载失败，请重试</sys:String>
+    <sys:String x:Key="Career.MatchHistory.Loading.Title">正在查询历史战绩</sys:String>
+    <sys:String x:Key="Career.MatchHistory.Loading.Description">正在获取最近20场战绩与对局详情</sys:String>
     <sys:String x:Key="Inventory.Skins">英雄皮肤</sys:String>
     <sys:String x:Key="Inventory.Description">浏览并导出英雄皮肤与召唤师头像</sys:String>
     <sys:String x:Key="Inventory.Skins.Description">选择或搜索英雄，浏览并导出对应皮肤</sys:String>

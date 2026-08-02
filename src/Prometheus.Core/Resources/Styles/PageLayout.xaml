@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
     xmlns:sys="clr-namespace:System;assembly=System.Runtime">
     <Style x:Key="PageHeaderCard" TargetType="{x:Type Border}">
         <Setter Property="Padding" Value="18,0" />
@@ -53,6 +54,51 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="8" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+    <Style x:Key="QueryLoadingIndicator" TargetType="{x:Type HeaderedContentControl}">
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type HeaderedContentControl}">
+                    <Border
+                        Padding="{TemplateBinding Padding}"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        SnapsToDevicePixels="True">
+                        <StackPanel HorizontalAlignment="Center">
+                            <hc:LoadingCircle
+                                Width="34"
+                                Height="34"
+                                HorizontalAlignment="Center"
+                                Foreground="{DynamicResource InfoBrush}"
+                                Style="{DynamicResource LoadingBaseStyle}" />
+                            <TextBlock
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Center"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Text="{TemplateBinding Header}"
+                                TextAlignment="Center"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                MaxWidth="420"
+                                Margin="0,4,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                FontSize="12"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Text="{TemplateBinding Content}"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <Style x:Key="TextInputContextMenuStyle" TargetType="{x:Type ContextMenu}">
         <Setter Property="MinWidth" Value="188" />

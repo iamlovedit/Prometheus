@@ -120,7 +120,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 |------|----|------|
 | BaseAddress | `https://127.0.0.1:{port}/` | LCU 本地服务 |
 | DefaultRequestVersion | HTTP/2.0 | LCU 支持 |
-| Timeout | 60 秒 | 大批量历史战绩请求可能需要更长时间 |
+| Timeout | 60 秒 | 部分 LCU 战绩与资源请求响应较慢 |
 | Accept | `application/json` | LCU 默认返回 JSON |
 | User-Agent | `LeagueOfLegendsClient/12.7.433.4138 (CEF 91)` | 模拟客户端 UA，避免被 LCU 拒绝 |
 | Connection | `keep-alive` | 复用连接 |
@@ -297,7 +297,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `lol-summoner/v1/summoners?name=` | GET | 按昵称搜索（需 UrlEncode） | `SummonerService` |
 | `lol-summoner/v2/summoners/puuid/{puuid}` | GET | 按 PUUID 查询 | `SummonerService` |
 | `lol-ranked/v1/ranked-stats/{puuid}` | GET | 排位段位 | `SummonerService` |
-| `lol-match-history/v1/products/lol/{puuid}/matches?begIndex=&endIndex=` | GET | 历史战绩分页 | `SummonerService` |
+| `lol-match-history/v1/products/lol/{puuid}/matches?begIndex=0&endIndex=19` | GET | 最近 20 场战绩；所有调用方使用同一固定窗口以规避 LCU 路径缓存 | `SummonerService` |
 | `lol-match-history/v1/games/{gameId}` | GET | 单局详情 | `GameService` |
 | `lol-collections/v1/inventories/{summonerId}/backdrop` | GET | 生涯背景 | `SummonerService` |
 | `lol-summoner/v1/current-summoner/summoner-profile` | GET / POST | 读 / 写生涯背景（`{key:"backgroundSkinId", value}`） | `GameResourceManager` |
@@ -364,7 +364,6 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 |----|------|------|
 | `ClientListener` | 旧 WebSocket 实现（Rx + Websocket.Client），重连/生命周期不如 `LeagueClient` 严谨 | 下线，统一 `ILeagueClient` |
 | `MatchService` 端点前导 `/` | 常量为 `/lol-...`，与其他服务不一致 | 去掉前导 `/` |
-| `SummonerService.GetMatchesAsync` | `string.Format` 中冗余 `$` 插值、直接 `JObject["games"]["games"]` 无空判 | 改强类型 + 空判 |
 | `GameService.BanChampionAsync` | body `type` 误写为 `"pick"`（应 `"ban"`） | 修正并补测试 |
 | 外部 URL `_recommendPerks` | 常量尾部带空格 | 去除 |
 | `ClientService.GetCommandLines` | `[Obsolete]` 旧实现残留 | 删除 |

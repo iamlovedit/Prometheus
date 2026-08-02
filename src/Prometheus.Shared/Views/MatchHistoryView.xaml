@@ -42,12 +42,13 @@
             </Grid>
         </Border>
         <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280" />
-                <ColumnDefinition Width="12" />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <Border Style="{DynamicResource PageCard}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280" />
+                    <ColumnDefinition Width="12" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Border Style="{DynamicResource PageCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -63,63 +64,15 @@
                         ItemsSource="{Binding Matches}"
                         SelectedItem="{Binding SelectedMatch}"
                         SelectionChangedCommand="{Binding MatchChangedCommand}" />
-                    <Grid Grid.Row="4">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="36" />
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="36" />
-                        </Grid.ColumnDefinitions>
-                        <Button
-                            Width="32"
-                            Height="32"
-                            Padding="0"
-                            hc:IconElement.Geometry="{DynamicResource PreviousGeometry}"
-                            hc:IconElement.Height="14"
-                            hc:IconElement.Width="14"
-                            Command="{Binding PreviousPageCommand}"
-                            IsEnabled="{Binding CanGoToPreviousPage}"
-                            Style="{DynamicResource ButtonIcon}" />
-                        <TextBlock
-                            Grid.Column="1"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            FontWeight="SemiBold"
-                            Text="{Binding CurrentPage}" />
-                        <Button
-                            Grid.Column="2"
-                            Width="32"
-                            Height="32"
-                            Padding="0"
-                            hc:IconElement.Geometry="{DynamicResource NextGeometry}"
-                            hc:IconElement.Height="14"
-                            hc:IconElement.Width="14"
-                            Command="{Binding NextPageCommand}"
-                            IsEnabled="{Binding CanGoToNextPage}"
-                            Style="{DynamicResource ButtonIcon}" />
-                        <TextBlock
-                            Grid.Row="1"
-                            Grid.ColumnSpan="3"
-                            Margin="0,6,0,0"
-                            HorizontalAlignment="Center"
-                            Style="{DynamicResource PageCaption}"
-                            Text="{DynamicResource Career.MatchHistory.NoMoreMatches}"
-                            Visibility="{Binding ShowNoMoreMatches, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                        <TextBlock
-                            Grid.Row="1"
-                            Grid.ColumnSpan="3"
-                            Margin="0,6,0,0"
-                            HorizontalAlignment="Center"
-                            Style="{DynamicResource PageCaption}"
-                            Text="{DynamicResource Career.MatchHistory.LoadFailed}"
-                            Visibility="{Binding ShowPaginationError, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                    </Grid>
+                    <TextBlock
+                        Grid.Row="4"
+                        HorizontalAlignment="Center"
+                        Style="{DynamicResource PageCaption}"
+                        Text="{DynamicResource Career.MatchHistory.LoadFailed}"
+                        Visibility="{Binding ShowLoadError, Converter={StaticResource Boolean2VisibilityConverter}}" />
                 </Grid>
-            </Border>
-            <Border Grid.Column="2" Style="{DynamicResource PageCard}">
+                </Border>
+                <Border Grid.Column="2" Style="{DynamicResource PageCard}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -153,10 +106,6 @@
                         </Border>
                     </Grid>
                     <Grid Grid.Row="4">
-                        <hc:LoadingCircle
-                            Panel.ZIndex="2"
-                            Style="{DynamicResource LoadingCircleBaseStyle}"
-                            Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
                         <ScrollViewer
                             HorizontalContentAlignment="Stretch"
                             HorizontalScrollBarVisibility="Auto"
@@ -188,8 +137,20 @@
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>
-                </Grid>
-            </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+            <HeaderedContentControl
+                MinWidth="360"
+                MaxWidth="480"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                AutomationProperties.LiveSetting="Polite"
+                Header="{DynamicResource Career.MatchHistory.Loading.Title}"
+                Panel.ZIndex="2"
+                Style="{DynamicResource QueryLoadingIndicator}"
+                Content="{DynamicResource Career.MatchHistory.Loading.Description}"
+                Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
         </Grid>
     </Grid>
 </UserControl>

@@ -960,10 +960,11 @@ namespace Prometheus.Modules.Home.ViewModels
         {
             try
             {
-                var matches = await _summonerService.GetHomeRecentMatchesAsync(
+                var result = await _summonerService.GetMatchHistoryAsync(
                     puuid, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                if (matches is null || matches.Count == 0)
+                if (result?.Succeeded != true || result.Matches is null ||
+                    result.Matches.Count == 0)
                 {
                     return [];
                 }
@@ -978,7 +979,7 @@ namespace Prometheus.Modules.Home.ViewModels
                         "Unable to load champion names for Home recent matches");
                 }
 
-                var tasks = matches
+                var tasks = result.Matches
                     .Where(match => match?.Participants?.FirstOrDefault()?.Stats is not null)
                     .Take(5)
                     .Select(match => BuildRecentMatchAsync(match, cancellationToken));

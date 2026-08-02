@@ -243,6 +243,8 @@
     <sys:String x:Key="Search.Section.Title">Search summoner</sys:String>
     <sys:String x:Key="Search.NotFound.Description">Check the summoner name and tag, and make sure the account is in your current region</sys:String>
     <sys:String x:Key="Career.Description">View summoner profiles, ranked performance, and recent matches</sys:String>
+    <sys:String x:Key="Career.Loading.Title">Loading career data</sys:String>
+    <sys:String x:Key="Career.Loading.Description">Syncing ranked data and recent matches. Please wait.</sys:String>
     <sys:String x:Key="Career.Rank.Solo">Solo</sys:String>
     <sys:String x:Key="Career.Rank.Flex">Flex</sys:String>
     <sys:String x:Key="Career.Rank.Description">Current ranked performance, season best, and previous season result</sys:String>
@@ -295,13 +297,14 @@
     <sys:String x:Key="Career.Dialog.Title">Backgound</sys:String>
     <sys:String x:Key="Career.Dialog.SearchPlaceholder">Search champion</sys:String>
     <sys:String x:Key="Career.MatchHistory.Title">Match history</sys:String>
-    <sys:String x:Key="Career.MatchHistory.Description">Browse past matches and inspect both teams in detail</sys:String>
+    <sys:String x:Key="Career.MatchHistory.Description">Browse the latest 20 matches and inspect both teams in detail</sys:String>
     <sys:String x:Key="Career.MatchHistory.List">Match list</sys:String>
     <sys:String x:Key="Career.MatchHistory.Detail">Match details</sys:String>
     <sys:String x:Key="Career.MatchHistory.BlueTeam">Blue team</sys:String>
     <sys:String x:Key="Career.MatchHistory.PurpleTeam">Red team</sys:String>
-    <sys:String x:Key="Career.MatchHistory.NoMoreMatches">No more matches</sys:String>
     <sys:String x:Key="Career.MatchHistory.LoadFailed">Unable to load matches. Please retry.</sys:String>
+    <sys:String x:Key="Career.MatchHistory.Loading.Title">Loading match history</sys:String>
+    <sys:String x:Key="Career.MatchHistory.Loading.Description">Fetching the latest 20 matches and their details.</sys:String>
     <sys:String x:Key="Inventory.Skins">Skins</sys:String>
     <sys:String x:Key="Inventory.Description">Browse and export champion skins and summoner icons</sys:String>
     <sys:String x:Key="Inventory.Skins.Description">Select or search for a champion to browse and export their skins</sys:String>

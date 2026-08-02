@@ -16,9 +16,7 @@ namespace Prometheus.Services.Client
         private const string RankedStatsEndpoint = "lol-ranked/v1/ranked-stats/{0}";
         private const string MatchHistoryEndpoint =
             "lol-match-history/v1/products/lol/{0}/matches";
-        private const int HomeRecentMatchCount = 5;
-        private const int SummonerRecentMatchCount = 20;
-        private const int MatchHistoryMatchCount = 200;
+        private const int MatchHistoryMatchCount = 20;
         private const string BackdropEndpoint =
             "lol-collections/v1/inventories/{0}/backdrop";
 
@@ -67,32 +65,10 @@ namespace Prometheus.Services.Client
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<List<Match>> GetHomeRecentMatchesAsync(string puuid,
+        public async Task<MatchHistoryQueryResult> GetMatchHistoryAsync(string puuid,
             CancellationToken cancellationToken = default)
         {
-            var result = await QueryMatchesAsync(
-                puuid, HomeRecentMatchCount, cancellationToken).ConfigureAwait(false);
-            return result.Matches as List<Match> ?? result.Matches?.ToList() ?? [];
-        }
-
-        public Task<MatchHistoryQueryResult> GetSummonerRecentMatchesAsync(string puuid,
-            CancellationToken cancellationToken = default)
-        {
-            return QueryMatchesAsync(
-                puuid, SummonerRecentMatchCount, cancellationToken);
-        }
-
-        public Task<MatchHistoryQueryResult> GetMatchHistoryAsync(string puuid,
-            CancellationToken cancellationToken = default)
-        {
-            return QueryMatchesAsync(
-                puuid, MatchHistoryMatchCount, cancellationToken);
-        }
-
-        private async Task<MatchHistoryQueryResult> QueryMatchesAsync(string puuid,
-            int matchCount, CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(puuid) || matchCount is < 1 or > MatchHistoryMatchCount)
+            if (string.IsNullOrWhiteSpace(puuid))
             {
                 return new MatchHistoryQueryResult
                 {
@@ -119,11 +95,11 @@ namespace Prometheus.Services.Client
                     };
                 }
 
-                // Some LCU builds cache this endpoint by path while ignoring the query string.
-                // Always request the same 200-match window so a Home request cannot poison the
-                // Career or Match History response with a cached five-match payload.
+                // The LCU caches the first response for this path while ignoring later pagination
+                // parameters. Keep every caller on the same 20-match window; the Home dashboard
+                // selects its first five matches after this method returns.
                 var matches = (response.Games.Games ?? [])
-                    .Take(matchCount)
+                    .Take(MatchHistoryMatchCount)
                     .ToList();
                 var queues = await _clientService.GetQueuesAsync(cancellationToken)
                     .ConfigureAwait(false);

@@ -28,7 +28,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
             context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Once);
-            context.SummonerService.Verify(service => service.GetHomeRecentMatchesAsync(
+            context.SummonerService.Verify(service => service.GetMatchHistoryAsync(
                 "test-puuid",
                 It.IsAny<CancellationToken>()), Times.Once);
             Assert.Equal("Prometheus", context.ViewModel.SummonerName);
@@ -152,7 +152,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 UpdatedAt = DateTimeOffset.UtcNow
             });
 
-            context.SummonerService.Verify(service => service.GetHomeRecentMatchesAsync(
+            context.SummonerService.Verify(service => service.GetMatchHistoryAsync(
                 "test-puuid",
                 It.IsAny<CancellationToken>()), Times.Once);
             Assert.Equal(5, context.ViewModel.RecentMatches.Count);
@@ -272,9 +272,13 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 SummonerService.Setup(service => service.GetRankStatsByPuuid(
                         "test-puuid", It.IsAny<CancellationToken>()))
                     .ReturnsAsync((string)null);
-                SummonerService.Setup(service => service.GetHomeRecentMatchesAsync(
+                SummonerService.Setup(service => service.GetMatchHistoryAsync(
                         "test-puuid", It.IsAny<CancellationToken>()))
-                    .ReturnsAsync((recentMatches ?? []).ToList());
+                    .ReturnsAsync(new MatchHistoryQueryResult
+                    {
+                        Succeeded = true,
+                        Matches = (recentMatches ?? []).ToList()
+                    });
                 GameResourceManager.Setup(service => service.GetProfileIconByIdAsync(29))
                     .ReturnsAsync("profile-icon.png");
                 GameResourceManager.Setup(service => service.GetBackgroundSkinId())

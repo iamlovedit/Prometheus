@@ -403,7 +403,7 @@
                         <RowDefinition Height="8" />
                         <RowDefinition />
                     </Grid.RowDefinitions>
-                    <Grid>
+                    <Grid IsEnabled="{Binding IsLoading, Converter={StaticResource Boolean2BooleanReConverter}}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="88" />
                             <ColumnDefinition Width="8" />
@@ -431,11 +431,13 @@
                         </hc:ComboBox>
                     </Grid>
                     <Grid Grid.Row="2">
-                        <hc:LoadingCircle
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
+                        <HeaderedContentControl
+                            AutomationProperties.LiveSetting="Polite"
+                            Header="{DynamicResource Career.Loading.Title}"
                             Panel.ZIndex="1"
-                            Style="{DynamicResource LoadingBaseStyle}"
+                            Style="{DynamicResource QueryLoadingIndicator}"
+                            Content="{DynamicResource Career.Loading.Description}"
+                            VerticalAlignment="Top"
                             Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
                         <views:MatchList
                             ItemCommand="{Binding MatchDetailCommand}"

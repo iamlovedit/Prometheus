@@ -6,6 +6,7 @@ using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using System.Windows;
 
@@ -42,69 +43,80 @@ namespace Prometheus.Shared.ViewModels
             _gameResourceManager = containerExtension.Resolve<IGameResourceManager>();
             _dialogService = containerExtension.Resolve<IDialogService>();
         }
-        public override async void OnNavigatedTo(NavigationContext navigationContext)
+        public override void OnNavigatedTo(NavigationContext navigationContext)
         {
-            if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
+            OnNavigatedToAsync(navigationContext).Observe("Loading summoner career data");
+        }
+
+        private async Task OnNavigatedToAsync(NavigationContext navigationContext)
+        {
+            IsLoading = true;
+            RecentMatches = null;
+
+            try
             {
-                CanModify = canEdit;
-            }
-            if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
-            {
-                Summoner = summoner;
-                IsPublic = summoner.Privacy == "PUBLIC";
-                var skinId = 0;
-                if (canEdit)
+                if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
                 {
-                    var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
-                    if (!string.IsNullOrEmpty(jsonValue))
-                    {
-                        skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
-                    }
+                    CanModify = canEdit;
                 }
-                else
+                if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
                 {
-                    var jsonValue = await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId);
-                    if (!string.IsNullOrEmpty(jsonValue))
+                    Summoner = summoner;
+                    IsPublic = summoner.Privacy == "PUBLIC";
+                    var skinId = 0;
+                    if (canEdit)
                     {
-                        var uri = JObject.Parse(jsonValue)["backdropImage"].ToString();
-                        if (int.TryParse(Path.GetFileNameWithoutExtension(uri), out skinId))
+                        var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
+                        if (!string.IsNullOrEmpty(jsonValue))
                         {
+                            skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
                         }
                     }
-                }
-                BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
-                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(_summoner.ProfileIconId);
-                var rankJson = await _summonerService.GetRankStatsByPuuid(_summoner.Puuid);
-                if (!string.IsNullOrEmpty(rankJson))
-                {
-                    var jObject = JObject.Parse(rankJson);
-                    Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
-                    Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
-                    Ranks = [Solo, Flex];
-                    RaisePropertyChanged(nameof(Ranks));
-                    SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
-                    FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
+                    else
+                    {
+                        var jsonValue = await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId);
+                        if (!string.IsNullOrEmpty(jsonValue))
+                        {
+                            var uri = JObject.Parse(jsonValue)["backdropImage"].ToString();
+                            if (int.TryParse(Path.GetFileNameWithoutExtension(uri), out skinId))
+                            {
+                            }
+                        }
+                    }
+                    BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
+                    ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(_summoner.ProfileIconId);
+                    var rankJson = await _summonerService.GetRankStatsByPuuid(_summoner.Puuid);
+                    if (!string.IsNullOrEmpty(rankJson))
+                    {
+                        var jObject = JObject.Parse(rankJson);
+                        Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
+                        Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
+                        Ranks = [Solo, Flex];
+                        RaisePropertyChanged(nameof(Ranks));
+                        SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
+                        FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
 
-                }
-                var matchResult = await _summonerService.GetSummonerRecentMatchesAsync(
-                    _summoner.Puuid);
-                var matches = matchResult?.Succeeded == true
-                    ? matchResult.Matches?.ToList() ?? []
-                    : [];
-                if (matches != null)
-                {
+                    }
+                    var matchResult = await _summonerService.GetMatchHistoryAsync(
+                        _summoner.Puuid);
+                    var matches = matchResult?.Succeeded == true
+                        ? matchResult.Matches?.ToList() ?? []
+                        : [];
                     Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
+                    Losses = matches.Count - Wins;
                     var killed = matches.Sum(m => m.Participants[0].Stats.Kills);
                     var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
                     var assists = matches.Sum(m => m.Participants[0].Stats.Assists);
                     KDA = $"{killed}/{deaths}/{assists}";
-                    matches.ForEach(async m =>
-                    {
-                        m.Participants[0].ChampionIcon = await _gameResourceManager.GetChampoinIconByIdAsync(m.Participants[0].ChampionId);
-                    });
+                    await Task.WhenAll(matches.Select(async match =>
+                        match.Participants[0].ChampionIcon = await _gameResourceManager
+                            .GetChampoinIconByIdAsync(match.Participants[0].ChampionId)));
                     RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
-                    IsLoading = false;
                 }
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -120,11 +132,7 @@ namespace Prometheus.Shared.ViewModels
         public int Wins
         {
             get { return _wins; }
-            set
-            {
-                SetProperty(ref _wins, value);
-                Losses = 20 - value;
-            }
+            set { SetProperty(ref _wins, value); }
         }
 
         private int _losses;

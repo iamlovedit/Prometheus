@@ -84,11 +84,11 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
-        public async Task GetHomeRecentMatchesAsync_StableWindow_ReturnsFirstFiveMatches()
+        public async Task GetMatchHistoryAsync_RequestsStableTwentyMatchWindow()
         {
             var httpService = new Mock<IHttpService>();
             var cancellationToken = new CancellationTokenSource().Token;
-            var stableWindow = Enumerable.Range(1, 200)
+            var stableWindow = Enumerable.Range(1, 25)
                 .Select(gameId => new MatchModel { GameId = gameId })
                 .ToList();
             httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
@@ -99,34 +99,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 });
             var service = CreateService(httpService);
 
-            var result = await service.GetHomeRecentMatchesAsync(
+            var result = await service.GetMatchHistoryAsync(
                 "test-puuid", cancellationToken);
-
-            Assert.Equal(stableWindow.Take(5).Select(match => match.GameId),
-                result.Select(match => match.GameId));
-            httpService.Verify(service => service.GetAsync<MatchHistoryResponse>(
-                "lol-match-history/v1/products/lol/test-puuid/matches",
-                It.Is<IEnumerable<string>>(parameters => parameters.SequenceEqual(
-                    new[] { "begIndex=0", "endIndex=199" })), cancellationToken), Times.Once);
-        }
-
-        [Fact]
-        public async Task GetSummonerRecentMatchesAsync_StableWindow_ReturnsFirstTwentyMatches()
-        {
-            var httpService = new Mock<IHttpService>();
-            var stableWindow = Enumerable.Range(1, 200)
-                .Select(gameId => new MatchModel { GameId = gameId })
-                .ToList();
-            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
-                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new MatchHistoryResponse
-                {
-                    Games = new MatchHistoryPage { Games = stableWindow }
-                });
-            var service = CreateService(httpService);
-
-            var result = await service.GetSummonerRecentMatchesAsync("test-puuid");
 
             Assert.True(result.Succeeded);
             Assert.Equal(stableWindow.Take(20).Select(match => match.GameId),
@@ -134,40 +108,11 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             httpService.Verify(service => service.GetAsync<MatchHistoryResponse>(
                 "lol-match-history/v1/products/lol/test-puuid/matches",
                 It.Is<IEnumerable<string>>(parameters => parameters.SequenceEqual(
-                    new[] { "begIndex=0", "endIndex=199" })),
-                It.IsAny<CancellationToken>()), Times.Once);
+                    new[] { "begIndex=0", "endIndex=19" })), cancellationToken), Times.Once);
         }
 
         [Fact]
-        public async Task GetMatchHistoryAsync_RequestsTwoHundredMatchRange()
-        {
-            var httpService = new Mock<IHttpService>();
-            var stableWindow = Enumerable.Range(1, 200)
-                .Select(gameId => new MatchModel { GameId = gameId })
-                .ToList();
-            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
-                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new MatchHistoryResponse
-                {
-                    Games = new MatchHistoryPage { Games = stableWindow }
-                });
-            var service = CreateService(httpService);
-
-            var result = await service.GetMatchHistoryAsync("test-puuid");
-
-            Assert.True(result.Succeeded);
-            Assert.Equal(stableWindow.Select(match => match.GameId),
-                result.Matches.Select(match => match.GameId));
-            httpService.Verify(service => service.GetAsync<MatchHistoryResponse>(
-                "lol-match-history/v1/products/lol/test-puuid/matches",
-                It.Is<IEnumerable<string>>(parameters => parameters.SequenceEqual(
-                    new[] { "begIndex=0", "endIndex=199" })),
-                It.IsAny<CancellationToken>()), Times.Once);
-        }
-
-        [Fact]
-        public async Task GetHomeRecentMatchesAsync_WhenResponseHasNoGames_ReturnsEmptyList()
+        public async Task GetMatchHistoryAsync_WhenResponseHasNoGames_PreservesFailure()
         {
             var httpService = new Mock<IHttpService>();
             httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
@@ -176,25 +121,11 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 .ReturnsAsync(new MatchHistoryResponse());
             var service = CreateService(httpService);
 
-            var result = await service.GetHomeRecentMatchesAsync("test-puuid");
+            var result = await service.GetMatchHistoryAsync("test-puuid");
 
-            Assert.NotNull(result);
-            Assert.Empty(result);
-        }
-
-        [Fact]
-        public async Task GetHomeRecentMatchesAsync_WhenLcuRequestFails_ReturnsEmptyList()
-        {
-            var httpService = new Mock<IHttpService>();
-            httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
-                    It.IsAny<string>(), It.IsAny<IEnumerable<string>>(),
-                    It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new HttpRequestException("LCU unavailable"));
-            var service = CreateService(httpService);
-
-            var result = await service.GetHomeRecentMatchesAsync("test-puuid");
-
-            Assert.Empty(result);
+            Assert.False(result.Succeeded);
+            Assert.Empty(result.Matches);
+            Assert.NotEmpty(result.Error);
         }
 
         [Fact]
@@ -235,14 +166,15 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
-        public async Task GetHomeRecentMatchesAsync_WhenPuuidIsMissing_DoesNotCallLcu()
+        public async Task GetMatchHistoryAsync_WhenPuuidIsMissing_DoesNotCallLcu()
         {
             var httpService = new Mock<IHttpService>();
             var service = CreateService(httpService);
 
-            var result = await service.GetHomeRecentMatchesAsync(string.Empty);
+            var result = await service.GetMatchHistoryAsync(string.Empty);
 
-            Assert.Empty(result);
+            Assert.False(result.Succeeded);
+            Assert.Empty(result.Matches);
             httpService.VerifyNoOtherCalls();
         }
 
@@ -290,7 +222,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
-        public async Task GetSummonerRecentMatchesAsync_WhenQueueMetadataIsAvailable_UsesQueueShortName()
+        public async Task GetMatchHistoryAsync_WhenQueueMetadataIsAvailable_UsesQueueShortName()
         {
             var httpService = new Mock<IHttpService>();
             httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
@@ -326,14 +258,14 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 ]);
             var service = CreateService(httpService, clientService);
 
-            var result = await service.GetSummonerRecentMatchesAsync("test-puuid");
+            var result = await service.GetMatchHistoryAsync("test-puuid");
 
             var match = Assert.Single(result.Matches);
             Assert.Equal("海克斯大乱斗", match.DisplayGameMode);
         }
 
         [Fact]
-        public async Task GetSummonerRecentMatchesAsync_WhenQueueMetadataIsUnavailable_FallsBackToGameMode()
+        public async Task GetMatchHistoryAsync_WhenQueueMetadataIsUnavailable_FallsBackToGameMode()
         {
             var httpService = new Mock<IHttpService>();
             httpService.Setup(service => service.GetAsync<MatchHistoryResponse>(
@@ -356,7 +288,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 });
             var service = CreateService(httpService);
 
-            var result = await service.GetSummonerRecentMatchesAsync("test-puuid");
+            var result = await service.GetMatchHistoryAsync("test-puuid");
 
             var match = Assert.Single(result.Matches);
             Assert.Equal("CLASSIC", match.DisplayGameMode);
