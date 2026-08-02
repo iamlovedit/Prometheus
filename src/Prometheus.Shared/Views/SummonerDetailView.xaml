@@ -232,53 +232,12 @@
                                     <ColumnDefinition />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <Grid Width="112" Height="112">
-                                    <Grid.ToolTip>
-                                        <StackPanel>
-                                            <TextBlock><Run Text="{DynamicResource Career.Experience.Progress}" /><Run Text=": " /><Run Text="{Binding Summoner.PercentCompleteForNextLevel}" /><Run Text="%" /></TextBlock>
-                                            <TextBlock><Run Text="{DynamicResource Career.Experience.Earned}" /><Run Text=": " /><Run Text="{Binding Summoner.XpSinceLastLevel}" /></TextBlock>
-                                            <TextBlock><Run Text="{DynamicResource Career.Experience.Remaining}" /><Run Text=": " /><Run Text="{Binding Summoner.XpUntilNextLevel}" /></TextBlock>
-                                        </StackPanel>
-                                    </Grid.ToolTip>
-                                    <hc:CircleProgressBar
-                                        Width="112"
-                                        Height="112"
-                                        ArcThickness="4"
-                                        Background="#40FFFFFF"
-                                        Foreground="{DynamicResource InfoBrush}"
-                                        IsHitTestVisible="False"
-                                        Maximum="100"
-                                        Minimum="0"
-                                        RenderTransformOrigin="0.5,0.5"
-                                        ShowText="False"
-                                        Value="{Binding Summoner.PercentCompleteForNextLevel}">
-                                        <hc:CircleProgressBar.RenderTransform>
-                                            <RotateTransform Angle="180" />
-                                        </hc:CircleProgressBar.RenderTransform>
-                                    </hc:CircleProgressBar>
-                                    <hc:Gravatar
-                                        Width="98"
-                                        Height="98"
-                                        Style="{StaticResource GravatarCircleImg}">
-                                        <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
-                                    </hc:Gravatar>
-                                    <Border
-                                        Height="22"
-                                        MinWidth="36"
-                                        Padding="7,0"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Bottom"
-                                        Background="#E61C1C1C"
-                                        BorderBrush="{DynamicResource InfoBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="11">
-                                        <TextBlock
-                                            HorizontalAlignment="Center"
-                                            FontWeight="SemiBold"
-                                            Foreground="White"
-                                            Text="{Binding Summoner.SummonerLevel}" />
-                                    </Border>
-                                </Grid>
+                                <views:SummonerExperienceAvatar
+                                    PercentCompleteForNextLevel="{Binding Summoner.PercentCompleteForNextLevel}"
+                                    ProfileIcon="{Binding ProfileIcon}"
+                                    SummonerLevel="{Binding Summoner.SummonerLevel}"
+                                    XpSinceLastLevel="{Binding Summoner.XpSinceLastLevel}"
+                                    XpUntilNextLevel="{Binding Summoner.XpUntilNextLevel}" />
                                 <StackPanel
                                     Grid.Column="1"
                                     Margin="18,0,0,2"

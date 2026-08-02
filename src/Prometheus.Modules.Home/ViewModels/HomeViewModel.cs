@@ -298,6 +298,27 @@ namespace Prometheus.Modules.Home.ViewModels
             set => SetProperty(ref _summonerLevel, value);
         }
 
+        private int _percentCompleteForNextLevel;
+        public int PercentCompleteForNextLevel
+        {
+            get => _percentCompleteForNextLevel;
+            set => SetProperty(ref _percentCompleteForNextLevel, value);
+        }
+
+        private int _xpSinceLastLevel;
+        public int XpSinceLastLevel
+        {
+            get => _xpSinceLastLevel;
+            set => SetProperty(ref _xpSinceLastLevel, value);
+        }
+
+        private int _xpUntilNextLevel;
+        public int XpUntilNextLevel
+        {
+            get => _xpUntilNextLevel;
+            set => SetProperty(ref _xpUntilNextLevel, value);
+        }
+
         private string _soloTierText;
         public string SoloTierText
         {
@@ -1216,6 +1237,9 @@ namespace Prometheus.Modules.Home.ViewModels
                     SummonerName = summoner.GameName ?? summoner.DisplayName ?? summoner.SummonerName;
                     SummonerTag = string.IsNullOrWhiteSpace(summoner.TagLine) ? string.Empty : $"#{summoner.TagLine}";
                     SummonerLevel = summoner.SummonerLevel.ToString();
+                    PercentCompleteForNextLevel = summoner.PercentCompleteForNextLevel;
+                    XpSinceLastLevel = summoner.XpSinceLastLevel;
+                    XpUntilNextLevel = summoner.XpUntilNextLevel;
                     ProfileIcon = profileTask.Result;
                     HeroBackground = backgroundTask.Result;
                     SoloTierText = ranks.solo?.DisplayTier ?? Text("Career.Rank.Tier.Unranked");
@@ -1719,6 +1743,9 @@ namespace Prometheus.Modules.Home.ViewModels
             SummonerName = Text("HomePage.NoSummoner");
             SummonerTag = string.Empty;
             SummonerLevel = "--";
+            PercentCompleteForNextLevel = 0;
+            XpSinceLastLevel = 0;
+            XpUntilNextLevel = 0;
             ProfileIcon = null;
             HeroBackground = null;
             SoloTierText = "--";

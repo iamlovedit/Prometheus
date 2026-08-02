@@ -7,6 +7,7 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:sharedViews="clr-namespace:Prometheus.Shared.Views;assembly=Prometheus.Shared"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Home.ViewModels"
     d:DataContext="{d:DesignInstance Type=viewmodels:HomeViewModel}"
     d:DesignHeight="760"
@@ -355,28 +356,18 @@
                     <RowDefinition Height="12" />
                     <RowDefinition />
                 </Grid.RowDefinitions>
-                <Border
-                    Grid.Row="0"
-                    Padding="14"
-                    Style="{StaticResource HomeCard}">
-                    <Grid>
+                <Border Style="{StaticResource HomeCard}">
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="76" />
-                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <hc:Gravatar
-                                Width="64"
-                                Height="64"
-                                Style="{StaticResource GravatarCircleImg}">
-                                <Image Source="{Binding ProfileIcon}" Stretch="UniformToFill" />
-                            </hc:Gravatar>
-                            <TextBlock
-                                Margin="0,5,0,0"
-                                HorizontalAlignment="Center"
-                                Style="{StaticResource HomeCaption}"
-                                Text="{Binding SummonerLevel}" />
-                        </StackPanel>
+                        <sharedViews:SummonerExperienceAvatar
+                            PercentCompleteForNextLevel="{Binding PercentCompleteForNextLevel}"
+                            ProfileIcon="{Binding ProfileIcon}"
+                            SummonerLevel="{Binding SummonerLevel}"
+                            XpSinceLastLevel="{Binding XpSinceLastLevel}"
+                            XpUntilNextLevel="{Binding XpUntilNextLevel}" />
                         <StackPanel
                             Grid.Column="1"
                             Margin="12,0,0,0"
@@ -385,10 +376,7 @@
                                 Style="{StaticResource HomeTitle}"
                                 Text="{Binding SummonerName}"
                                 TextTrimming="CharacterEllipsis" />
-                            <TextBlock
-                                Margin="0,3,0,10"
-                                Style="{StaticResource HomeCaption}"
-                                Text="{Binding SummonerTag}" />
+                            <TextBlock Style="{StaticResource HomeCaption}" Text="{Binding SummonerTag}" />
                             <StackPanel Orientation="Horizontal">
                                 <StackPanel Margin="0,0,16,0">
                                     <TextBlock Style="{StaticResource HomeCaption}" Text="{DynamicResource Career.Rank.Solo}" />
@@ -399,12 +387,6 @@
                                     <TextBlock FontWeight="Bold" Text="{Binding FlexTierText}" />
                                 </StackPanel>
                             </StackPanel>
-                            <Button
-                                Margin="0,10,0,0"
-                                HorizontalAlignment="Left"
-                                Command="{Binding OpenCareerCommand}"
-                                Content="{DynamicResource HomePage.ViewCareer}"
-                                Style="{DynamicResource ButtonIcon}" />
                         </StackPanel>
                     </Grid>
                 </Border>

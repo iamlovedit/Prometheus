@@ -1,0 +1,67 @@
+<UserControl
+    x:Class="Prometheus.Shared.Views.SummonerExperienceAvatar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="Root"
+    d:DesignHeight="112"
+    d:DesignWidth="112"
+    ToolTipService.IsEnabled="{Binding ShowExperienceToolTip, ElementName=Root}"
+    mc:Ignorable="d">
+    <UserControl.ToolTip>
+        <ToolTip>
+            <StackPanel DataContext="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType={x:Type ToolTip}}}">
+                <TextBlock><Run Text="{DynamicResource Career.Experience.Progress}" /><Run Text=": " /><Run Text="{Binding PercentCompleteForNextLevel}" /><Run Text="%" /></TextBlock>
+                <TextBlock><Run Text="{DynamicResource Career.Experience.Earned}" /><Run Text=": " /><Run Text="{Binding XpSinceLastLevel}" /></TextBlock>
+                <TextBlock><Run Text="{DynamicResource Career.Experience.Remaining}" /><Run Text=": " /><Run Text="{Binding XpUntilNextLevel}" /></TextBlock>
+            </StackPanel>
+        </ToolTip>
+    </UserControl.ToolTip>
+
+    <Grid Width="{Binding AvatarSize, ElementName=Root}" Height="{Binding AvatarSize, ElementName=Root}">
+        <Viewbox Stretch="Uniform">
+            <Grid Width="112" Height="112">
+                <hc:CircleProgressBar
+                    Width="112"
+                    Height="112"
+                    ArcThickness="4"
+                    Background="#40FFFFFF"
+                    Foreground="{DynamicResource InfoBrush}"
+                    IsHitTestVisible="False"
+                    Maximum="100"
+                    Minimum="0"
+                    RenderTransformOrigin="0.5,0.5"
+                    ShowText="False"
+                    Value="{Binding PercentCompleteForNextLevel, ElementName=Root}">
+                    <hc:CircleProgressBar.RenderTransform>
+                        <RotateTransform Angle="180" />
+                    </hc:CircleProgressBar.RenderTransform>
+                </hc:CircleProgressBar>
+                <hc:Gravatar
+                    Width="98"
+                    Height="98"
+                    Style="{StaticResource GravatarCircleImg}">
+                    <Image Source="{Binding ProfileIcon, ElementName=Root}" Stretch="UniformToFill" />
+                </hc:Gravatar>
+                <Border
+                    Height="22"
+                    MinWidth="36"
+                    Padding="7,0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Background="#E61C1C1C"
+                    BorderBrush="{DynamicResource InfoBrush}"
+                    BorderThickness="1"
+                    CornerRadius="11">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        Text="{Binding SummonerLevel, ElementName=Root}" />
+                </Border>
+            </Grid>
+        </Viewbox>
+    </Grid>
+</UserControl>

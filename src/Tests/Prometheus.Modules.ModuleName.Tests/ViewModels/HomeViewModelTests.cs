@@ -34,6 +34,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal("Prometheus", context.ViewModel.SummonerName);
             Assert.Equal("#TST", context.ViewModel.SummonerTag);
             Assert.Equal("100", context.ViewModel.SummonerLevel);
+            Assert.Equal(42, context.ViewModel.PercentCompleteForNextLevel);
+            Assert.Equal(840, context.ViewModel.XpSinceLastLevel);
+            Assert.Equal(1160, context.ViewModel.XpUntilNextLevel);
             Assert.True(context.ViewModel.ShowSummaryCard);
             Assert.Equal("HomePage.Summary.Recent", context.ViewModel.SummaryTitle);
             Assert.True(context.ViewModel.ShowEmptySummary);
@@ -438,7 +441,10 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                         TagLine = "TST",
                         Puuid = "test-puuid",
                         ProfileIconId = 29,
-                        SummonerLevel = 100
+                        SummonerLevel = 100,
+                        PercentCompleteForNextLevel = 42,
+                        XpSinceLastLevel = 840,
+                        XpUntilNextLevel = 1160
                     });
                 SummonerService.Setup(service => service.GetRankStatsByPuuid(
                         "test-puuid", It.IsAny<CancellationToken>()))
