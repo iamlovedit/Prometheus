@@ -30,9 +30,9 @@
                 <Grid VerticalAlignment="Center">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="14" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="14" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <StackPanel>
@@ -42,7 +42,7 @@
                             Style="{DynamicResource PageCaption}"
                             Text="{DynamicResource Career.Rank.Description}" />
                     </StackPanel>
-                    <Grid Grid.Row="2">
+                    <Grid Grid.Row="2" HorizontalAlignment="Center">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="108" />
                             <ColumnDefinition Width="14" />
@@ -432,12 +432,12 @@
                     </Grid>
                     <Grid Grid.Row="2">
                         <HeaderedContentControl
-                            AutomationProperties.LiveSetting="Polite"
-                            Header="{DynamicResource Career.Loading.Title}"
-                            Panel.ZIndex="1"
-                            Style="{DynamicResource QueryLoadingIndicator}"
-                            Content="{DynamicResource Career.Loading.Description}"
                             VerticalAlignment="Top"
+                            Panel.ZIndex="1"
+                            AutomationProperties.LiveSetting="Polite"
+                            Content="{DynamicResource Career.Loading.Description}"
+                            Header="{DynamicResource Career.Loading.Title}"
+                            Style="{DynamicResource QueryLoadingIndicator}"
                             Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}" />
                         <views:MatchList
                             ItemCommand="{Binding MatchDetailCommand}"
