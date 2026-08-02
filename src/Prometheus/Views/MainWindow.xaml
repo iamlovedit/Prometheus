@@ -17,7 +17,19 @@
     d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
     prism:ViewModelLocator.AutoWireViewModel="True"
     Foreground="{DynamicResource PrimaryTextBrush}"
-    Icon="../Resources/Prometheus_16.ico"
+    CloseButtonBackground="Transparent"
+    CloseButtonForeground="{DynamicResource SecondaryTextBrush}"
+    CloseButtonHoverBackground="{DynamicResource DangerBrush}"
+    CloseButtonHoverForeground="White"
+    NonClientAreaBackground="{DynamicResource MainContentForegroundDrawingBrush}"
+    NonClientAreaForeground="{DynamicResource PrimaryTextBrush}"
+    NonClientAreaHeight="32"
+    OtherButtonBackground="Transparent"
+    OtherButtonForeground="{DynamicResource SecondaryTextBrush}"
+    OtherButtonHoverBackground="{DynamicResource SecondaryRegionBrush}"
+    OtherButtonHoverForeground="{DynamicResource PrimaryTextBrush}"
+    ShowNonClientArea="True"
+    ShowTitle="False"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
     <hc:Window.Resources>
@@ -130,7 +142,7 @@
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
             <Border
-                Margin="12,12,0,12"
+                Margin="12,0,0,12"
                 Padding="10"
                 Background="{DynamicResource RegionBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
@@ -138,7 +150,7 @@
                 CornerRadius="12">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="76" />
+                        <RowDefinition Height="68" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition />
                         <RowDefinition Height="Auto" />
@@ -265,7 +277,7 @@
                     </Grid>
                 </Grid>
             </Border>
-            <Grid Grid.Column="1" Margin="12">
+            <Grid Grid.Column="1" Margin="12,0,12,12">
                 <ContentControl prism:RegionManager.RegionName="{x:Static core:RegionNames.ContentRegion}" />
             </Grid>
             <hc:NotifyIcon
