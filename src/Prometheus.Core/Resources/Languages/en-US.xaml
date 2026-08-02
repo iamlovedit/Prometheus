@@ -229,6 +229,8 @@
     <sys:String x:Key="HomePage.Automation.BothOn">Auto accept and auto reconnect are enabled</sys:String>
     <sys:String x:Key="HomePage.Automation.AcceptOn">Auto accept is enabled</sys:String>
     <sys:String x:Key="HomePage.Automation.ReconnectOn">Auto reconnect is enabled</sys:String>
+    <sys:String x:Key="HomePage.Automation.AramSwapOn">Automatic ARAM champion swapping is enabled</sys:String>
+    <sys:String x:Key="HomePage.Automation.EnabledCount">{0} automatic features are enabled</sys:String>
     <sys:String x:Key="HomePage.Automation.Off">Automatic actions are off by default</sys:String>
     <sys:String x:Key="HomePage.Position.Top">Top</sys:String>
     <sys:String x:Key="HomePage.Position.Jungle">Jungle</sys:String>

@@ -398,7 +398,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="208" />
                     <RowDefinition Height="12" />
-                    <RowDefinition Height="176" />
+                    <RowDefinition Height="208" />
                     <RowDefinition Height="12" />
                     <RowDefinition />
                 </Grid.RowDefinitions>
@@ -473,6 +473,13 @@
                             <ToggleButton
                                 HorizontalAlignment="Right"
                                 IsChecked="{Binding AutoReconnect}"
+                                Style="{DynamicResource ToggleButtonSwitch}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock VerticalAlignment="Center" Text="{DynamicResource Utility.AramSwap}" />
+                            <ToggleButton
+                                HorizontalAlignment="Right"
+                                IsChecked="{Binding AutoSwapAramBench, Mode=TwoWay}"
                                 Style="{DynamicResource ToggleButtonSwitch}" />
                         </DockPanel>
                         <TextBlock

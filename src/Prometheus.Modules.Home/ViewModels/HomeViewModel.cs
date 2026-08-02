@@ -1,13 +1,16 @@
+using HandyControl.Controls;
 using Newtonsoft.Json.Linq;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Regions;
 using Prometheus.Core.Events;
+using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
+using Serilog.Events;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
@@ -376,6 +379,47 @@ namespace Prometheus.Modules.Home.ViewModels
             }
         }
 
+        public bool AutoSwapAramBench
+        {
+            get => _automationSettings.AutoSwapAramBench;
+            set
+            {
+                var oldValue = _automationSettings.AutoSwapAramBench;
+                if (oldValue == value)
+                {
+                    return;
+                }
+
+                _automationSettings.AutoSwapAramBench = value;
+                RaisePropertyChanged();
+                UpdateAutomationStatus();
+
+                var persisted = _automationSettings.LastPersistenceSucceeded;
+                OperationLog.Write(
+                    persisted ? LogEventLevel.Information : LogEventLevel.Error,
+                    "automation.aram_bench_swap.changed",
+                    "Automation",
+                    "Manual",
+                    persisted ? "Succeeded" : "Failed",
+                    Guid.NewGuid(),
+                    "Home",
+                    persisted
+                        ? value
+                            ? "Automatic ARAM champion swapping was enabled."
+                            : "Automatic ARAM champion swapping was disabled."
+                        : "The automatic ARAM champion swap setting could not be saved.",
+                    new Dictionary<string, object>
+                    {
+                        ["OldValue"] = oldValue,
+                        ["NewValue"] = value
+                    });
+                if (!persisted)
+                {
+                    Growl.Warning(Text("Utility.AramSwap.PersistenceFailed"));
+                }
+            }
+        }
+
         private DelegateCommand _primaryActionCommand;
         public DelegateCommand PrimaryActionCommand =>
             _primaryActionCommand ??= new DelegateCommand(ExecutePrimaryAction);
@@ -441,6 +485,7 @@ namespace Prometheus.Modules.Home.ViewModels
             {
                 RaisePropertyChanged(nameof(AutoAccept));
                 RaisePropertyChanged(nameof(AutoReconnect));
+                RaisePropertyChanged(nameof(AutoSwapAramBench));
                 UpdateAutomationStatus();
                 RefreshPreferredAramChampions();
             });
@@ -1193,21 +1238,34 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void UpdateAutomationStatus()
         {
-            if (AutoAccept && AutoReconnect)
+            var enabledCount = (AutoAccept ? 1 : 0) +
+                               (AutoReconnect ? 1 : 0) +
+                               (AutoSwapAramBench ? 1 : 0);
+            if (enabledCount == 0)
             {
-                AutomationStatus = Text("HomePage.Automation.BothOn");
+                AutomationStatus = Text("HomePage.Automation.Off");
             }
-            else if (AutoAccept)
+            else if (enabledCount == 1 && AutoAccept)
             {
                 AutomationStatus = Text("HomePage.Automation.AcceptOn");
             }
-            else if (AutoReconnect)
+            else if (enabledCount == 1 && AutoReconnect)
             {
                 AutomationStatus = Text("HomePage.Automation.ReconnectOn");
             }
+            else if (enabledCount == 1)
+            {
+                AutomationStatus = Text("HomePage.Automation.AramSwapOn");
+            }
+            else if (enabledCount == 2 && AutoAccept && AutoReconnect)
+            {
+                AutomationStatus = Text("HomePage.Automation.BothOn");
+            }
             else
             {
-                AutomationStatus = Text("HomePage.Automation.Off");
+                AutomationStatus = string.Format(
+                    Text("HomePage.Automation.EnabledCount"),
+                    enabledCount);
             }
         }
 

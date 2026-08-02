@@ -53,8 +53,54 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal("en:Setting.Automation.AutoAccept", viewModel.TrayAutoAcceptText);
             Assert.Equal("en:Setting.Automation.AutoReconnect",
                 viewModel.TrayAutoReconnectText);
+            Assert.Equal("en:Utility.AramSwap", viewModel.TrayAramSwapText);
             Assert.Equal("en:Menu.Setting", viewModel.TraySettingsText);
             Assert.Equal("en:Tray.Exit", viewModel.TrayExitText);
+        }
+
+        [Fact]
+        public void AramSwapTrayToggle_UpdatesAndTracksSharedSetting()
+        {
+            var eventAggregator = new EventAggregator();
+            var matchService = new Mock<IMatchService>();
+            var resourceService = new Mock<IResourceService>();
+            var automationSettings = new Mock<IGameAutomationSettings>();
+            matchService.SetupGet(service => service.Current)
+                .Returns(LiveMatchSnapshot.Empty);
+            resourceService.Setup(service => service.FindResource<string>(
+                    It.IsAny<string>()))
+                .Returns((string key) => key);
+            automationSettings.SetupProperty(settings => settings.AutoSwapAramBench);
+            automationSettings.SetupGet(settings => settings.LastPersistenceSucceeded)
+                .Returns(true);
+            var viewModel = new MainWindowViewModel(
+                new Mock<IRegionManager>().Object,
+                eventAggregator,
+                new Mock<IModuleManager>().Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                resourceService.Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                automationSettings.Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object);
+
+            viewModel.IsTrayAramSwapEnabled = true;
+
+            Assert.True(automationSettings.Object.AutoSwapAramBench);
+
+            var changedProperties = new List<string>();
+            viewModel.PropertyChanged += (_, args) =>
+                changedProperties.Add(args.PropertyName);
+            automationSettings.Object.AutoSwapAramBench = false;
+            automationSettings.Raise(
+                settings => settings.Changed += null,
+                EventArgs.Empty);
+
+            Assert.False(viewModel.IsTrayAramSwapEnabled);
+            Assert.Contains(nameof(MainWindowViewModel.IsTrayAramSwapEnabled),
+                changedProperties);
         }
     }
 }

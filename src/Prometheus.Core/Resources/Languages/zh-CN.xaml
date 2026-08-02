@@ -229,6 +229,8 @@
     <sys:String x:Key="HomePage.Automation.BothOn">自动接受和自动重连均已开启</sys:String>
     <sys:String x:Key="HomePage.Automation.AcceptOn">已开启自动接受</sys:String>
     <sys:String x:Key="HomePage.Automation.ReconnectOn">已开启自动重连</sys:String>
+    <sys:String x:Key="HomePage.Automation.AramSwapOn">已开启大乱斗自动换英雄</sys:String>
+    <sys:String x:Key="HomePage.Automation.EnabledCount">已开启 {0} 项自动功能</sys:String>
     <sys:String x:Key="HomePage.Automation.Off">自动功能默认关闭，可按需开启</sys:String>
     <sys:String x:Key="HomePage.Position.Top">上路</sys:String>
     <sys:String x:Key="HomePage.Position.Jungle">打野</sys:String>

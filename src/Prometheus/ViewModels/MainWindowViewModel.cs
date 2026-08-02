@@ -1,3 +1,4 @@
+using HandyControl.Controls;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Modularity;
@@ -13,9 +14,11 @@ using Prometheus.Modules.Match;
 using Prometheus.Modules.Search;
 using Prometheus.Modules.Summoner;
 using Prometheus.Modules.Utility;
+using Prometheus.Core.Logging;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Serilog;
+using Serilog.Events;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -183,6 +186,13 @@ namespace Prometheus.ViewModels
             private set => SetProperty(ref _trayAutoReconnectText, value);
         }
 
+        private string _trayAramSwapText;
+        public string TrayAramSwapText
+        {
+            get => _trayAramSwapText;
+            private set => SetProperty(ref _trayAramSwapText, value);
+        }
+
         private string _traySettingsText;
         public string TraySettingsText
         {
@@ -217,6 +227,44 @@ namespace Prometheus.ViewModels
                 if (_automationSettings.AutoReconnect != value)
                 {
                     _automationSettings.AutoReconnect = value;
+                }
+            }
+        }
+
+        public bool IsTrayAramSwapEnabled
+        {
+            get => _automationSettings.AutoSwapAramBench;
+            set
+            {
+                var oldValue = _automationSettings.AutoSwapAramBench;
+                if (oldValue == value)
+                {
+                    return;
+                }
+
+                _automationSettings.AutoSwapAramBench = value;
+                var persisted = _automationSettings.LastPersistenceSucceeded;
+                OperationLog.Write(
+                    persisted ? LogEventLevel.Information : LogEventLevel.Error,
+                    "automation.aram_bench_swap.changed",
+                    "Automation",
+                    "Manual",
+                    persisted ? "Succeeded" : "Failed",
+                    Guid.NewGuid(),
+                    "Tray",
+                    persisted
+                        ? value
+                            ? "Automatic ARAM champion swapping was enabled."
+                            : "Automatic ARAM champion swapping was disabled."
+                        : "The automatic ARAM champion swap setting could not be saved.",
+                    new Dictionary<string, object>
+                    {
+                        ["OldValue"] = oldValue,
+                        ["NewValue"] = value
+                    });
+                if (!persisted)
+                {
+                    Growl.Warning(Text("Utility.AramSwap.PersistenceFailed"));
                 }
             }
         }
@@ -375,6 +423,7 @@ namespace Prometheus.ViewModels
             {
                 RaisePropertyChanged(nameof(IsTrayAutoAcceptEnabled));
                 RaisePropertyChanged(nameof(IsTrayAutoReconnectEnabled));
+                RaisePropertyChanged(nameof(IsTrayAramSwapEnabled));
             });
         }
 
@@ -491,6 +540,7 @@ namespace Prometheus.ViewModels
             TrayAutomationText = Text("Tray.Automation");
             TrayAutoAcceptText = Text("Setting.Automation.AutoAccept");
             TrayAutoReconnectText = Text("Setting.Automation.AutoReconnect");
+            TrayAramSwapText = Text("Utility.AramSwap");
             TraySettingsText = Text("Menu.Setting");
             TrayExitText = Text("Tray.Exit");
         }

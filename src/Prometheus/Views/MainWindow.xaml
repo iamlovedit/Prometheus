@@ -297,6 +297,10 @@
                                 Header="{Binding TrayAutoReconnectText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAutoReconnectEnabled, Mode=TwoWay}" />
+                            <MenuItem
+                                Header="{Binding TrayAramSwapText}"
+                                IsCheckable="True"
+                                IsChecked="{Binding IsTrayAramSwapEnabled, Mode=TwoWay}" />
                         </MenuItem>
                         <Separator />
                         <MenuItem Command="{Binding OpenSettingsFromTrayCommand}" Header="{Binding TraySettingsText}" />

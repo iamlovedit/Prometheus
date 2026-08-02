@@ -226,6 +226,33 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void AutoSwapAramBench_FromHome_UpdatesSharedSettingAndStatus()
+        {
+            using var context = new TestContext();
+
+            context.ViewModel.AutoSwapAramBench = true;
+
+            Assert.True(context.AutomationSettings.Object.AutoSwapAramBench);
+            Assert.Equal("HomePage.Automation.AramSwapOn",
+                context.ViewModel.AutomationStatus);
+        }
+
+        [Fact]
+        public void AutoSwapAramBench_WhenSettingsChange_RefreshesHomeToggle()
+        {
+            using var context = new TestContext();
+            var changedProperties = new List<string>();
+            context.ViewModel.PropertyChanged += (_, args) =>
+                changedProperties.Add(args.PropertyName);
+
+            context.SetAutoSwapAramBench(true);
+
+            Assert.True(context.ViewModel.AutoSwapAramBench);
+            Assert.Contains(nameof(HomeViewModel.AutoSwapAramBench),
+                changedProperties);
+        }
+
+        [Fact]
         public void OpenUtilityCommand_NavigatesToUtilitySettings()
         {
             using var context = new TestContext();
@@ -254,6 +281,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     .Returns(AutomationSettings.Object);
                 AutomationSettings.SetupGet(settings => settings.PreferredAramChampionIds)
                     .Returns(() => _preferredAramChampionIds);
+                AutomationSettings.SetupProperty(settings => settings.AutoSwapAramBench);
+                AutomationSettings.SetupGet(settings => settings.LastPersistenceSucceeded)
+                    .Returns(true);
                 ResourceService.Setup(service => service.FindResource<string>(
                         It.IsAny<string>()))
                     .Returns((string key) => key == "HomePage.NoSummoner"
@@ -331,6 +361,14 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             public void SetPreferredAramChampionIds(params int[] championIds)
             {
                 _preferredAramChampionIds = championIds ?? [];
+                AutomationSettings.Raise(
+                    settings => settings.Changed += null,
+                    EventArgs.Empty);
+            }
+
+            public void SetAutoSwapAramBench(bool value)
+            {
+                AutomationSettings.Object.AutoSwapAramBench = value;
                 AutomationSettings.Raise(
                     settings => settings.Changed += null,
                     EventArgs.Empty);
