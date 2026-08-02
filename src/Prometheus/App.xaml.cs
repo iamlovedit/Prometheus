@@ -4,6 +4,7 @@ using Prism.Modularity;
 using Prometheus.Core;
 using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
+using Prometheus.Desktop.Services;
 using Prometheus.Modules.Home;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
@@ -66,6 +67,11 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
             containerRegistry.RegisterSingleton<IGameAutomationSettings, GameAutomationSettings>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
+            containerRegistry.RegisterSingleton<ILcuWindowTracker, LcuWindowTracker>();
+            containerRegistry.RegisterSingleton<LcuCompanionViewModel>();
+            containerRegistry.RegisterSingleton<LcuCompanionWindow>();
+            containerRegistry.RegisterSingleton<ILcuCompanionWindowController,
+                LcuCompanionWindowController>();
             containerRegistry.RegisterSingleton<IProfilePresentationStartupService, ProfilePresentationStartupService>();
             containerRegistry.RegisterSingleton<ILeagueClient, LeagueClient>();
             containerRegistry.RegisterInstance(UpdateRuntime.CreateOptions());

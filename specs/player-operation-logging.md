@@ -111,6 +111,7 @@ P0 操作会改变对局、LCU、玩家资料、持久化自动化设置，或�
 | 社交状态 | `social.rank_display.changed` | 修改展示段位 | `QueueType`、`Tier`、`Division` |
 | 房间 | `lobby.practice.create` | 创建训练模式房间 | `HasPassword`、安全的房间配置 |
 | 房间 | `lobby.matchmade.create` | 创建匹配队列房间 | `QueueId`、`GameflowPhase`、`ConnectionState` |
+| 房间 | `lobby.matchmade.change` | 在已有匹配房间内切换队列 | `QueueId`、`GameflowPhase`、`ConnectionState` |
 | 诊断 | `diagnostics.logs.clear` | 清空日志面板的内存记录 | `PreviousCount`、清理范围 |
 
 服务层已经具备但尚未接入 UI 的动作，也必须在未来接入时遵守本节，例如英雄选择/禁用、符文页写操作和修改头像。

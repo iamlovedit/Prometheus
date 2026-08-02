@@ -159,10 +159,12 @@
     <sys:String x:Key="HomePage.QuickMatch.Aram">极地大乱斗</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.HextechAram">海克斯大乱斗</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.Created">已进入{0}房间</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.Changed">房间已切换为{0}</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.QueueUnavailable">{0}当前不可用</sys:String>
-    <sys:String x:Key="HomePage.QuickMatch.Unavailable">当前客户端状态无法创建匹配房间</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.Unavailable">当前客户端状态无法创建或切换匹配房间</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.Failed">创建匹配房间失败，请在英雄联盟客户端确认当前状态</sys:String>
-    <sys:String x:Key="HomePage.QuickMatch.Cancelled">创建匹配房间已取消</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.ChangeFailed">切换匹配房间失败，请确认你是房主且客户端处于房间阶段</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.Cancelled">创建或切换匹配房间已取消</sys:String>
     <sys:String x:Key="HomePage.AramPreferences">快捷选英雄</sys:String>
     <sys:String x:Key="HomePage.AramPreferences.Description">大乱斗交换优先级，按从左到右排列</sys:String>
     <sys:String x:Key="HomePage.AramPreferences.Empty">尚未设置快捷英雄</sys:String>
@@ -459,6 +461,29 @@
     <sys:String x:Key="Match.Live.Data.Partial">部分数据可用</sys:String>
     <sys:String x:Key="Match.Live.Data.Count">已获取 {0}/{1}</sys:String>
     <sys:String x:Key="Match.Live.Data.FullCount">数据完整 {0}/{1}</sys:String>
+
+    <sys:String x:Key="Companion.Title">英雄选择助手</sys:String>
+    <sys:String x:Key="Companion.Team.Title">队友战绩</sys:String>
+    <sys:String x:Key="Companion.Team.Loading">正在加载队友</sys:String>
+    <sys:String x:Key="Companion.Team.Available">已获取 {0}/{1}</sys:String>
+    <sys:String x:Key="Companion.Team.Slot">队友 {0}</sys:String>
+    <sys:String x:Key="Companion.Mode.Matchmade">匹配模式</sys:String>
+    <sys:String x:Key="Companion.Mode.RankedSoloDuo">单双排</sys:String>
+    <sys:String x:Key="Companion.Mode.RankedFlex">灵活排位</sys:String>
+    <sys:String x:Key="Companion.Mode.Aram">极地大乱斗</sys:String>
+    <sys:String x:Key="Companion.Mode.HextechAram">海克斯大乱斗</sys:String>
+    <sys:String x:Key="Companion.Automation.Current">当前英雄</sys:String>
+    <sys:String x:Key="Companion.Automation.Aram">自动交换</sys:String>
+    <sys:String x:Key="Companion.Automation.Ban">自动 Ban</sys:String>
+    <sys:String x:Key="Companion.Automation.Pick">自动 Pick</sys:String>
+    <sys:String x:Key="Companion.Status.Disabled">未启用</sys:String>
+    <sys:String x:Key="Companion.Status.NotConfigured">未配置英雄</sys:String>
+    <sys:String x:Key="Companion.Status.Waiting">等待操作阶段</sys:String>
+    <sys:String x:Key="Companion.Status.Executing">准备自动执行</sys:String>
+    <sys:String x:Key="Companion.Status.Completed">已完成</sys:String>
+    <sys:String x:Key="Companion.Status.Selected">已选择</sys:String>
+    <sys:String x:Key="Companion.Status.NoCandidate">备战席暂无候选</sys:String>
+    <sys:String x:Key="Companion.Status.BenchUnavailable">备战席不可用</sys:String>
 
     <sys:String x:Key="TextInput.ContextMenu.Undo">撤销</sys:String>
     <sys:String x:Key="TextInput.ContextMenu.Cut">剪切</sys:String>

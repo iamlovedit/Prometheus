@@ -80,10 +80,11 @@ namespace Prometheus.Services.Interfaces.Client
         Task CreatePracticeLobbyAsync(string name, string password);
 
         /// <summary>
-        /// Creates a matchmade lobby through <c>lol-lobby/v2/lobby</c> after
-        /// confirming that the requested LCU queue is available. Returns a
-        /// status result when LCU is unavailable, the queue is disabled, or
-        /// the resulting lobby cannot be confirmed. Supports cancellation.
+        /// Creates a matchmade lobby, or changes an existing lobby queue,
+        /// through <c>lol-lobby/v2/lobby</c> after confirming that the requested
+        /// LCU queue is available. Returns a status result when LCU is unavailable,
+        /// the queue is disabled, or the resulting lobby cannot be confirmed.
+        /// Supports cancellation.
         /// </summary>
         Task<MatchmadeLobbyCreationResult> CreateMatchmadeLobbyAsync(
             int queueId,

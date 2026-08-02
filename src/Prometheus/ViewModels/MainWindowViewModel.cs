@@ -10,6 +10,7 @@ using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
+using Prometheus.Desktop.Services;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
 using Prometheus.Modules.Search;
@@ -43,6 +44,7 @@ namespace Prometheus.ViewModels
         private readonly IDialogService _dialogService;
         private readonly IGameService _gameService;
         private readonly IQuickMatchSettings _quickMatchSettings;
+        private readonly ILcuCompanionWindowController _lcuCompanionWindowController;
         private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
         private bool _updateDialogShown;
         private CancellationTokenSource _quickMatchLobbyCts;
@@ -66,7 +68,8 @@ namespace Prometheus.ViewModels
             IUpdateService updateService,
             IDialogService dialogService,
             IGameService gameService,
-            IQuickMatchSettings quickMatchSettings)
+            IQuickMatchSettings quickMatchSettings,
+            ILcuCompanionWindowController lcuCompanionWindowController = null)
         {
             _regionManager = regionManager;
             _eventAggregator = eventAggregator;
@@ -81,6 +84,7 @@ namespace Prometheus.ViewModels
             _dialogService = dialogService;
             _gameService = gameService;
             _quickMatchSettings = quickMatchSettings;
+            _lcuCompanionWindowController = lcuCompanionWindowController;
             _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
                 _quickMatchSettings.QueueId);
             _snapshotDispatcher = new LatestValueDispatcher<LiveMatchSnapshot>(
@@ -340,6 +344,7 @@ namespace Prometheus.ViewModels
         private async void ExecuteLoadedCommand()
         {
             _ = CheckForUpdatesAfterStartupAsync();
+            _lcuCompanionWindowController?.Start();
             try
             {
                 _profilePresentationStartupService.Start();
@@ -491,6 +496,7 @@ namespace Prometheus.ViewModels
 
         private async void HandleWindowClosing()
         {
+            _lcuCompanionWindowController?.Stop();
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationSettingsChanged;
             _quickMatchSettings.Changed -= HandleQuickMatchSettingsChanged;
@@ -587,7 +593,7 @@ namespace Prometheus.ViewModels
         {
             return !_isCreatingQuickMatchLobby &&
                    _snapshot.ConnectionState == ConnectionState.Connected &&
-                   _snapshot.GameflowPhase == GameflowPhase.None;
+                   _snapshot.GameflowPhase is GameflowPhase.None or GameflowPhase.Lobby;
         }
 
         private async Task CreateQuickMatchLobbyAsync(
@@ -622,7 +628,9 @@ namespace Prometheus.ViewModels
             _quickMatchLobbyCts = new CancellationTokenSource();
             var level = LogEventLevel.Error;
             var outcome = "Failed";
-            var message = Text("HomePage.QuickMatch.Failed");
+            var message = Text(gameflowPhase == GameflowPhase.Lobby
+                ? "HomePage.QuickMatch.ChangeFailed"
+                : "HomePage.QuickMatch.Failed");
             string errorCode = "LobbyNotConfirmed";
             string errorType = null;
             Exception operationException = null;
@@ -637,7 +645,10 @@ namespace Prometheus.ViewModels
                         level = LogEventLevel.Information;
                         outcome = "Succeeded";
                         message = string.Format(
-                            Text("HomePage.QuickMatch.Created"), queueName);
+                            Text(gameflowPhase == GameflowPhase.Lobby
+                                ? "HomePage.QuickMatch.Changed"
+                                : "HomePage.QuickMatch.Created"),
+                            queueName);
                         errorCode = null;
                         break;
                     case MatchmadeLobbyCreationStatus.ClientUnavailable:
@@ -740,7 +751,9 @@ namespace Prometheus.ViewModels
 
             OperationLog.Write(
                 level,
-                "lobby.matchmade.create",
+                gameflowPhase == GameflowPhase.Lobby
+                    ? "lobby.matchmade.change"
+                    : "lobby.matchmade.create",
                 "Lobby",
                 "Manual",
                 outcome,

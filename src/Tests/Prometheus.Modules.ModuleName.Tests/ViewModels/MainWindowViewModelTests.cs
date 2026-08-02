@@ -157,6 +157,16 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     UpdatedAt = DateTimeOffset.UtcNow
                 }));
 
+            Assert.True(viewModel.IsTrayQuickMatchAvailable);
+
+            matchService.Raise(service => service.SnapshotChanged += null,
+                new LiveMatchSnapshotChangedEventArgs(new LiveMatchSnapshot
+                {
+                    ConnectionState = ConnectionState.Connected,
+                    GameflowPhase = GameflowPhase.Matchmaking,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                }));
+
             Assert.False(viewModel.IsTrayQuickMatchAvailable);
         }
 
@@ -165,7 +175,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         [InlineData(GameQueueIds.RankedFlex)]
         [InlineData(GameQueueIds.Aram)]
         [InlineData(GameQueueIds.HextechAram)]
-        public async Task TrayQuickMatchSelection_SavesAndCreatesExpectedQueue(
+        public async Task TrayQuickMatchSelection_WhenAlreadyInLobby_ChangesQueue(
             int queueId)
         {
             var invoked = new TaskCompletionSource<int>(
@@ -188,7 +198,13 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 gameService,
                 quickMatchSettings,
                 CreateQuickMatchResourceService());
-            PublishIdleSnapshot(matchService);
+            matchService.Raise(service => service.SnapshotChanged += null,
+                new LiveMatchSnapshotChangedEventArgs(new LiveMatchSnapshot
+                {
+                    ConnectionState = ConnectionState.Connected,
+                    GameflowPhase = GameflowPhase.Lobby,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                }));
 
             var command = queueId switch
             {

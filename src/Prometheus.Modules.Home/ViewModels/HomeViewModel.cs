@@ -875,7 +875,7 @@ namespace Prometheus.Modules.Home.ViewModels
         {
             return !_isCreatingQuickMatchLobby &&
                    _snapshot.ConnectionState == ConnectionState.Connected &&
-                   _snapshot.GameflowPhase == GameflowPhase.None;
+                   _snapshot.GameflowPhase is GameflowPhase.None or GameflowPhase.Lobby;
         }
 
         private async Task CreateQuickMatchLobbyAsync(
@@ -910,7 +910,9 @@ namespace Prometheus.Modules.Home.ViewModels
             _quickMatchLobbyCts = new CancellationTokenSource();
             var level = LogEventLevel.Error;
             var outcome = "Failed";
-            var message = Text("HomePage.QuickMatch.Failed");
+            var message = Text(gameflowPhase == GameflowPhase.Lobby
+                ? "HomePage.QuickMatch.ChangeFailed"
+                : "HomePage.QuickMatch.Failed");
             string errorCode = "LobbyNotConfirmed";
             string errorType = null;
             Exception operationException = null;
@@ -925,7 +927,10 @@ namespace Prometheus.Modules.Home.ViewModels
                         level = LogEventLevel.Information;
                         outcome = "Succeeded";
                         message = string.Format(
-                            Text("HomePage.QuickMatch.Created"), queueName);
+                            Text(gameflowPhase == GameflowPhase.Lobby
+                                ? "HomePage.QuickMatch.Changed"
+                                : "HomePage.QuickMatch.Created"),
+                            queueName);
                         errorCode = null;
                         break;
                     case MatchmadeLobbyCreationStatus.ClientUnavailable:
@@ -1028,7 +1033,9 @@ namespace Prometheus.Modules.Home.ViewModels
 
             OperationLog.Write(
                 level,
-                "lobby.matchmade.create",
+                gameflowPhase == GameflowPhase.Lobby
+                    ? "lobby.matchmade.change"
+                    : "lobby.matchmade.create",
                 "Lobby",
                 "Manual",
                 outcome,

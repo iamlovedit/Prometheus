@@ -319,7 +319,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `lol-summoner/v1/current-summoner/summoner-profile` | GET / POST | 读 / 写生涯背景（`{key:"backgroundSkinId", value}`） | `GameResourceManager` |
 | `lol-summoner/v1/current-summoner/icon` | PUT | 设置召唤师头像 | `GameService` |
 | `lol-chat/v1/me` | PUT | 在线状态 / 签名 / 展示段位 | `GameService` |
-| `lol-lobby/v2/lobby` | GET / POST | 房间快照 / 创建训练模式或匹配队列房间 | `MatchService` / `GameService` |
+| `lol-lobby/v2/lobby` | GET / POST | 房间快照 / 创建训练模式、创建匹配房间或切换现有匹配房间队列 | `MatchService` / `GameService` |
 | `lol-matchmaking/v1/search` | GET | 匹配中状态 | `MatchService` |
 | `lol-matchmaking/v1/ready-check` · `/accept` | GET / POST | 就绪检查 / 接受对局 | `MatchService` / `GameService` |
 | `lol-champ-select/v1/session` | GET | BP 会话快照 | `MatchService` / `GameService` |

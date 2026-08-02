@@ -159,10 +159,12 @@
     <sys:String x:Key="HomePage.QuickMatch.Aram">ARAM</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.HextechAram">ARAM Mayhem</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.Created">Entered the {0} lobby</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.Changed">Changed the lobby to {0}</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.QueueUnavailable">{0} is currently unavailable</sys:String>
-    <sys:String x:Key="HomePage.QuickMatch.Unavailable">The current client state cannot create a matchmade lobby</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.Unavailable">The current client state cannot create or change a matchmade lobby</sys:String>
     <sys:String x:Key="HomePage.QuickMatch.Failed">Unable to create the lobby. Check the current state in League Client.</sys:String>
-    <sys:String x:Key="HomePage.QuickMatch.Cancelled">Lobby creation was cancelled</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.ChangeFailed">Unable to change the lobby. Confirm that you are the party leader and still in the lobby.</sys:String>
+    <sys:String x:Key="HomePage.QuickMatch.Cancelled">Lobby creation or change was cancelled</sys:String>
     <sys:String x:Key="HomePage.AramPreferences">Quick champion picks</sys:String>
     <sys:String x:Key="HomePage.AramPreferences.Description">ARAM swap priority, highest first</sys:String>
     <sys:String x:Key="HomePage.AramPreferences.Empty">No quick champions configured</sys:String>
@@ -460,6 +462,29 @@
     <sys:String x:Key="Match.Live.Data.Partial">Partial data</sys:String>
     <sys:String x:Key="Match.Live.Data.Count">Available {0}/{1}</sys:String>
     <sys:String x:Key="Match.Live.Data.FullCount">Complete {0}/{1}</sys:String>
+
+    <sys:String x:Key="Companion.Title">Champion Select Assistant</sys:String>
+    <sys:String x:Key="Companion.Team.Title">Teammate performance</sys:String>
+    <sys:String x:Key="Companion.Team.Loading">Loading teammates</sys:String>
+    <sys:String x:Key="Companion.Team.Available">Available {0}/{1}</sys:String>
+    <sys:String x:Key="Companion.Team.Slot">Teammate {0}</sys:String>
+    <sys:String x:Key="Companion.Mode.Matchmade">Matchmade</sys:String>
+    <sys:String x:Key="Companion.Mode.RankedSoloDuo">Ranked Solo/Duo</sys:String>
+    <sys:String x:Key="Companion.Mode.RankedFlex">Ranked Flex</sys:String>
+    <sys:String x:Key="Companion.Mode.Aram">ARAM</sys:String>
+    <sys:String x:Key="Companion.Mode.HextechAram">ARAM Mayhem</sys:String>
+    <sys:String x:Key="Companion.Automation.Current">Current champion</sys:String>
+    <sys:String x:Key="Companion.Automation.Aram">Auto swap</sys:String>
+    <sys:String x:Key="Companion.Automation.Ban">Auto Ban</sys:String>
+    <sys:String x:Key="Companion.Automation.Pick">Auto Pick</sys:String>
+    <sys:String x:Key="Companion.Status.Disabled">Disabled</sys:String>
+    <sys:String x:Key="Companion.Status.NotConfigured">No champion configured</sys:String>
+    <sys:String x:Key="Companion.Status.Waiting">Waiting for action</sys:String>
+    <sys:String x:Key="Companion.Status.Executing">Ready to execute</sys:String>
+    <sys:String x:Key="Companion.Status.Completed">Completed</sys:String>
+    <sys:String x:Key="Companion.Status.Selected">Selected</sys:String>
+    <sys:String x:Key="Companion.Status.NoCandidate">No candidate on bench</sys:String>
+    <sys:String x:Key="Companion.Status.BenchUnavailable">Bench unavailable</sys:String>
 
     <sys:String x:Key="TextInput.ContextMenu.Undo">Undo</sys:String>
     <sys:String x:Key="TextInput.ContextMenu.Cut">Cut</sys:String>

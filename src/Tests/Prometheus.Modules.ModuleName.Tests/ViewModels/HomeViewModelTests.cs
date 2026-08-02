@@ -269,7 +269,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
-        public void QuickMatchCommands_AreEnabledOnlyWhenClientIsConnectedAndIdle()
+        public void QuickMatchCommands_AreEnabledWhenConnectedAndConfigurable()
         {
             using var context = new TestContext();
             var command = context.ViewModel.QuickStartSoloDuoCommand;
@@ -289,6 +289,15 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             {
                 ConnectionState = ConnectionState.Connected,
                 GameflowPhase = GameflowPhase.Lobby,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            Assert.True(command.CanExecute());
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.Matchmaking,
                 UpdatedAt = DateTimeOffset.UtcNow
             });
 
@@ -343,6 +352,37 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 await invoked.Task.WaitAsync(TimeSpan.FromSeconds(2)));
             context.QuickMatchSettings.Verify(settings =>
                 settings.SaveQueueId(queueId), Times.Once);
+        }
+
+        [Fact]
+        public async Task QuickMatchCommand_WhenAlreadyInLobby_ChangesQueue()
+        {
+            using var context = new TestContext();
+            var invoked = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                    GameQueueIds.RankedFlex,
+                    It.IsAny<CancellationToken>()))
+                .Callback<int, CancellationToken>((queueId, _) =>
+                    invoked.TrySetResult(queueId))
+                .ReturnsAsync(new MatchmadeLobbyCreationResult
+                {
+                    Status = MatchmadeLobbyCreationStatus.Created,
+                    QueueId = GameQueueIds.RankedFlex
+                });
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.Lobby,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            context.ViewModel.QuickStartFlexCommand.Execute();
+
+            Assert.Equal(GameQueueIds.RankedFlex,
+                await invoked.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+            context.QuickMatchSettings.Verify(settings =>
+                settings.SaveQueueId(GameQueueIds.RankedFlex), Times.Once);
         }
 
         [Fact]
