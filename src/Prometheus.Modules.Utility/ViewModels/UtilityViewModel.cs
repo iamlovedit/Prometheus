@@ -74,6 +74,12 @@ namespace Prometheus.Modules.Utility.ViewModels
             _profileSettings = profileSettings;
             _gameResourceManager = gameResourceManager;
             _automationSettings = automationSettings;
+            PickChampionEditor = new ChampionPriorityEditorViewModel(
+                EnsureChampionCatalogLoaded,
+                PersistPreferredPickChampionIds);
+            BanChampionEditor = new ChampionPriorityEditorViewModel(
+                EnsureChampionCatalogLoaded,
+                PersistPreferredBanChampionIds);
 
             _selectedStatusIndex = FindIndex(
                 _statusMap, _profileSettings.OnlineStatus, -1);
@@ -94,13 +100,25 @@ namespace Prometheus.Modules.Utility.ViewModels
             ApplyPreferredAramChampionIds(
                 _automationSettings.PreferredAramChampionIds,
                 []);
+            PickChampionEditor.ApplyPreferredChampionIds(
+                _automationSettings.PreferredPickChampionIds,
+                []);
+            BanChampionEditor.ApplyPreferredChampionIds(
+                _automationSettings.PreferredBanChampionIds,
+                []);
         }
 
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
             RaisePropertyChanged(nameof(AutoSwapAramBench));
-            LoadAramChampionsAsync().Observe("Loading ARAM champion preferences");
+            RaisePropertyChanged(nameof(AutoPickChampion));
+            RaisePropertyChanged(nameof(AutoBanChampion));
+            LoadAramChampionsAsync().Observe("Loading champion automation preferences");
         }
+
+        public ChampionPriorityEditorViewModel PickChampionEditor { get; }
+
+        public ChampionPriorityEditorViewModel BanChampionEditor { get; }
 
         private int _selectedStatusIndex = -1;
         public int SelectedStatusIndex
@@ -346,6 +364,30 @@ namespace Prometheus.Modules.Utility.ViewModels
             }
         }
 
+        public bool AutoPickChampion
+        {
+            get => _automationSettings.AutoPickChampion;
+            set => SetChampionAutomationEnabled(
+                _automationSettings.AutoPickChampion,
+                value,
+                newValue => _automationSettings.AutoPickChampion = newValue,
+                nameof(AutoPickChampion),
+                "automation.auto_pick.changed",
+                "Automatic champion picking");
+        }
+
+        public bool AutoBanChampion
+        {
+            get => _automationSettings.AutoBanChampion;
+            set => SetChampionAutomationEnabled(
+                _automationSettings.AutoBanChampion,
+                value,
+                newValue => _automationSettings.AutoBanChampion = newValue,
+                nameof(AutoBanChampion),
+                "automation.auto_ban.changed",
+                "Automatic champion banning");
+        }
+
         private DelegateCommand _confirmStatusCommand;
         public DelegateCommand ConfirmStatusCommand =>
             _confirmStatusCommand ??= new DelegateCommand(() =>
@@ -371,11 +413,7 @@ namespace Prometheus.Modules.Utility.ViewModels
         public DelegateCommand OpenAramChampionSelectorCommand =>
             _openAramChampionSelectorCommand ??= new DelegateCommand(() =>
             {
-                if (AramChampions.Count == 0 && !IsAramChampionListLoading)
-                {
-                    LoadAramChampionsAsync().Observe(
-                        "Retrying ARAM champion selector loading");
-                }
+                EnsureChampionCatalogLoaded();
             });
 
         private DelegateCommand _removeAramChampionCommand;
@@ -412,6 +450,12 @@ namespace Prometheus.Modules.Utility.ViewModels
                 ApplyPreferredAramChampionIds(
                     _automationSettings.PreferredAramChampionIds,
                     AramChampions);
+                PickChampionEditor.ApplyPreferredChampionIds(
+                    _automationSettings.PreferredPickChampionIds,
+                    AramChampions);
+                BanChampionEditor.ApplyPreferredChampionIds(
+                    _automationSettings.PreferredBanChampionIds,
+                    AramChampions);
                 return;
             }
 
@@ -422,7 +466,7 @@ namespace Prometheus.Modules.Utility.ViewModels
                 if (champions is null || champions.Count == 0)
                 {
                     Log.Debug(
-                        "ARAM champion selector data is unavailable; it will retry when opened");
+                        "Champion selector data is unavailable; it will retry when opened");
                     return;
                 }
 
@@ -434,6 +478,14 @@ namespace Prometheus.Modules.Utility.ViewModels
                 ApplyPreferredAramChampionIds(
                     _automationSettings.PreferredAramChampionIds,
                     AramChampions);
+                PickChampionEditor.ApplyPreferredChampionIds(
+                    _automationSettings.PreferredPickChampionIds,
+                    AramChampions);
+                PickChampionEditor.SetChampionCatalog(AramChampions);
+                BanChampionEditor.ApplyPreferredChampionIds(
+                    _automationSettings.PreferredBanChampionIds,
+                    AramChampions);
+                BanChampionEditor.SetChampionCatalog(AramChampions);
 
                 await LoadAramChampionIconsAsync(AramChampions);
             }
@@ -622,6 +674,117 @@ namespace Prometheus.Modules.Utility.ViewModels
                     "Utility.AramSwap.PersistenceFailed"));
             }
             _addAramChampionCommand?.RaiseCanExecuteChanged();
+        }
+
+        private void EnsureChampionCatalogLoaded()
+        {
+            if (AramChampions.Count == 0 && !IsAramChampionListLoading)
+            {
+                LoadAramChampionsAsync().Observe(
+                    "Retrying champion automation selector loading");
+            }
+        }
+
+        private void PersistPreferredPickChampionIds(IReadOnlyList<int> championIds)
+        {
+            PersistChampionAutomationPreferences(
+                _automationSettings.PreferredPickChampionIds,
+                championIds,
+                value => _automationSettings.PreferredPickChampionIds = value,
+                "automation.auto_pick_preferences.changed",
+                "The automatic pick priority list was updated.",
+                "The automatic pick priority list could not be saved.");
+        }
+
+        private void PersistPreferredBanChampionIds(IReadOnlyList<int> championIds)
+        {
+            PersistChampionAutomationPreferences(
+                _automationSettings.PreferredBanChampionIds,
+                championIds,
+                value => _automationSettings.PreferredBanChampionIds = value,
+                "automation.auto_ban_preferences.changed",
+                "The automatic ban priority list was updated.",
+                "The automatic ban priority list could not be saved.");
+        }
+
+        private void PersistChampionAutomationPreferences(
+            IReadOnlyList<int> oldChampionIds,
+            IReadOnlyList<int> championIds,
+            Action<IReadOnlyList<int>> persist,
+            string eventName,
+            string successMessage,
+            string failureMessage)
+        {
+            var oldIds = oldChampionIds?.ToArray() ?? [];
+            var newIds = championIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+            if (oldIds.SequenceEqual(newIds))
+            {
+                return;
+            }
+
+            persist(newIds);
+            var persisted = _automationSettings.LastPersistenceSucceeded;
+            OperationLog.Write(
+                persisted ? LogEventLevel.Information : LogEventLevel.Error,
+                eventName,
+                "Automation",
+                "Manual",
+                persisted ? "Succeeded" : "Failed",
+                Guid.NewGuid(),
+                "Utility",
+                persisted ? successMessage : failureMessage,
+                new Dictionary<string, object>
+                {
+                    ["OldCount"] = oldIds.Length,
+                    ["NewCount"] = newIds.Length
+                });
+            if (!persisted)
+            {
+                Growl.Warning(_resourceService.FindResource<string>(
+                    "Utility.ChampionAutomation.PersistenceFailed"));
+            }
+        }
+
+        private void SetChampionAutomationEnabled(
+            bool oldValue,
+            bool newValue,
+            Action<bool> persist,
+            string propertyName,
+            string eventName,
+            string displayName)
+        {
+            if (oldValue == newValue)
+            {
+                return;
+            }
+
+            persist(newValue);
+            RaisePropertyChanged(propertyName);
+            var persisted = _automationSettings.LastPersistenceSucceeded;
+            OperationLog.Write(
+                persisted ? LogEventLevel.Information : LogEventLevel.Error,
+                eventName,
+                "Automation",
+                "Manual",
+                persisted ? "Succeeded" : "Failed",
+                Guid.NewGuid(),
+                "Utility",
+                persisted
+                    ? $"{displayName} was {(newValue ? "enabled" : "disabled")}."
+                    : $"The {displayName.ToLowerInvariant()} setting could not be saved.",
+                new Dictionary<string, object>
+                {
+                    ["OldValue"] = oldValue,
+                    ["NewValue"] = newValue
+                });
+            if (!persisted)
+            {
+                Growl.Warning(_resourceService.FindResource<string>(
+                    "Utility.ChampionAutomation.PersistenceFailed"));
+            }
         }
 
         private void RaiseAramPreferenceCommandState()

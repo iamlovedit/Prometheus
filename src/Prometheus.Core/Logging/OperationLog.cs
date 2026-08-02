@@ -37,6 +37,7 @@ namespace Prometheus.Core.Logging
             "HasPassword",
             "SkinId",
             "ProfileIconId",
+            "QueueId",
             "QueueType",
             "Tier",
             "Division",

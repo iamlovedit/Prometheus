@@ -332,6 +332,8 @@ namespace Prometheus.Core.Models
 
     public class LobbyGameConfiguration
     {
+        public int QueueId { get; set; }
+
         public string GameMode { get; set; } = string.Empty;
 
         public int MapId { get; set; }
@@ -473,9 +475,13 @@ namespace Prometheus.Core.Models
 
         public bool IsAllyAction { get; set; }
 
+        public bool IsInProgress { get; set; }
+
         public string Type { get; set; } = string.Empty;
 
         public int PickTurn { get; set; }
+
+        public long Duration { get; set; }
     }
 
     public class ChampionSelectBansSnapshot

@@ -14,6 +14,14 @@ namespace Prometheus.Core.Models
 
         public string GameMode { get; set; } = string.Empty;
 
+        public string QueueAvailability { get; set; } = string.Empty;
+
+        public bool IsEnabled { get; set; }
+
+        public bool IsVisible { get; set; }
+
+        public int MaximumParticipantListSize { get; set; }
+
         [JsonIgnore]
         public string DisplayName
         {
@@ -37,5 +45,16 @@ namespace Prometheus.Core.Models
                 return GameMode;
             }
         }
+    }
+
+    public static class GameQueueIds
+    {
+        public const int RankedSoloDuo = 420;
+
+        public const int RankedFlex = 440;
+
+        public const int Aram = 450;
+
+        public const int HextechAram = 2400;
     }
 }

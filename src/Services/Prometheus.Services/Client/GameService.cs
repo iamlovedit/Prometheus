@@ -7,10 +7,25 @@ namespace Prometheus.Services.Client
 {
     public class GameService : IGameService
     {
+        private static readonly TimeSpan[] LobbyConfirmationDelays =
+        [
+            TimeSpan.Zero,
+            TimeSpan.FromMilliseconds(150),
+            TimeSpan.FromMilliseconds(350)
+        ];
+
         private const string _chatMe = "lol-chat/v1/me";
         private const string _checkUrl = "lol-matchmaking/v1/ready-check/";
         private const string _gameSessionUrl = "lol-champ-select/v1/session";
         private const string _gameActionUrl = "lol-champ-select/v1/session/actions/{0}";
+        private const string _pickableChampionIds =
+            "lol-champ-select/v1/pickable-champion-ids";
+        private const string _legacyPickableChampions =
+            "lol-champ-select/v1/pickable-champions";
+        private const string _bannableChampionIds =
+            "lol-champ-select/v1/bannable-champion-ids";
+        private const string _legacyBannableChampions =
+            "lol-champ-select/v1/bannable-champions";
         private const string _aramBenchSwapUrl =
             "lol-champ-select/v1/session/bench/swap/{0}";
         private const string _matchDetails = "lol-match-history/v1/games/{0}";
@@ -20,8 +35,7 @@ namespace Prometheus.Services.Client
         private const string _lobby = "lol-lobby/v2/lobby";
         private const string _matchmakingSearch = "lol-matchmaking/v1/search";
         private const string _postGame = "lol-end-of-game/v1/eog-stats-block";
-        private const string _currentChampion = "/lol-champ-select/v1/current-champion";
-        private const string _pickableChampion = "/lol-champ-select/v1/pickable-champions";
+        private const string _currentChampion = "lol-champ-select/v1/current-champion";
         private const string _champRestraintData = "https://lol.qq.com/act/lbp/common/guides/champDetail/champDetail_{0}.js?ts=2760378";
         private const string _perks = "lol-perks/v1/pages";
         private const string _currentRune = "lol-perks/v1/currentpage";
@@ -35,6 +49,7 @@ namespace Prometheus.Services.Client
 
         private readonly IHttpService _httpService;
         private readonly IClientService _clientService;
+        private readonly SemaphoreSlim _matchmadeLobbyCreationGate = new(1, 1);
 
         public GameService(IHttpService httpService, IClientService clientService)
         {
@@ -122,13 +137,8 @@ namespace Prometheus.Services.Client
 
         public async Task PickChampionAsync(int actionId, int championId)
         {
-            var body = new
-            {
-                type = "pick",
-                championId
-            };
-            var url = string.Format(_gameActionUrl, actionId);
-            await _httpService.SendAsync(HttpMethod.Patch, url, body);
+            await CompleteLegacyChampionSelectActionAsync(
+                actionId, championId, "pick").ConfigureAwait(false);
         }
 
         public async Task<string> GetRuneItemsFromOnlineAsync(int championId)
@@ -138,7 +148,7 @@ namespace Prometheus.Services.Client
 
         public async Task<string> GetPickableChampionsAsync()
         {
-            return await _httpService.GetAsync(_pickableChampion);
+            return await _httpService.GetAsync(_pickableChampionIds);
         }
 
         public async Task<string> GetChampionRankAsync(string lane, int tier, int time)
@@ -200,15 +210,157 @@ namespace Prometheus.Services.Client
             await _httpService.PostAsync("lol-lobby/v2/lobby", body);
         }
 
+        public async Task<MatchmadeLobbyCreationResult> CreateMatchmadeLobbyAsync(
+            int queueId,
+            CancellationToken cancellationToken = default)
+        {
+            if (queueId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(queueId), queueId, "Queue id must be positive.");
+            }
+
+            if (!await _matchmadeLobbyCreationGate.WaitAsync(
+                    TimeSpan.Zero, cancellationToken)
+                .ConfigureAwait(false))
+            {
+                return CreateLobbyResult(
+                    MatchmadeLobbyCreationStatus.OperationInProgress, queueId);
+            }
+
+            try
+            {
+                if (!_httpService.IsInitialized)
+                {
+                    return CreateLobbyResult(
+                        MatchmadeLobbyCreationStatus.ClientUnavailable, queueId);
+                }
+
+                var queues = await _clientService.GetQueuesAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                var queue = queues.FirstOrDefault(candidate => candidate.Id == queueId);
+                if (queue is null || !queue.IsEnabled ||
+                    !string.Equals(queue.QueueAvailability, "Available",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    return CreateLobbyResult(
+                        MatchmadeLobbyCreationStatus.QueueUnavailable, queueId);
+                }
+
+                var createdLobby = await _httpService.PostAsync<LobbySnapshot>(
+                        _lobby,
+                        new { queueId },
+                        null,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (IsTargetLobby(createdLobby, queueId))
+                {
+                    return CreateLobbyResult(
+                        MatchmadeLobbyCreationStatus.Created, queueId, createdLobby);
+                }
+
+                foreach (var delay in LobbyConfirmationDelays)
+                {
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    LobbySnapshot lobby = null;
+                    try
+                    {
+                        lobby = await GetLobbySnapshotAsync(cancellationToken)
+                            .ConfigureAwait(false);
+                    }
+                    catch (HttpRequestException exception) when (
+                        exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                    }
+
+                    if (IsTargetLobby(lobby, queueId))
+                    {
+                        return CreateLobbyResult(
+                            MatchmadeLobbyCreationStatus.Created, queueId, lobby);
+                    }
+                }
+
+                return CreateLobbyResult(
+                    MatchmadeLobbyCreationStatus.LobbyNotConfirmed, queueId);
+            }
+            finally
+            {
+                _matchmadeLobbyCreationGate.Release();
+            }
+        }
+
         public async Task BanChampionAsync(int actionId, int championId)
         {
+            await CompleteLegacyChampionSelectActionAsync(
+                actionId, championId, "ban").ConfigureAwait(false);
+        }
+
+        public Task<IReadOnlyList<int>> GetPickableChampionIdsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return GetChampionIdsAsync(
+                _pickableChampionIds,
+                _legacyPickableChampions,
+                cancellationToken);
+        }
+
+        public Task<IReadOnlyList<int>> GetBannableChampionIdsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return GetChampionIdsAsync(
+                _bannableChampionIds,
+                _legacyBannableChampions,
+                cancellationToken);
+        }
+
+        public async Task CompleteChampionSelectActionAsync(
+            ChampionSelectActionSnapshot action,
+            int championId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(action);
+            if (action.Id <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(action), action.Id, "Champion-select action id must be positive.");
+            }
+
+            if (championId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(championId), championId, "Champion id must be positive.");
+            }
+
+            if (!string.Equals(action.Type, "pick", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(action.Type, "ban", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "Champion-select action type must be pick or ban.", nameof(action));
+            }
+
             var body = new
             {
-                type = "pick",
-                championId
+                id = action.Id,
+                actorCellId = action.ActorCellId,
+                championId,
+                type = action.Type,
+                completed = false,
+                isAllyAction = action.IsAllyAction,
+                isInProgress = action.IsInProgress,
+                pickTurn = action.PickTurn,
+                duration = action.Duration
             };
-            var url = string.Format(_gameActionUrl, actionId);
-            await _httpService.SendAsync(HttpMethod.Patch, url, body);
+            var url = string.Format(_gameActionUrl, action.Id);
+            await _httpService.SendAsync(
+                    HttpMethod.Patch, url, body, null, cancellationToken)
+                .ConfigureAwait(false);
+            await _httpService.PostAsync(
+                    $"{url}/complete", null, cancellationToken)
+                .ConfigureAwait(false);
         }
 
         public async Task<string> SetChatTierAsync(QueueType queueType, Tier tier, Division division)
@@ -350,6 +502,80 @@ namespace Prometheus.Services.Client
         public Task ReconnectGameAsync(CancellationToken cancellationToken)
         {
             return _httpService.PostAsync("lol-gameflow/v1/reconnect", null, cancellationToken);
+        }
+
+        private async Task<IReadOnlyList<int>> GetChampionIdsAsync(
+            string endpoint,
+            string legacyEndpoint,
+            CancellationToken cancellationToken)
+        {
+            List<int> championIds = null;
+            try
+            {
+                championIds = await _httpService.GetAsync<List<int>>(
+                        endpoint, null, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (HttpRequestException exception) when (
+                exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+            }
+
+            if (championIds is null)
+            {
+                championIds = await _httpService.GetAsync<List<int>>(
+                        legacyEndpoint, null, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            return championIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+        }
+
+        private async Task CompleteLegacyChampionSelectActionAsync(
+            int actionId,
+            int championId,
+            string type)
+        {
+            if (actionId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(actionId), actionId, "Champion-select action id must be positive.");
+            }
+
+            if (championId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(championId), championId, "Champion id must be positive.");
+            }
+
+            var url = string.Format(_gameActionUrl, actionId);
+            await _httpService.SendAsync(
+                    HttpMethod.Patch,
+                    url,
+                    new { type, championId })
+                .ConfigureAwait(false);
+            await _httpService.PostAsync($"{url}/complete", null).ConfigureAwait(false);
+        }
+
+        private static bool IsTargetLobby(LobbySnapshot lobby, int queueId)
+        {
+            return lobby?.GameConfig?.QueueId == queueId;
+        }
+
+        private static MatchmadeLobbyCreationResult CreateLobbyResult(
+            MatchmadeLobbyCreationStatus status,
+            int queueId,
+            LobbySnapshot lobby = null)
+        {
+            return new MatchmadeLobbyCreationResult
+            {
+                Status = status,
+                QueueId = queueId,
+                Lobby = lobby
+            };
         }
     }
 }

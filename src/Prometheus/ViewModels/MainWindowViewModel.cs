@@ -9,6 +9,7 @@ using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Modules.Inventory;
 using Prometheus.Modules.Match;
 using Prometheus.Modules.Search;
@@ -19,6 +20,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Serilog;
 using Serilog.Events;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -39,8 +41,14 @@ namespace Prometheus.ViewModels
         private readonly IGameAutomationSettings _automationSettings;
         private readonly IUpdateService _updateService;
         private readonly IDialogService _dialogService;
+        private readonly IGameService _gameService;
+        private readonly IQuickMatchSettings _quickMatchSettings;
         private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
         private bool _updateDialogShown;
+        private CancellationTokenSource _quickMatchLobbyCts;
+        private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
+        private bool _isCreatingQuickMatchLobby;
+        private int _selectedQuickMatchQueueId;
 
         private GameflowPhase _lastFlashedPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
@@ -56,7 +64,9 @@ namespace Prometheus.ViewModels
             IProfilePresentationStartupService profilePresentationStartupService,
             IGameAutomationSettings automationSettings,
             IUpdateService updateService,
-            IDialogService dialogService)
+            IDialogService dialogService,
+            IGameService gameService,
+            IQuickMatchSettings quickMatchSettings)
         {
             _regionManager = regionManager;
             _eventAggregator = eventAggregator;
@@ -69,12 +79,17 @@ namespace Prometheus.ViewModels
             _automationSettings = automationSettings;
             _updateService = updateService;
             _dialogService = dialogService;
+            _gameService = gameService;
+            _quickMatchSettings = quickMatchSettings;
+            _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
+                _quickMatchSettings.QueueId);
             _snapshotDispatcher = new LatestValueDispatcher<LiveMatchSnapshot>(
                 action => Dispatch(action, DispatcherPriority.Background),
                 ApplySnapshot);
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _automationSettings.Changed += HandleAutomationSettingsChanged;
+            _quickMatchSettings.Changed += HandleQuickMatchSettingsChanged;
             _updateService.StateChanged += HandleUpdateStateChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Subscribe(HandleNavigateMenu);
             _eventAggregator.GetEvent<SearchSummonerEvent>().Subscribe(HandleSearchSummoner);
@@ -142,6 +157,55 @@ namespace Prometheus.ViewModels
         {
             get => _isTrayReadyCheckAvailable;
             private set => SetProperty(ref _isTrayReadyCheckAvailable, value);
+        }
+
+        private bool _isTrayQuickMatchAvailable;
+        public bool IsTrayQuickMatchAvailable
+        {
+            get => _isTrayQuickMatchAvailable;
+            private set => SetProperty(ref _isTrayQuickMatchAvailable, value);
+        }
+
+        private string _trayQuickMatchText;
+        public string TrayQuickMatchText
+        {
+            get => _trayQuickMatchText;
+            private set => SetProperty(ref _trayQuickMatchText, value);
+        }
+
+        private string _trayQuickMatchLastText;
+        public string TrayQuickMatchLastText
+        {
+            get => _trayQuickMatchLastText;
+            private set => SetProperty(ref _trayQuickMatchLastText, value);
+        }
+
+        private string _trayQuickMatchSoloDuoText;
+        public string TrayQuickMatchSoloDuoText
+        {
+            get => _trayQuickMatchSoloDuoText;
+            private set => SetProperty(ref _trayQuickMatchSoloDuoText, value);
+        }
+
+        private string _trayQuickMatchFlexText;
+        public string TrayQuickMatchFlexText
+        {
+            get => _trayQuickMatchFlexText;
+            private set => SetProperty(ref _trayQuickMatchFlexText, value);
+        }
+
+        private string _trayQuickMatchAramText;
+        public string TrayQuickMatchAramText
+        {
+            get => _trayQuickMatchAramText;
+            private set => SetProperty(ref _trayQuickMatchAramText, value);
+        }
+
+        private string _trayQuickMatchHextechAramText;
+        public string TrayQuickMatchHextechAramText
+        {
+            get => _trayQuickMatchHextechAramText;
+            private set => SetProperty(ref _trayQuickMatchHextechAramText, value);
         }
 
         private string _trayShowMainWindowText;
@@ -354,6 +418,43 @@ namespace Prometheus.ViewModels
         public DelegateCommand AcceptReadyCheckFromTrayCommand =>
             _acceptReadyCheckFromTrayCommand ??= new DelegateCommand(ExecuteAcceptReadyCheckFromTray);
 
+        private DelegateCommand _quickStartLastFromTrayCommand;
+        public DelegateCommand QuickStartLastFromTrayCommand =>
+            _quickStartLastFromTrayCommand ??= new DelegateCommand(
+                () => CreateQuickMatchLobbyAsync(
+                        _selectedQuickMatchQueueId,
+                        GetQuickMatchQueueNameResourceKey(_selectedQuickMatchQueueId))
+                    .Observe("Creating the selected quick-match lobby from the tray"),
+                CanCreateQuickMatchLobby);
+
+        private DelegateCommand _quickStartSoloDuoFromTrayCommand;
+        public DelegateCommand QuickStartSoloDuoFromTrayCommand =>
+            _quickStartSoloDuoFromTrayCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.RankedSoloDuo,
+                "HomePage.QuickMatch.SoloDuo",
+                "Creating a ranked solo/duo lobby from the tray");
+
+        private DelegateCommand _quickStartFlexFromTrayCommand;
+        public DelegateCommand QuickStartFlexFromTrayCommand =>
+            _quickStartFlexFromTrayCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.RankedFlex,
+                "HomePage.QuickMatch.Flex",
+                "Creating a ranked flex lobby from the tray");
+
+        private DelegateCommand _quickStartAramFromTrayCommand;
+        public DelegateCommand QuickStartAramFromTrayCommand =>
+            _quickStartAramFromTrayCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.Aram,
+                "HomePage.QuickMatch.Aram",
+                "Creating an ARAM lobby from the tray");
+
+        private DelegateCommand _quickStartHextechAramFromTrayCommand;
+        public DelegateCommand QuickStartHextechAramFromTrayCommand =>
+            _quickStartHextechAramFromTrayCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.HextechAram,
+                "HomePage.QuickMatch.HextechAram",
+                "Creating a Hextech ARAM lobby from the tray");
+
         private void HandleNavigateMenu(MenuName menuName)
         {
             Dispatch(() => Navigate(menuName));
@@ -378,15 +479,27 @@ namespace Prometheus.ViewModels
             UpdateTrayState(_matchService.Current ?? LiveMatchSnapshot.Empty);
         }
 
+        private void HandleQuickMatchSettingsChanged(object sender, EventArgs e)
+        {
+            Dispatch(() =>
+            {
+                _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
+                    _quickMatchSettings.QueueId);
+                UpdateTrayQuickMatchText();
+            });
+        }
+
         private async void HandleWindowClosing()
         {
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationSettingsChanged;
+            _quickMatchSettings.Changed -= HandleQuickMatchSettingsChanged;
             _updateService.StateChanged -= HandleUpdateStateChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Unsubscribe(HandleNavigateMenu);
             _eventAggregator.GetEvent<SearchSummonerEvent>().Unsubscribe(HandleSearchSummoner);
             _eventAggregator.GetEvent<TitleChangeEvent>().Unsubscribe(HandleTitleChange);
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(HandleLanguageChanged);
+            _quickMatchLobbyCts?.Cancel();
             try
             {
                 _profilePresentationStartupService.Stop();
@@ -447,6 +560,234 @@ namespace Prometheus.ViewModels
             {
                 Log.Warning(exception, "Unable to accept ready check from the tray");
             }
+        }
+
+        private DelegateCommand CreateQuickMatchCommand(
+            int queueId,
+            string queueNameResourceKey,
+            string operation)
+        {
+            return new DelegateCommand(
+                () => SelectAndCreateQuickMatchLobbyAsync(queueId, queueNameResourceKey)
+                    .Observe(operation),
+                CanCreateQuickMatchLobby);
+        }
+
+        private async Task SelectAndCreateQuickMatchLobbyAsync(
+            int queueId,
+            string queueNameResourceKey)
+        {
+            _selectedQuickMatchQueueId = queueId;
+            _quickMatchSettings.SaveQueueId(queueId);
+            UpdateTrayQuickMatchText();
+            await CreateQuickMatchLobbyAsync(queueId, queueNameResourceKey);
+        }
+
+        private bool CanCreateQuickMatchLobby()
+        {
+            return !_isCreatingQuickMatchLobby &&
+                   _snapshot.ConnectionState == ConnectionState.Connected &&
+                   _snapshot.GameflowPhase == GameflowPhase.None;
+        }
+
+        private async Task CreateQuickMatchLobbyAsync(
+            int queueId,
+            string queueNameResourceKey)
+        {
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            var connectionState = _snapshot.ConnectionState;
+            var gameflowPhase = _snapshot.GameflowPhase;
+            var queueName = Text(queueNameResourceKey);
+
+            if (!CanCreateQuickMatchLobby())
+            {
+                var rejectionMessage = Text("HomePage.QuickMatch.Unavailable");
+                WriteQuickMatchOperation(
+                    LogEventLevel.Warning,
+                    "Rejected",
+                    operationId,
+                    queueId,
+                    gameflowPhase,
+                    connectionState,
+                    stopwatch.ElapsedMilliseconds,
+                    rejectionMessage,
+                    "InvalidClientState");
+                Growl.Warning(rejectionMessage);
+                return;
+            }
+
+            _isCreatingQuickMatchLobby = true;
+            UpdateTrayQuickMatchAvailability();
+            _quickMatchLobbyCts = new CancellationTokenSource();
+            var level = LogEventLevel.Error;
+            var outcome = "Failed";
+            var message = Text("HomePage.QuickMatch.Failed");
+            string errorCode = "LobbyNotConfirmed";
+            string errorType = null;
+            Exception operationException = null;
+            try
+            {
+                var result = await _gameService.CreateMatchmadeLobbyAsync(
+                    queueId,
+                    _quickMatchLobbyCts.Token);
+                switch (result.Status)
+                {
+                    case MatchmadeLobbyCreationStatus.Created:
+                        level = LogEventLevel.Information;
+                        outcome = "Succeeded";
+                        message = string.Format(
+                            Text("HomePage.QuickMatch.Created"), queueName);
+                        errorCode = null;
+                        break;
+                    case MatchmadeLobbyCreationStatus.ClientUnavailable:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = Text("HomePage.QuickMatch.Unavailable");
+                        errorCode = "ClientUnavailable";
+                        break;
+                    case MatchmadeLobbyCreationStatus.QueueUnavailable:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = string.Format(
+                            Text("HomePage.QuickMatch.QueueUnavailable"), queueName);
+                        errorCode = "QueueUnavailable";
+                        break;
+                    case MatchmadeLobbyCreationStatus.OperationInProgress:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = Text("HomePage.QuickMatch.Unavailable");
+                        errorCode = "OperationInProgress";
+                        break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                level = LogEventLevel.Information;
+                outcome = "Cancelled";
+                message = Text("HomePage.QuickMatch.Cancelled");
+                errorCode = null;
+            }
+            catch (Exception exception)
+            {
+                errorCode = null;
+                errorType = exception.GetType().Name;
+                operationException = exception;
+            }
+            finally
+            {
+                _quickMatchLobbyCts?.Dispose();
+                _quickMatchLobbyCts = null;
+                _isCreatingQuickMatchLobby = false;
+                UpdateTrayQuickMatchAvailability();
+            }
+
+            WriteQuickMatchOperation(
+                level,
+                outcome,
+                operationId,
+                queueId,
+                gameflowPhase,
+                connectionState,
+                stopwatch.ElapsedMilliseconds,
+                message,
+                errorCode,
+                errorType,
+                operationException);
+            switch (outcome)
+            {
+                case "Succeeded":
+                    Growl.Info(message);
+                    break;
+                case "Rejected":
+                    Growl.Warning(message);
+                    break;
+                case "Failed":
+                    Growl.Error(message);
+                    break;
+            }
+        }
+
+        private static void WriteQuickMatchOperation(
+            LogEventLevel level,
+            string outcome,
+            Guid operationId,
+            int queueId,
+            GameflowPhase gameflowPhase,
+            ConnectionState connectionState,
+            long durationMs,
+            string displayMessage,
+            string errorCode = null,
+            string errorType = null,
+            Exception exception = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["QueueId"] = queueId,
+                ["GameflowPhase"] = gameflowPhase.ToString(),
+                ["ConnectionState"] = connectionState.ToString(),
+                ["DurationMs"] = durationMs
+            };
+            if (!string.IsNullOrWhiteSpace(errorCode))
+            {
+                properties["ErrorCode"] = errorCode;
+            }
+
+            if (!string.IsNullOrWhiteSpace(errorType))
+            {
+                properties["ErrorType"] = errorType;
+            }
+
+            OperationLog.Write(
+                level,
+                "lobby.matchmade.create",
+                "Lobby",
+                "Manual",
+                outcome,
+                operationId,
+                "Tray",
+                displayMessage,
+                properties,
+                exception);
+        }
+
+        private void UpdateTrayQuickMatchAvailability()
+        {
+            IsTrayQuickMatchAvailable = CanCreateQuickMatchLobby();
+            _quickStartLastFromTrayCommand?.RaiseCanExecuteChanged();
+            _quickStartSoloDuoFromTrayCommand?.RaiseCanExecuteChanged();
+            _quickStartFlexFromTrayCommand?.RaiseCanExecuteChanged();
+            _quickStartAramFromTrayCommand?.RaiseCanExecuteChanged();
+            _quickStartHextechAramFromTrayCommand?.RaiseCanExecuteChanged();
+        }
+
+        private void UpdateTrayQuickMatchText()
+        {
+            var queueName = Text(GetQuickMatchQueueNameResourceKey(
+                _selectedQuickMatchQueueId));
+            TrayQuickMatchLastText = string.Format(
+                Text("HomePage.QuickMatch.Button"), queueName);
+        }
+
+        private static string GetQuickMatchQueueNameResourceKey(int queueId)
+        {
+            return queueId switch
+            {
+                GameQueueIds.RankedFlex => "HomePage.QuickMatch.Flex",
+                GameQueueIds.Aram => "HomePage.QuickMatch.Aram",
+                GameQueueIds.HextechAram => "HomePage.QuickMatch.HextechAram",
+                _ => "HomePage.QuickMatch.SoloDuo"
+            };
+        }
+
+        private static int NormalizeQuickMatchQueueId(int queueId)
+        {
+            return queueId is GameQueueIds.RankedSoloDuo or
+                GameQueueIds.RankedFlex or
+                GameQueueIds.Aram or
+                GameQueueIds.HextechAram
+                    ? queueId
+                    : GameQueueIds.RankedSoloDuo;
         }
 
         private async Task FlashClientSafelyAsync()
@@ -516,6 +857,8 @@ namespace Prometheus.ViewModels
 
         private void UpdateTrayState(LiveMatchSnapshot snapshot)
         {
+            _snapshot = snapshot ?? LiveMatchSnapshot.Empty;
+            snapshot = _snapshot;
             var connectionText = Text(GetConnectionStatusKey(snapshot.ConnectionState));
             TrayClientStatus = string.Format(Text("Tray.ClientStatus"), connectionText);
             TrayGameflowStatus = string.Format(
@@ -530,10 +873,17 @@ namespace Prometheus.ViewModels
                                             snapshot.ReadyCheck?.PlayerResponse,
                                             "Accepted",
                                             StringComparison.OrdinalIgnoreCase);
+            UpdateTrayQuickMatchAvailability();
         }
 
         private void UpdateTrayLocalizedText()
         {
+            TrayQuickMatchText = Text("Tray.QuickMatch");
+            TrayQuickMatchSoloDuoText = Text("HomePage.QuickMatch.SoloDuo");
+            TrayQuickMatchFlexText = Text("HomePage.QuickMatch.Flex");
+            TrayQuickMatchAramText = Text("HomePage.QuickMatch.Aram");
+            TrayQuickMatchHextechAramText = Text("HomePage.QuickMatch.HextechAram");
+            UpdateTrayQuickMatchText();
             TrayShowMainWindowText = Text("Tray.ShowMainWindow");
             TrayOpenMatchText = Text("Tray.OpenMatch");
             TrayAcceptText = Text("HomePage.Action.Accept");

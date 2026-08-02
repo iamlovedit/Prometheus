@@ -158,7 +158,19 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 updateService,
-                new Mock<IDialogService>().Object);
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object);
+        }
+
+        private static Mock<IQuickMatchSettings> CreateQuickMatchSettings()
+        {
+            var settings = new Mock<IQuickMatchSettings>();
+            settings.SetupGet(value => value.QueueId)
+                .Returns(GameQueueIds.RankedSoloDuo);
+            settings.Setup(value => value.SaveQueueId(It.IsAny<int>()))
+                .Returns(true);
+            return settings;
         }
 
         private static Mock<IResourceService> CreateResourceService()

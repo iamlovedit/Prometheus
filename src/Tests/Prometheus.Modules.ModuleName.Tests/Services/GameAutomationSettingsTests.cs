@@ -19,13 +19,21 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 var settings = new GameAutomationSettings(settingsPath)
                 {
                     PreferredAramChampionIds = [22, 103, 22, 0, -1],
-                    AutoSwapAramBench = true
+                    AutoSwapAramBench = true,
+                    PreferredPickChampionIds = [103, 22, 103, 0],
+                    PreferredBanChampionIds = [84, 55, 84, -1],
+                    AutoPickChampion = true,
+                    AutoBanChampion = true
                 };
 
                 var reloaded = new GameAutomationSettings(settingsPath);
 
                 Assert.True(reloaded.AutoSwapAramBench);
                 Assert.Equal([22, 103], reloaded.PreferredAramChampionIds);
+                Assert.True(reloaded.AutoPickChampion);
+                Assert.True(reloaded.AutoBanChampion);
+                Assert.Equal([103, 22], reloaded.PreferredPickChampionIds);
+                Assert.Equal([84, 55], reloaded.PreferredBanChampionIds);
             }
             finally
             {
@@ -54,6 +62,10 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 
                 Assert.False(settings.AutoSwapAramBench);
                 Assert.Empty(settings.PreferredAramChampionIds);
+                Assert.False(settings.AutoPickChampion);
+                Assert.False(settings.AutoBanChampion);
+                Assert.Empty(settings.PreferredPickChampionIds);
+                Assert.Empty(settings.PreferredBanChampionIds);
             }
             finally
             {

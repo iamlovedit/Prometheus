@@ -21,6 +21,31 @@ namespace Prometheus.Services.Interfaces.Client
         Task BanChampionAsync(int actionId, int championId);
 
         /// <summary>
+        /// Returns champion ids currently accepted by the active pick action. The current
+        /// <c>pickable-champion-ids</c> endpoint is used with the legacy endpoint as a
+        /// compatibility fallback. Returns an empty list when LCU is unavailable.
+        /// </summary>
+        Task<IReadOnlyList<int>> GetPickableChampionIdsAsync(
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Returns champion ids currently accepted by the active ban action. The current
+        /// <c>bannable-champion-ids</c> endpoint is used with the legacy endpoint as a
+        /// compatibility fallback. Returns an empty list when LCU is unavailable.
+        /// </summary>
+        Task<IReadOnlyList<int>> GetBannableChampionIdsAsync(
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Updates the local player's active champion-select action and explicitly completes
+        /// it through <c>lol-champ-select/v1/session/actions/{id}/complete</c>.
+        /// </summary>
+        Task CompleteChampionSelectActionAsync(
+            ChampionSelectActionSnapshot action,
+            int championId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Gets a match from <c>lol-match-history/v1/games/{gameId}</c> and resolves
         /// its display mode from LCU queue metadata when available.
         /// Returns <see langword="null"/> when LCU is unavailable and supports cancellation.
@@ -53,6 +78,16 @@ namespace Prometheus.Services.Interfaces.Client
         Task<string> GetChampionSkinById(int id);
 
         Task CreatePracticeLobbyAsync(string name, string password);
+
+        /// <summary>
+        /// Creates a matchmade lobby through <c>lol-lobby/v2/lobby</c> after
+        /// confirming that the requested LCU queue is available. Returns a
+        /// status result when LCU is unavailable, the queue is disabled, or
+        /// the resulting lobby cannot be confirmed. Supports cancellation.
+        /// </summary>
+        Task<MatchmadeLobbyCreationResult> CreateMatchmadeLobbyAsync(
+            int queueId,
+            CancellationToken cancellationToken = default);
 
         Task<string> SetChatTierAsync(QueueType queueType, Tier tier, Division division);
 

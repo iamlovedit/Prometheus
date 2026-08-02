@@ -19,7 +19,11 @@ namespace Prometheus.Services.Client
         private bool _autoAcceptReadyCheck;
         private bool _autoReconnect;
         private bool _autoSwapAramBench;
+        private bool _autoPickChampion;
+        private bool _autoBanChampion;
         private int[] _preferredAramChampionIds = [];
+        private int[] _preferredPickChampionIds = [];
+        private int[] _preferredBanChampionIds = [];
         private bool _lastPersistenceSucceeded = true;
 
         public GameAutomationSettings()
@@ -106,6 +110,54 @@ namespace Prometheus.Services.Client
                 }
             }
             set => SetPreferredAramChampionIds(value);
+        }
+
+        public bool AutoPickChampion
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _autoPickChampion;
+                }
+            }
+            set => SetAutoPickChampion(value);
+        }
+
+        public bool AutoBanChampion
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _autoBanChampion;
+                }
+            }
+            set => SetAutoBanChampion(value);
+        }
+
+        public IReadOnlyList<int> PreferredPickChampionIds
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _preferredPickChampionIds.ToArray();
+                }
+            }
+            set => SetPreferredPickChampionIds(value);
+        }
+
+        public IReadOnlyList<int> PreferredBanChampionIds
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _preferredBanChampionIds.ToArray();
+                }
+            }
+            set => SetPreferredBanChampionIds(value);
         }
 
         public bool LastPersistenceSucceeded
@@ -205,6 +257,76 @@ namespace Prometheus.Services.Client
             Changed?.Invoke(this, EventArgs.Empty);
         }
 
+        private void SetAutoPickChampion(bool value)
+        {
+            lock (_syncRoot)
+            {
+                if (_autoPickChampion == value)
+                {
+                    return;
+                }
+
+                _autoPickChampion = value;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(AutoPickChampion));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetAutoBanChampion(bool value)
+        {
+            lock (_syncRoot)
+            {
+                if (_autoBanChampion == value)
+                {
+                    return;
+                }
+
+                _autoBanChampion = value;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(AutoBanChampion));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetPreferredPickChampionIds(IEnumerable<int> championIds)
+        {
+            var normalized = NormalizeChampionIds(championIds);
+            lock (_syncRoot)
+            {
+                if (_preferredPickChampionIds.SequenceEqual(normalized))
+                {
+                    return;
+                }
+
+                _preferredPickChampionIds = normalized;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(PreferredPickChampionIds));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void SetPreferredBanChampionIds(IEnumerable<int> championIds)
+        {
+            var normalized = NormalizeChampionIds(championIds);
+            lock (_syncRoot)
+            {
+                if (_preferredBanChampionIds.SequenceEqual(normalized))
+                {
+                    return;
+                }
+
+                _preferredBanChampionIds = normalized;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(PreferredBanChampionIds));
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
         private void Load()
         {
             try
@@ -225,31 +347,26 @@ namespace Prometheus.Services.Client
                 _autoAcceptReadyCheck = value.AutoAcceptReadyCheck;
                 _autoReconnect = value.AutoReconnect;
                 _autoSwapAramBench = value.AutoSwapAramBench;
-                _preferredAramChampionIds = value.PreferredAramChampionIds?
-                    .Where(championId => championId > 0)
-                    .Distinct()
-                    .ToArray() ?? [];
+                _autoPickChampion = value.AutoPickChampion;
+                _autoBanChampion = value.AutoBanChampion;
+                _preferredAramChampionIds = NormalizeChampionIds(
+                    value.PreferredAramChampionIds);
+                _preferredPickChampionIds = NormalizeChampionIds(
+                    value.PreferredPickChampionIds);
+                _preferredBanChampionIds = NormalizeChampionIds(
+                    value.PreferredBanChampionIds);
             }
             catch (IOException)
             {
-                _autoAcceptReadyCheck = false;
-                _autoReconnect = false;
-                _autoSwapAramBench = false;
-                _preferredAramChampionIds = [];
+                ResetToSafeDefaults();
             }
             catch (UnauthorizedAccessException)
             {
-                _autoAcceptReadyCheck = false;
-                _autoReconnect = false;
-                _autoSwapAramBench = false;
-                _preferredAramChampionIds = [];
+                ResetToSafeDefaults();
             }
             catch (JsonException)
             {
-                _autoAcceptReadyCheck = false;
-                _autoReconnect = false;
-                _autoSwapAramBench = false;
-                _preferredAramChampionIds = [];
+                ResetToSafeDefaults();
             }
         }
 
@@ -263,7 +380,11 @@ namespace Prometheus.Services.Client
                     AutoAcceptReadyCheck = _autoAcceptReadyCheck,
                     AutoReconnect = _autoReconnect,
                     AutoSwapAramBench = _autoSwapAramBench,
-                    PreferredAramChampionIds = _preferredAramChampionIds.ToArray()
+                    AutoPickChampion = _autoPickChampion,
+                    AutoBanChampion = _autoBanChampion,
+                    PreferredAramChampionIds = _preferredAramChampionIds.ToArray(),
+                    PreferredPickChampionIds = _preferredPickChampionIds.ToArray(),
+                    PreferredBanChampionIds = _preferredBanChampionIds.ToArray()
                 };
             }
 
@@ -300,6 +421,26 @@ namespace Prometheus.Services.Client
             }
         }
 
+        private static int[] NormalizeChampionIds(IEnumerable<int> championIds)
+        {
+            return championIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+        }
+
+        private void ResetToSafeDefaults()
+        {
+            _autoAcceptReadyCheck = false;
+            _autoReconnect = false;
+            _autoSwapAramBench = false;
+            _autoPickChampion = false;
+            _autoBanChampion = false;
+            _preferredAramChampionIds = [];
+            _preferredPickChampionIds = [];
+            _preferredBanChampionIds = [];
+        }
+
         private void RaisePropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -313,7 +454,15 @@ namespace Prometheus.Services.Client
 
             public bool AutoSwapAramBench { get; set; }
 
+            public bool AutoPickChampion { get; set; }
+
+            public bool AutoBanChampion { get; set; }
+
             public int[] PreferredAramChampionIds { get; set; } = [];
+
+            public int[] PreferredPickChampionIds { get; set; } = [];
+
+            public int[] PreferredBanChampionIds { get; set; } = [];
         }
     }
 }

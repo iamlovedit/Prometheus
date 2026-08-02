@@ -54,6 +54,7 @@ namespace Prometheus.Services
             "HasPassword",
             "SkinId",
             "ProfileIconId",
+            "QueueId",
             "QueueType",
             "Tier",
             "Division",

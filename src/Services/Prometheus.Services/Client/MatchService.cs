@@ -51,6 +51,9 @@ namespace Prometheus.Services.Client
 
         private static readonly TimeSpan[] AramBenchSwapRetryDelays =
             [TimeSpan.Zero, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900)];
+
+        private static readonly TimeSpan[] ChampionSelectActionRetryDelays =
+            [TimeSpan.Zero, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(750)];
         private static readonly JsonSerializerSettings SnapshotCloneSettings = new()
         {
             ContractResolver = new WritablePropertiesContractResolver()
@@ -81,9 +84,11 @@ namespace Prometheus.Services.Client
         private CancellationTokenSource _acceptAutomationCts;
         private CancellationTokenSource _reconnectAutomationCts;
         private CancellationTokenSource _aramBenchSwapAutomationCts;
+        private CancellationTokenSource _championSelectAutomationCts;
         private Task _acceptAutomationTask = Task.CompletedTask;
         private Task _reconnectAutomationTask = Task.CompletedTask;
         private Task _aramBenchSwapAutomationTask = Task.CompletedTask;
+        private Task _championSelectAutomationTask = Task.CompletedTask;
         private bool _started;
         private bool _subscribed;
         private long _phaseVersion;
@@ -91,6 +96,7 @@ namespace Prometheus.Services.Client
         private long _lastAutoAcceptInstance = -1;
         private long _lastAutoReconnectInstance = -1;
         private string _lastAramBenchSwapState = string.Empty;
+        private string _lastChampionSelectAutomationState = string.Empty;
         private string _initializedConnection = string.Empty;
         private CancellationTokenSource _rosterCts;
         private Task _rosterTask = Task.CompletedTask;
@@ -182,6 +188,7 @@ namespace Prometheus.Services.Client
                 _phaseInstance++;
                 _initializedConnection = string.Empty;
                 _lastAramBenchSwapState = string.Empty;
+                _lastChampionSelectAutomationState = string.Empty;
                 AttachSubscriptions();
                 AutomationSettings.PropertyChanged += HandleAutomationSettingsChanged;
                 lifetimeToken = _lifetimeCts.Token;
@@ -322,9 +329,11 @@ namespace Prometheus.Services.Client
             CancellationTokenSource acceptCts;
             CancellationTokenSource reconnectCts;
             CancellationTokenSource aramBenchSwapCts;
+            CancellationTokenSource championSelectCts;
             Task acceptTask;
             Task reconnectTask;
             Task aramBenchSwapTask;
+            Task championSelectTask;
 
             await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -346,16 +355,20 @@ namespace Prometheus.Services.Client
                     acceptCts = _acceptAutomationCts;
                     reconnectCts = _reconnectAutomationCts;
                     aramBenchSwapCts = _aramBenchSwapAutomationCts;
+                    championSelectCts = _championSelectAutomationCts;
                     acceptTask = _acceptAutomationTask;
                     reconnectTask = _reconnectAutomationTask;
                     aramBenchSwapTask = _aramBenchSwapAutomationTask;
+                    championSelectTask = _championSelectAutomationTask;
                     _lifetimeCts = null;
                     _phaseCts = null;
                     _playerLoadCts = null;
                     _acceptAutomationCts = null;
                     _reconnectAutomationCts = null;
                     _aramBenchSwapAutomationCts = null;
+                    _championSelectAutomationCts = null;
                     _lastAramBenchSwapState = string.Empty;
+                    _lastChampionSelectAutomationState = string.Empty;
                     _phaseVersion++;
                     _initializedConnection = string.Empty;
                 }
@@ -381,6 +394,7 @@ namespace Prometheus.Services.Client
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
             aramBenchSwapCts?.Cancel();
+            championSelectCts?.Cancel();
             var rosterTask = CancelRosterEnrichment(clearCache: true, resetSignature: true);
             _currentSummoner = null;
             _httpService.Reset();
@@ -389,6 +403,7 @@ namespace Prometheus.Services.Client
             await AwaitAutomationTaskAsync(acceptTask).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(reconnectTask).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(aramBenchSwapTask).ConfigureAwait(false);
+            await AwaitAutomationTaskAsync(championSelectTask).ConfigureAwait(false);
             await AwaitAutomationTaskAsync(rosterTask).ConfigureAwait(false);
 
             lifetimeCts?.Dispose();
@@ -397,6 +412,7 @@ namespace Prometheus.Services.Client
             acceptCts?.Dispose();
             reconnectCts?.Dispose();
             aramBenchSwapCts?.Dispose();
+            championSelectCts?.Dispose();
 
             PublishSnapshot(snapshot =>
             {
@@ -1984,6 +2000,17 @@ namespace Prometheus.Services.Client
             {
                 CancelAutoAramBenchSwap(resetState: true);
             }
+
+            if (context.Phase == GameflowPhase.ChampSelect &&
+                (AutomationSettings.AutoPickChampion ||
+                 AutomationSettings.AutoBanChampion))
+            {
+                StartAutoChampionSelectAction(context);
+            }
+            else
+            {
+                CancelAutoChampionSelectAction(resetState: true);
+            }
         }
 
         private void StartAutoAramBenchSwap(PhaseContext context)
@@ -2300,6 +2327,446 @@ namespace Prometheus.Services.Client
                 exception);
         }
 
+        private void StartAutoChampionSelectAction(PhaseContext context)
+        {
+            var championSelect = GetCurrentSnapshot().ChampionSelect;
+            var action = FindActiveLocalChampionSelectAction(championSelect);
+            if (action is null)
+            {
+                CancelAutoChampionSelectAction(resetState: true);
+                return;
+            }
+
+            var isPick = string.Equals(
+                action.Type, "pick", StringComparison.OrdinalIgnoreCase);
+            var enabled = isPick
+                ? AutomationSettings.AutoPickChampion
+                : AutomationSettings.AutoBanChampion;
+            if (!enabled)
+            {
+                CancelAutoChampionSelectAction(resetState: true);
+                return;
+            }
+
+            var preferredChampionIds = (isPick
+                    ? AutomationSettings.PreferredPickChampionIds
+                    : AutomationSettings.PreferredBanChampionIds)?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+            var stateSignature = BuildChampionSelectAutomationState(
+                context, championSelect, action, preferredChampionIds);
+
+            CancellationTokenSource previousCts;
+            lock (_stateSync)
+            {
+                if (!_started || context.Version != _phaseVersion ||
+                    context.Token.IsCancellationRequested ||
+                    string.Equals(
+                        _lastChampionSelectAutomationState,
+                        stateSignature,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                previousCts = _championSelectAutomationCts;
+                _championSelectAutomationCts = null;
+                _lastChampionSelectAutomationState = stateSignature;
+
+                if (preferredChampionIds.Length > 0)
+                {
+                    _championSelectAutomationCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(context.Token);
+                    var token = _championSelectAutomationCts.Token;
+                    _championSelectAutomationTask = RunAutoChampionSelectActionAsync(
+                        context,
+                        action,
+                        preferredChampionIds,
+                        token);
+                }
+            }
+
+            previousCts?.Cancel();
+            previousCts?.Dispose();
+        }
+
+        private async Task RunAutoChampionSelectActionAsync(
+            PhaseContext context,
+            ChampionSelectActionSnapshot action,
+            IReadOnlyList<int> preferredChampionIds,
+            CancellationToken cancellationToken)
+        {
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            var attemptCount = 0;
+            var isPick = string.Equals(
+                action.Type, "pick", StringComparison.OrdinalIgnoreCase);
+            Exception lastError = null;
+            var lastChampionId = 0;
+
+            try
+            {
+                if (!IsCurrentChampionSelectAction(context, action))
+                {
+                    return;
+                }
+
+                if (!_leagueClient.Connected || !_httpService.IsInitialized)
+                {
+                    LogChampionSelectAutomationResult(
+                        LogEventLevel.Warning,
+                        "Rejected",
+                        operationId,
+                        context,
+                        action,
+                        0,
+                        attemptCount,
+                        stopwatch.ElapsedMilliseconds,
+                        "Automatic champion-select action was rejected because LCU is unavailable.");
+                    return;
+                }
+
+                IReadOnlyList<int> availableChampionIds = isPick
+                    ? await _gameService.GetPickableChampionIdsAsync(cancellationToken)
+                        .ConfigureAwait(false)
+                    : await _gameService.GetBannableChampionIdsAsync(cancellationToken)
+                        .ConfigureAwait(false);
+                var candidates = FindChampionSelectCandidates(
+                    GetCurrentSnapshot().ChampionSelect,
+                    action,
+                    preferredChampionIds,
+                    availableChampionIds)
+                    .Take(ChampionSelectActionRetryDelays.Length)
+                    .ToArray();
+                if (candidates.Length == 0)
+                {
+                    LogChampionSelectAutomationResult(
+                        LogEventLevel.Warning,
+                        "Skipped",
+                        operationId,
+                        context,
+                        action,
+                        0,
+                        attemptCount,
+                        stopwatch.ElapsedMilliseconds,
+                        isPick
+                            ? "Automatic champion picking was skipped because no preferred champion is available."
+                            : "Automatic champion banning was skipped because no preferred champion is available.");
+                    return;
+                }
+
+                for (var candidateIndex = 0;
+                     candidateIndex < candidates.Length;
+                     candidateIndex++)
+                {
+                    var delay = ChampionSelectActionRetryDelays[candidateIndex];
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    if (!IsCurrentChampionSelectAction(context, action))
+                    {
+                        LogChampionSelectAutomationResult(
+                            LogEventLevel.Information,
+                            "Cancelled",
+                            operationId,
+                            context,
+                            action,
+                            lastChampionId,
+                            attemptCount,
+                            stopwatch.ElapsedMilliseconds,
+                            "Automatic champion-select action was cancelled because the active turn changed.");
+                        return;
+                    }
+
+                    lastChampionId = candidates[candidateIndex];
+                    attemptCount++;
+                    try
+                    {
+                        await _gameService.CompleteChampionSelectActionAsync(
+                                action, lastChampionId, cancellationToken)
+                            .ConfigureAwait(false);
+                        LogChampionSelectAutomationResult(
+                            LogEventLevel.Information,
+                            "Succeeded",
+                            operationId,
+                            context,
+                            action,
+                            lastChampionId,
+                            attemptCount,
+                            stopwatch.ElapsedMilliseconds,
+                            isPick
+                                ? "Automatic champion pick request was accepted."
+                                : "Automatic champion ban request was accepted.");
+                        return;
+                    }
+                    catch (OperationCanceledException) when (
+                        cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        lastError = exception;
+                        Log.Debug(
+                            exception,
+                            "Automatic champion-select attempt {AttemptCount} failed for action {ActionId} and champion {ChampionId}",
+                            attemptCount,
+                            action.Id,
+                            lastChampionId);
+                    }
+                }
+
+                if (lastError is not null &&
+                    IsCurrentChampionSelectAction(context, action))
+                {
+                    LogChampionSelectAutomationResult(
+                        LogEventLevel.Error,
+                        "Failed",
+                        operationId,
+                        context,
+                        action,
+                        lastChampionId,
+                        attemptCount,
+                        stopwatch.ElapsedMilliseconds,
+                        isPick
+                            ? "Automatic champion picking failed."
+                            : "Automatic champion banning failed.",
+                        lastError);
+                }
+            }
+            catch (OperationCanceledException) when (
+                cancellationToken.IsCancellationRequested)
+            {
+                LogChampionSelectAutomationResult(
+                    LogEventLevel.Information,
+                    "Cancelled",
+                    operationId,
+                    context,
+                    action,
+                    lastChampionId,
+                    attemptCount,
+                    stopwatch.ElapsedMilliseconds,
+                    "Automatic champion-select action was cancelled.");
+            }
+            catch (Exception exception)
+            {
+                LogChampionSelectAutomationResult(
+                    LogEventLevel.Error,
+                    "Failed",
+                    operationId,
+                    context,
+                    action,
+                    lastChampionId,
+                    attemptCount,
+                    stopwatch.ElapsedMilliseconds,
+                    isPick
+                        ? "Automatic champion picking failed."
+                        : "Automatic champion banning failed.",
+                    exception);
+            }
+        }
+
+        private bool IsCurrentChampionSelectAction(
+            PhaseContext context,
+            ChampionSelectActionSnapshot expectedAction)
+        {
+            if (!IsCurrentPhase(context) ||
+                context.Phase != GameflowPhase.ChampSelect)
+            {
+                return false;
+            }
+
+            var currentAction = FindActiveLocalChampionSelectAction(
+                GetCurrentSnapshot().ChampionSelect);
+            if (currentAction is null ||
+                currentAction.Id != expectedAction.Id ||
+                !string.Equals(
+                    currentAction.Type,
+                    expectedAction.Type,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return string.Equals(
+                currentAction.Type, "pick", StringComparison.OrdinalIgnoreCase)
+                ? AutomationSettings.AutoPickChampion
+                : AutomationSettings.AutoBanChampion;
+        }
+
+        private static ChampionSelectActionSnapshot FindActiveLocalChampionSelectAction(
+            ChampionSelectSnapshot championSelect)
+        {
+            if (championSelect is null)
+            {
+                return null;
+            }
+
+            return championSelect.Actions?
+                .Where(round => round is not null)
+                .SelectMany(round => round)
+                .FirstOrDefault(action =>
+                    action is not null &&
+                    action.ActorCellId == championSelect.LocalPlayerCellId &&
+                    action.IsInProgress &&
+                    !action.Completed &&
+                    (string.Equals(
+                         action.Type, "pick", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(
+                         action.Type, "ban", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        private static IEnumerable<int> FindChampionSelectCandidates(
+            ChampionSelectSnapshot championSelect,
+            ChampionSelectActionSnapshot action,
+            IReadOnlyList<int> preferredChampionIds,
+            IReadOnlyList<int> availableChampionIds)
+        {
+            var available = availableChampionIds?
+                .Where(championId => championId > 0)
+                .ToHashSet() ?? [];
+            if (available.Count == 0)
+            {
+                return [];
+            }
+
+            var unavailable = new HashSet<int>();
+            foreach (var championId in championSelect?.Bans?.MyTeamBans ?? [])
+            {
+                unavailable.Add(championId);
+            }
+            foreach (var championId in championSelect?.Bans?.TheirTeamBans ?? [])
+            {
+                unavailable.Add(championId);
+            }
+
+            if (string.Equals(action.Type, "ban", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var member in championSelect?.MyTeam ?? [])
+                {
+                    if (member?.ChampionPickIntent > 0)
+                    {
+                        unavailable.Add(member.ChampionPickIntent);
+                    }
+                }
+            }
+
+            return preferredChampionIds?
+                .Where(championId =>
+                    championId > 0 &&
+                    available.Contains(championId) &&
+                    !unavailable.Contains(championId))
+                .Distinct() ?? [];
+        }
+
+        private static string BuildChampionSelectAutomationState(
+            PhaseContext context,
+            ChampionSelectSnapshot championSelect,
+            ChampionSelectActionSnapshot action,
+            IReadOnlyList<int> preferredChampionIds)
+        {
+            var builder = new StringBuilder()
+                .Append(context.Instance).Append('|')
+                .Append(action.Id).Append('|')
+                .Append(action.Type).Append('|')
+                .Append(action.ChampionId).Append('|')
+                .Append(action.IsInProgress).Append('|')
+                .Append(action.Completed).Append('|');
+
+            foreach (var member in championSelect?.MyTeam ?? [])
+            {
+                builder.Append(member?.CellId ?? 0).Append(':')
+                    .Append(member?.ChampionId ?? 0).Append(':')
+                    .Append(member?.ChampionPickIntent ?? 0).Append(',');
+            }
+
+            builder.Append('|');
+            foreach (var championId in championSelect?.Bans?.MyTeamBans ?? [])
+            {
+                builder.Append(championId).Append(',');
+            }
+            foreach (var championId in championSelect?.Bans?.TheirTeamBans ?? [])
+            {
+                builder.Append(championId).Append(',');
+            }
+
+            builder.Append('|');
+            foreach (var championId in preferredChampionIds ?? [])
+            {
+                builder.Append(championId).Append(',');
+            }
+
+            return builder.ToString();
+        }
+
+        private void CancelAutoChampionSelectAction(bool resetState)
+        {
+            CancellationTokenSource cancellationTokenSource;
+            lock (_stateSync)
+            {
+                cancellationTokenSource = _championSelectAutomationCts;
+                _championSelectAutomationCts = null;
+                if (resetState)
+                {
+                    _lastChampionSelectAutomationState = string.Empty;
+                }
+            }
+
+            cancellationTokenSource?.Cancel();
+            cancellationTokenSource?.Dispose();
+        }
+
+        private static void LogChampionSelectAutomationResult(
+            LogEventLevel level,
+            string outcome,
+            Guid operationId,
+            PhaseContext context,
+            ChampionSelectActionSnapshot action,
+            int championId,
+            int attemptCount,
+            long durationMs,
+            string displayMessage,
+            Exception exception = null)
+        {
+            var isPick = string.Equals(
+                action.Type, "pick", StringComparison.OrdinalIgnoreCase);
+            var properties = new Dictionary<string, object>
+            {
+                ["ActionId"] = action.Id,
+                ["ChampionId"] = championId,
+                ["TargetType"] = "Champion",
+                ["TargetId"] = championId,
+                ["GameflowPhase"] = context.RawPhase,
+                ["PhaseInstance"] = context.Instance,
+                ["AttemptCount"] = attemptCount,
+                ["DurationMs"] = durationMs
+            };
+            if (exception is HttpRequestException httpException &&
+                httpException.StatusCode.HasValue)
+            {
+                properties["HttpStatusCode"] = (int)httpException.StatusCode.Value;
+            }
+            if (exception is not null)
+            {
+                properties["ErrorType"] = exception.GetType().Name;
+            }
+
+            OperationLog.Write(
+                level,
+                isPick ? "champ_select.pick" : "champ_select.ban",
+                "ChampionSelect",
+                "Automation",
+                outcome,
+                operationId,
+                "MatchService",
+                displayMessage,
+                properties,
+                exception);
+        }
+
         private void StartAutoAccept(PhaseContext context)
         {
             CancellationToken token;
@@ -2417,6 +2884,20 @@ namespace Prometheus.Services.Client
             {
                 CancelAutoAramBenchSwap(resetState: true);
                 if (AutomationSettings.AutoSwapAramBench)
+                {
+                    TriggerAutomation(GetCurrentPhaseContext());
+                }
+            }
+
+
+            if (args.PropertyName is nameof(IGameAutomationSettings.AutoPickChampion)
+                or nameof(IGameAutomationSettings.AutoBanChampion)
+                or nameof(IGameAutomationSettings.PreferredPickChampionIds)
+                or nameof(IGameAutomationSettings.PreferredBanChampionIds))
+            {
+                CancelAutoChampionSelectAction(resetState: true);
+                if (AutomationSettings.AutoPickChampion ||
+                    AutomationSettings.AutoBanChampion)
                 {
                     TriggerAutomation(GetCurrentPhaseContext());
                 }

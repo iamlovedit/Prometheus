@@ -96,6 +96,8 @@ P0 操作会改变对局、LCU、玩家资料、持久化自动化设置，或�
 | 自动化 | `automation.auto_reconnect.changed` | 开启或关闭自动重连 | `OldValue`、`NewValue`、`Module` |
 | 自动化 | `automation.aram_bench_swap.changed` | 开启或关闭大乱斗自动换英雄 | `OldValue`、`NewValue`、`Module` |
 | 自动化 | `automation.aram_bench_preferences.changed` | 修改大乱斗目标英雄优先级 | `OldCount`、`NewCount`、`Module` |
+| 自动化 | `automation.auto_pick.changed` · `automation.auto_ban.changed` | 开启或关闭自动选用 / 禁用英雄 | `OldValue`、`NewValue`、`Module` |
+| 自动化 | `automation.auto_pick_preferences.changed` · `automation.auto_ban_preferences.changed` | 修改自动选用 / 禁用候选优先级 | `OldCount`、`NewCount`、`Module` |
 | BP | `champ_select.pick` | 选择或锁定英雄 | `ActionId`、`ChampionId` |
 | BP | `champ_select.ban` | 禁用英雄 | `ActionId`、`ChampionId` |
 | BP | `champ_select.bench.swap` | 手动或自动从大乱斗替补席交换英雄 | `ChampionId`、`PhaseInstance`、`AttemptCount` |
@@ -108,6 +110,7 @@ P0 操作会改变对局、LCU、玩家资料、持久化自动化设置，或�
 | 社交状态 | `social.status_message.changed` | 修改个性签名 | `IsEmpty`、`TextLength` |
 | 社交状态 | `social.rank_display.changed` | 修改展示段位 | `QueueType`、`Tier`、`Division` |
 | 房间 | `lobby.practice.create` | 创建训练模式房间 | `HasPassword`、安全的房间配置 |
+| 房间 | `lobby.matchmade.create` | 创建匹配队列房间 | `QueueId`、`GameflowPhase`、`ConnectionState` |
 | 诊断 | `diagnostics.logs.clear` | 清空日志面板的内存记录 | `PreviousCount`、清理范围 |
 
 服务层已经具备但尚未接入 UI 的动作，也必须在未来接入时遵守本节，例如英雄选择/禁用、符文页写操作和修改头像。

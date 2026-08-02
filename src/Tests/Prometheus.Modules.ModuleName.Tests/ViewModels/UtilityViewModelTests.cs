@@ -73,6 +73,36 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void ChampionAutomationEditors_PersistIndependentPriorityOrders()
+        {
+            var automationSettings = CreateAutomationSettings();
+            var viewModel = CreateViewModel(automationSettings: automationSettings);
+            var first = new ChampionSummary { Id = 22, Name = "Ashe" };
+            var second = new ChampionSummary { Id = 103, Name = "Ahri" };
+            var third = new ChampionSummary { Id = 84, Name = "Akali" };
+            var champions = new[] { first, second, third };
+            viewModel.PickChampionEditor.SetChampionCatalog(champions);
+            viewModel.BanChampionEditor.SetChampionCatalog(champions);
+
+            viewModel.PickChampionEditor.SelectedChampion = first;
+            viewModel.PickChampionEditor.AddChampionCommand.Execute();
+            viewModel.PickChampionEditor.SelectedChampion = second;
+            viewModel.PickChampionEditor.AddChampionCommand.Execute();
+            viewModel.PickChampionEditor.SelectedPreferredChampion = second;
+            viewModel.PickChampionEditor.MoveChampionUpCommand.Execute();
+
+            viewModel.BanChampionEditor.SelectedChampion = third;
+            viewModel.BanChampionEditor.AddChampionCommand.Execute();
+
+            Assert.Equal(
+                [103, 22],
+                automationSettings.Object.PreferredPickChampionIds);
+            Assert.Equal(
+                [84],
+                automationSettings.Object.PreferredBanChampionIds);
+        }
+
+        [Fact]
         public void AramChampionSelector_SelectingFilteredChampion_PreservesSelection()
         {
             var gameResourceManager = new Mock<IGameResourceManager>();
@@ -218,8 +248,16 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         {
             var settings = new Mock<IGameAutomationSettings>();
             settings.SetupProperty(value => value.AutoSwapAramBench, false);
+            settings.SetupProperty(value => value.AutoPickChampion, false);
+            settings.SetupProperty(value => value.AutoBanChampion, false);
             settings.SetupProperty(
                 value => value.PreferredAramChampionIds,
+                Array.Empty<int>());
+            settings.SetupProperty(
+                value => value.PreferredPickChampionIds,
+                Array.Empty<int>());
+            settings.SetupProperty(
+                value => value.PreferredBanChampionIds,
                 Array.Empty<int>());
             settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
             return settings;

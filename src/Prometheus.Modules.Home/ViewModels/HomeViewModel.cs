@@ -12,6 +12,7 @@ using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using Serilog.Events;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -26,10 +27,13 @@ namespace Prometheus.Modules.Home.ViewModels
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IResourceService _resourceService;
         private readonly IClientService _clientService;
+        private readonly IGameService _gameService;
+        private readonly IQuickMatchSettings _quickMatchSettings;
         private readonly DispatcherTimer _displayTimer;
         private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
 
         private CancellationTokenSource _dashboardCts;
+        private CancellationTokenSource _quickMatchLobbyCts;
         private int _dashboardVersion;
         private int _teamVersion;
         private bool _dashboardLoaded;
@@ -44,6 +48,8 @@ namespace Prometheus.Modules.Home.ViewModels
         private int _preferredAramChampionVersion;
         private bool _preferredAramChampionDetailsLoaded;
         private bool _preferredAramChampionLoading;
+        private bool _isCreatingQuickMatchLobby;
+        private int _selectedQuickMatchQueueId;
         private MenuName _summaryDestination = MenuName.Match;
 
         public HomeViewModel(
@@ -53,7 +59,9 @@ namespace Prometheus.Modules.Home.ViewModels
             ISummonerService summonerService,
             IGameResourceManager gameResourceManager,
             IResourceService resourceService,
-            IClientService clientService) : base(regionManager)
+            IClientService clientService,
+            IGameService gameService,
+            IQuickMatchSettings quickMatchSettings) : base(regionManager)
         {
             _eventAggregator = eventAggregator;
             _matchService = matchService;
@@ -62,6 +70,10 @@ namespace Prometheus.Modules.Home.ViewModels
             _gameResourceManager = gameResourceManager;
             _resourceService = resourceService;
             _clientService = clientService;
+            _gameService = gameService;
+            _quickMatchSettings = quickMatchSettings;
+            _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
+                _quickMatchSettings.QueueId);
             _snapshotDispatcher = new LatestValueDispatcher<LiveMatchSnapshot>(
                 action => Dispatch(action, DispatcherPriority.Background),
                 ApplySnapshot);
@@ -80,8 +92,10 @@ namespace Prometheus.Modules.Home.ViewModels
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _automationSettings.Changed += HandleAutomationChanged;
+            _quickMatchSettings.Changed += HandleQuickMatchSettingsChanged;
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Subscribe(HandleLanguageChanged);
 
+            UpdateQuickStartButtonText();
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty);
             RefreshPreferredAramChampions(retryUnavailable: true);
         }
@@ -177,6 +191,13 @@ namespace Prometheus.Modules.Home.ViewModels
         {
             get => _secondaryActionText;
             set => SetProperty(ref _secondaryActionText, value);
+        }
+
+        private string _quickStartButtonText;
+        public string QuickStartButtonText
+        {
+            get => _quickStartButtonText;
+            private set => SetProperty(ref _quickStartButtonText, value);
         }
 
         private bool _canPrimaryAction;
@@ -312,41 +333,6 @@ namespace Prometheus.Modules.Home.ViewModels
             set => SetProperty(ref _isError, value);
         }
 
-        private bool _isLobbyStage;
-        public bool IsLobbyStage
-        {
-            get => _isLobbyStage;
-            set => SetProperty(ref _isLobbyStage, value);
-        }
-
-        private bool _isQueueStage;
-        public bool IsQueueStage
-        {
-            get => _isQueueStage;
-            set => SetProperty(ref _isQueueStage, value);
-        }
-
-        private bool _isReadyStage;
-        public bool IsReadyStage
-        {
-            get => _isReadyStage;
-            set => SetProperty(ref _isReadyStage, value);
-        }
-
-        private bool _isChampionStage;
-        public bool IsChampionStage
-        {
-            get => _isChampionStage;
-            set => SetProperty(ref _isChampionStage, value);
-        }
-
-        private bool _isGameStage;
-        public bool IsGameStage
-        {
-            get => _isGameStage;
-            set => SetProperty(ref _isGameStage, value);
-        }
-
         public bool AutoAccept
         {
             get => _automationSettings.AutoAcceptReadyCheck;
@@ -452,6 +438,43 @@ namespace Prometheus.Modules.Home.ViewModels
         public DelegateCommand OpenUtilityCommand =>
             _openUtilityCommand ??= new DelegateCommand(() => Navigate(MenuName.Utility));
 
+        private DelegateCommand _quickStartSoloDuoCommand;
+        public DelegateCommand QuickStartSoloDuoCommand =>
+            _quickStartSoloDuoCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.RankedSoloDuo,
+                "HomePage.QuickMatch.SoloDuo",
+                "Creating a ranked solo/duo lobby");
+
+        private DelegateCommand _quickStartFlexCommand;
+        public DelegateCommand QuickStartFlexCommand =>
+            _quickStartFlexCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.RankedFlex,
+                "HomePage.QuickMatch.Flex",
+                "Creating a ranked flex lobby");
+
+        private DelegateCommand _quickStartAramCommand;
+        public DelegateCommand QuickStartAramCommand =>
+            _quickStartAramCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.Aram,
+                "HomePage.QuickMatch.Aram",
+                "Creating an ARAM lobby");
+
+        private DelegateCommand _quickStartHextechAramCommand;
+        public DelegateCommand QuickStartHextechAramCommand =>
+            _quickStartHextechAramCommand ??= CreateQuickMatchCommand(
+                GameQueueIds.HextechAram,
+                "HomePage.QuickMatch.HextechAram",
+                "Creating a Hextech ARAM lobby");
+
+        private DelegateCommand _quickStartSelectedCommand;
+        public DelegateCommand QuickStartSelectedCommand =>
+            _quickStartSelectedCommand ??= new DelegateCommand(
+                () => CreateQuickMatchLobbyAsync(
+                        _selectedQuickMatchQueueId,
+                        GetQuickMatchQueueNameResourceKey(_selectedQuickMatchQueueId))
+                    .Observe("Creating the selected quick-match lobby"),
+                CanCreateQuickMatchLobby);
+
         private DelegateCommand<string> _searchCommand;
         public DelegateCommand<string> SearchCommand =>
             _searchCommand ??= new DelegateCommand<string>(SearchSummoner);
@@ -468,8 +491,10 @@ namespace Prometheus.Modules.Home.ViewModels
             _displayTimer.Tick -= HandleDisplayTimerTick;
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationChanged;
+            _quickMatchSettings.Changed -= HandleQuickMatchSettingsChanged;
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(HandleLanguageChanged);
             _preferredAramChampionVersion++;
+            _quickMatchLobbyCts?.Cancel();
             CancelDashboardLoad();
             base.Destroy();
         }
@@ -493,8 +518,19 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void HandleLanguageChanged()
         {
+            UpdateQuickStartButtonText();
             ApplySnapshot(_snapshot);
             UpdateAutomationStatus();
+        }
+
+        private void HandleQuickMatchSettingsChanged(object sender, EventArgs e)
+        {
+            Dispatch(() =>
+            {
+                _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
+                    _quickMatchSettings.QueueId);
+                UpdateQuickStartButtonText();
+            });
         }
 
         private void ApplySnapshot(LiveMatchSnapshot snapshot)
@@ -514,7 +550,6 @@ namespace Prometheus.Modules.Home.ViewModels
                 : _snapshot.RawPhase;
             ErrorText = _snapshot.Error ?? string.Empty;
 
-            ResetStageFlags();
             ShowSummaryCard = true;
             ShowTeamSummary = false;
             ShowRecentMatches = false;
@@ -568,6 +603,7 @@ namespace Prometheus.Modules.Home.ViewModels
             }
 
             UpdateAutomationStatus();
+            RaiseQuickMatchCommandState();
         }
 
         private void ConfigureConnecting()
@@ -669,7 +705,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigureLobby()
         {
-            IsLobbyStage = true;
             var memberCount = _snapshot.Lobby?.Members?.Count ?? 0;
             PhaseTitle = Text("HomePage.Phase.Lobby.Title");
             PhaseDescription = Text("HomePage.Phase.Lobby.Description");
@@ -682,7 +717,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigureMatchmaking()
         {
-            IsQueueStage = true;
             PhaseTitle = Text("HomePage.Phase.Matchmaking.Title");
             PhaseDescription = Text("HomePage.Phase.Matchmaking.Description");
             var queueName = _snapshot.Matchmaking?.Queue?.Name;
@@ -698,7 +732,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigureReadyCheck()
         {
-            IsReadyStage = true;
             PhaseTitle = Text("HomePage.Phase.Ready.Title");
             PhaseDescription = Text("HomePage.Phase.Ready.Description");
             var members = _snapshot.ReadyCheck?.Members ?? [];
@@ -720,7 +753,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigureChampionSelect()
         {
-            IsChampionStage = true;
             PhaseTitle = Text("HomePage.Phase.Champion.Title");
             PhaseDescription = Text("HomePage.Phase.Champion.Description");
             PhaseDetail = _snapshot.ChampionSelect?.Timer?.Phase ?? Text("HomePage.Phase.Champion.Detail");
@@ -735,7 +767,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigureInGame()
         {
-            IsGameStage = true;
             PhaseTitle = Text("HomePage.Phase.InGame.Title");
             PhaseDescription = Text("HomePage.Phase.InGame.Description");
             PhaseDetail = Text("HomePage.Phase.InGame.Detail");
@@ -748,7 +779,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigureReconnect()
         {
-            IsGameStage = true;
             PhaseTitle = Text("HomePage.Phase.Reconnect.Title");
             PhaseDescription = Text("HomePage.Phase.Reconnect.Description");
             PhaseDetail = Text("HomePage.Phase.Reconnect.Detail");
@@ -760,7 +790,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigurePostGameLoading()
         {
-            IsGameStage = true;
             PhaseTitle = Text("HomePage.Phase.PostGameLoading.Title");
             PhaseDescription = Text("HomePage.Phase.PostGameLoading.Description");
             PhaseDetail = Text("HomePage.Phase.PostGameLoading.Detail");
@@ -773,7 +802,6 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private void ConfigurePostGame()
         {
-            IsGameStage = true;
             var player = _snapshot.PostGame?.LocalPlayer;
             PhaseTitle = player?.Won == true
                 ? Text("HomePage.Phase.PostGame.Victory")
@@ -799,6 +827,233 @@ namespace Prometheus.Modules.Home.ViewModels
             EmptySummaryText = Text("HomePage.Summary.Syncing");
             PrimaryActionText = Text("HomePage.OpenClient");
             SecondaryActionText = Text("HomePage.Action.Retry");
+        }
+
+        private DelegateCommand CreateQuickMatchCommand(
+            int queueId,
+            string queueNameResourceKey,
+            string operation)
+        {
+            return new DelegateCommand(
+                () => SelectAndCreateQuickMatchLobbyAsync(queueId, queueNameResourceKey)
+                    .Observe(operation),
+                CanCreateQuickMatchLobby);
+        }
+
+        private async Task SelectAndCreateQuickMatchLobbyAsync(
+            int queueId,
+            string queueNameResourceKey)
+        {
+            _selectedQuickMatchQueueId = queueId;
+            _quickMatchSettings.SaveQueueId(queueId);
+            UpdateQuickStartButtonText();
+            await CreateQuickMatchLobbyAsync(queueId, queueNameResourceKey);
+        }
+
+        private bool CanCreateQuickMatchLobby()
+        {
+            return !_isCreatingQuickMatchLobby &&
+                   _snapshot.ConnectionState == ConnectionState.Connected &&
+                   _snapshot.GameflowPhase == GameflowPhase.None;
+        }
+
+        private async Task CreateQuickMatchLobbyAsync(
+            int queueId,
+            string queueNameResourceKey)
+        {
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            var connectionState = _snapshot.ConnectionState;
+            var gameflowPhase = _snapshot.GameflowPhase;
+            var queueName = Text(queueNameResourceKey);
+
+            if (!CanCreateQuickMatchLobby())
+            {
+                var rejectionMessage = Text("HomePage.QuickMatch.Unavailable");
+                WriteQuickMatchOperation(
+                    LogEventLevel.Warning,
+                    "Rejected",
+                    operationId,
+                    queueId,
+                    gameflowPhase,
+                    connectionState,
+                    stopwatch.ElapsedMilliseconds,
+                    rejectionMessage,
+                    "InvalidClientState");
+                Growl.Warning(rejectionMessage);
+                return;
+            }
+
+            _isCreatingQuickMatchLobby = true;
+            RaiseQuickMatchCommandState();
+            _quickMatchLobbyCts = new CancellationTokenSource();
+            var level = LogEventLevel.Error;
+            var outcome = "Failed";
+            var message = Text("HomePage.QuickMatch.Failed");
+            string errorCode = "LobbyNotConfirmed";
+            string errorType = null;
+            Exception operationException = null;
+            try
+            {
+                var result = await _gameService.CreateMatchmadeLobbyAsync(
+                    queueId,
+                    _quickMatchLobbyCts.Token);
+                switch (result.Status)
+                {
+                    case MatchmadeLobbyCreationStatus.Created:
+                        level = LogEventLevel.Information;
+                        outcome = "Succeeded";
+                        message = string.Format(
+                            Text("HomePage.QuickMatch.Created"), queueName);
+                        errorCode = null;
+                        break;
+                    case MatchmadeLobbyCreationStatus.ClientUnavailable:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = Text("HomePage.QuickMatch.Unavailable");
+                        errorCode = "ClientUnavailable";
+                        break;
+                    case MatchmadeLobbyCreationStatus.QueueUnavailable:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = string.Format(
+                            Text("HomePage.QuickMatch.QueueUnavailable"), queueName);
+                        errorCode = "QueueUnavailable";
+                        break;
+                    case MatchmadeLobbyCreationStatus.OperationInProgress:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = Text("HomePage.QuickMatch.Unavailable");
+                        errorCode = "OperationInProgress";
+                        break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                level = LogEventLevel.Information;
+                outcome = "Cancelled";
+                message = Text("HomePage.QuickMatch.Cancelled");
+                errorCode = null;
+            }
+            catch (Exception exception)
+            {
+                errorCode = null;
+                errorType = exception.GetType().Name;
+                operationException = exception;
+            }
+            finally
+            {
+                _quickMatchLobbyCts?.Dispose();
+                _quickMatchLobbyCts = null;
+                _isCreatingQuickMatchLobby = false;
+                RaiseQuickMatchCommandState();
+            }
+
+            WriteQuickMatchOperation(
+                level,
+                outcome,
+                operationId,
+                queueId,
+                gameflowPhase,
+                connectionState,
+                stopwatch.ElapsedMilliseconds,
+                message,
+                errorCode,
+                errorType,
+                operationException);
+            switch (outcome)
+            {
+                case "Succeeded":
+                    Growl.Info(message);
+                    break;
+                case "Rejected":
+                    Growl.Warning(message);
+                    break;
+                case "Failed":
+                    Growl.Error(message);
+                    break;
+            }
+        }
+
+        private static void WriteQuickMatchOperation(
+            LogEventLevel level,
+            string outcome,
+            Guid operationId,
+            int queueId,
+            GameflowPhase gameflowPhase,
+            ConnectionState connectionState,
+            long durationMs,
+            string displayMessage,
+            string errorCode = null,
+            string errorType = null,
+            Exception exception = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["QueueId"] = queueId,
+                ["GameflowPhase"] = gameflowPhase.ToString(),
+                ["ConnectionState"] = connectionState.ToString(),
+                ["DurationMs"] = durationMs
+            };
+            if (!string.IsNullOrWhiteSpace(errorCode))
+            {
+                properties["ErrorCode"] = errorCode;
+            }
+
+            if (!string.IsNullOrWhiteSpace(errorType))
+            {
+                properties["ErrorType"] = errorType;
+            }
+
+            OperationLog.Write(
+                level,
+                "lobby.matchmade.create",
+                "Lobby",
+                "Manual",
+                outcome,
+                operationId,
+                "Home",
+                displayMessage,
+                properties,
+                exception);
+        }
+
+        private void RaiseQuickMatchCommandState()
+        {
+            _quickStartSelectedCommand?.RaiseCanExecuteChanged();
+            _quickStartSoloDuoCommand?.RaiseCanExecuteChanged();
+            _quickStartFlexCommand?.RaiseCanExecuteChanged();
+            _quickStartAramCommand?.RaiseCanExecuteChanged();
+            _quickStartHextechAramCommand?.RaiseCanExecuteChanged();
+        }
+
+        private void UpdateQuickStartButtonText()
+        {
+            var queueName = Text(GetQuickMatchQueueNameResourceKey(
+                _selectedQuickMatchQueueId));
+            QuickStartButtonText = string.Format(
+                Text("HomePage.QuickMatch.Button"), queueName);
+        }
+
+        private static string GetQuickMatchQueueNameResourceKey(int queueId)
+        {
+            return queueId switch
+            {
+                GameQueueIds.RankedFlex => "HomePage.QuickMatch.Flex",
+                GameQueueIds.Aram => "HomePage.QuickMatch.Aram",
+                GameQueueIds.HextechAram => "HomePage.QuickMatch.HextechAram",
+                _ => "HomePage.QuickMatch.SoloDuo"
+            };
+        }
+
+        private static int NormalizeQuickMatchQueueId(int queueId)
+        {
+            return queueId is GameQueueIds.RankedSoloDuo or
+                GameQueueIds.RankedFlex or
+                GameQueueIds.Aram or
+                GameQueueIds.HextechAram
+                    ? queueId
+                    : GameQueueIds.RankedSoloDuo;
         }
 
         private async void ExecutePrimaryAction()
@@ -1468,15 +1723,6 @@ namespace Prometheus.Modules.Home.ViewModels
             TheirTeam.Clear();
             RecentMatches.Clear();
             _recentMatchesLoaded = false;
-        }
-
-        private void ResetStageFlags()
-        {
-            IsLobbyStage = false;
-            IsQueueStage = false;
-            IsReadyStage = false;
-            IsChampionStage = false;
-            IsGameStage = false;
         }
 
         private string Text(string key)

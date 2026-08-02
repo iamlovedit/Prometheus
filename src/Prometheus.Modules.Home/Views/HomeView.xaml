@@ -20,29 +20,6 @@
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Background" Value="{DynamicResource RegionBrush}" />
         </Style>
-        <Style x:Key="StagePill" TargetType="{x:Type Border}">
-            <Setter Property="Padding" Value="10,5" />
-            <Setter Property="Margin" Value="0,0,6,0" />
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Background" Value="Transparent" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsLobbyStage}" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsQueueStage}" Value="True">
-                    <Setter Property="Background" Value="{DynamicResource PrimaryBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsReadyStage}" Value="True">
-                    <Setter Property="Background" Value="#B8860B" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsChampionStage}" Value="True">
-                    <Setter Property="Background" Value="#6A4C93" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsGameStage}" Value="True">
-                    <Setter Property="Background" Value="#267A63" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
         <Style x:Key="HomeCaption" TargetType="{x:Type TextBlock}">
             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
             <Setter Property="FontSize" Value="12" />
@@ -60,7 +37,6 @@
             <RowDefinition Height="12" />
             <RowDefinition />
         </Grid.RowDefinitions>
-
         <Border
             Grid.Row="0"
             Padding="12,0"
@@ -69,7 +45,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="220" />
                     <ColumnDefinition />
-                    <ColumnDefinition Width="170" />
+                    <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
@@ -94,63 +70,39 @@
                         </Ellipse>
                         <TextBlock FontWeight="Bold" Text="{Binding ConnectionStatus}" />
                     </StackPanel>
-                    <TextBlock
-                        Margin="17,3,0,0"
-                        Style="{StaticResource HomeCaption}"
-                        Text="{Binding SyncStatus}" />
                 </StackPanel>
                 <StackPanel
                     Grid.Column="1"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Orientation="Horizontal">
-                    <Border Style="{StaticResource StagePill}">
-                        <TextBlock Text="{DynamicResource HomePage.Stage.Lobby}" />
-                    </Border>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        Style="{StaticResource HomeCaption}"
-                        Text="›" />
-                    <Border Style="{StaticResource StagePill}">
-                        <TextBlock Text="{DynamicResource HomePage.Stage.Queue}" />
-                    </Border>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        Style="{StaticResource HomeCaption}"
-                        Text="›" />
-                    <Border Style="{StaticResource StagePill}">
-                        <TextBlock Text="{DynamicResource HomePage.Stage.Ready}" />
-                    </Border>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        Style="{StaticResource HomeCaption}"
-                        Text="›" />
-                    <Border Style="{StaticResource StagePill}">
-                        <TextBlock Text="{DynamicResource HomePage.Stage.Champion}" />
-                    </Border>
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        Style="{StaticResource HomeCaption}"
-                        Text="›" />
-                    <Border Style="{StaticResource StagePill}">
-                        <TextBlock Text="{DynamicResource HomePage.Stage.Game}" />
-                    </Border>
-                </StackPanel>
-                <StackPanel
-                    Grid.Column="2"
                     HorizontalAlignment="Right"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        HorizontalAlignment="Right"
-                        Style="{StaticResource HomeCaption}"
-                        Text="{Binding UpdatedText}" />
+                    Orientation="Horizontal">
+                    <hc:SplitButton
+                        Height="32"
+                        MinWidth="172"
+                        Padding="12,0"
+                        Command="{Binding QuickStartSelectedCommand}"
+                        Content="{Binding QuickStartButtonText}"
+                        HitMode="Click"
+                        MaxDropDownHeight="220"
+                        Style="{DynamicResource SplitButtonPrimary}">
+                        <hc:SplitButton.DropDownContent>
+                            <StackPanel Width="190">
+                                <MenuItem Command="{Binding QuickStartSoloDuoCommand}" Header="{DynamicResource HomePage.QuickMatch.SoloDuo}" />
+                                <MenuItem Command="{Binding QuickStartFlexCommand}" Header="{DynamicResource HomePage.QuickMatch.Flex}" />
+                                <MenuItem Command="{Binding QuickStartAramCommand}" Header="{DynamicResource HomePage.QuickMatch.Aram}" />
+                                <MenuItem Command="{Binding QuickStartHextechAramCommand}" Header="{DynamicResource HomePage.QuickMatch.HextechAram}" />
+                            </StackPanel>
+                        </hc:SplitButton.DropDownContent>
+                    </hc:SplitButton>
                     <Button
-                        Margin="0,4,0,0"
-                        HorizontalAlignment="Right"
                         Command="{Binding OpenClientCommand}"
                         Content="{DynamicResource HomePage.OpenClient}"
                         Style="{DynamicResource ButtonIcon}" />
                 </StackPanel>
+                <TextBlock
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource HomeCaption}"
+                    Text="{Binding UpdatedText}" />
             </Grid>
         </Border>
 

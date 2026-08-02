@@ -18,6 +18,14 @@ namespace Prometheus.Services.Interfaces.Client
 
         IReadOnlyList<int> PreferredAramChampionIds { get; set; }
 
+        bool AutoPickChampion { get; set; }
+
+        bool AutoBanChampion { get; set; }
+
+        IReadOnlyList<int> PreferredPickChampionIds { get; set; }
+
+        IReadOnlyList<int> PreferredBanChampionIds { get; set; }
+
         bool LastPersistenceSucceeded { get; }
 
         event EventHandler Changed;

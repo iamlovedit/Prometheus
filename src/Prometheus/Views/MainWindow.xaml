@@ -279,6 +279,14 @@
                         <MenuItem Header="{Binding TrayGameflowStatus}" IsEnabled="False" />
                         <Separator />
                         <MenuItem Command="{Binding ShowMainWindowCommand}" Header="{Binding TrayShowMainWindowText}" />
+                        <MenuItem Header="{Binding TrayQuickMatchText}" IsEnabled="{Binding IsTrayQuickMatchAvailable}">
+                            <MenuItem Command="{Binding QuickStartLastFromTrayCommand}" Header="{Binding TrayQuickMatchLastText}" />
+                            <Separator />
+                            <MenuItem Command="{Binding QuickStartSoloDuoFromTrayCommand}" Header="{Binding TrayQuickMatchSoloDuoText}" />
+                            <MenuItem Command="{Binding QuickStartFlexFromTrayCommand}" Header="{Binding TrayQuickMatchFlexText}" />
+                            <MenuItem Command="{Binding QuickStartAramFromTrayCommand}" Header="{Binding TrayQuickMatchAramText}" />
+                            <MenuItem Command="{Binding QuickStartHextechAramFromTrayCommand}" Header="{Binding TrayQuickMatchHextechAramText}" />
+                        </MenuItem>
                         <MenuItem
                             Command="{Binding OpenMatchFromTrayCommand}"
                             Header="{Binding TrayOpenMatchText}"

@@ -265,6 +265,139 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal(MenuName.Utility, destination);
         }
 
+        [Fact]
+        public void QuickMatchCommands_AreEnabledOnlyWhenClientIsConnectedAndIdle()
+        {
+            using var context = new TestContext();
+            var command = context.ViewModel.QuickStartSoloDuoCommand;
+
+            Assert.False(command.CanExecute());
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            Assert.True(command.CanExecute());
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.Lobby,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            Assert.False(command.CanExecute());
+        }
+
+        [Theory]
+        [InlineData(GameQueueIds.RankedSoloDuo)]
+        [InlineData(GameQueueIds.RankedFlex)]
+        [InlineData(GameQueueIds.Aram)]
+        [InlineData(GameQueueIds.HextechAram)]
+        public async Task QuickMatchCommand_UsesExpectedQueueId(int queueId)
+        {
+            using var context = new TestContext();
+            var invoked = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                    queueId,
+                    It.IsAny<CancellationToken>()))
+                .Callback<int, CancellationToken>((value, _) =>
+                    invoked.TrySetResult(value))
+                .ReturnsAsync(new MatchmadeLobbyCreationResult
+                {
+                    Status = MatchmadeLobbyCreationStatus.Created,
+                    QueueId = queueId,
+                    Lobby = new LobbySnapshot
+                    {
+                        GameConfig = new LobbyGameConfiguration
+                        {
+                            QueueId = queueId
+                        }
+                    }
+                });
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            var command = queueId switch
+            {
+                GameQueueIds.RankedSoloDuo => context.ViewModel.QuickStartSoloDuoCommand,
+                GameQueueIds.RankedFlex => context.ViewModel.QuickStartFlexCommand,
+                GameQueueIds.Aram => context.ViewModel.QuickStartAramCommand,
+                GameQueueIds.HextechAram => context.ViewModel.QuickStartHextechAramCommand,
+                _ => throw new ArgumentOutOfRangeException(nameof(queueId))
+            };
+            command.Execute();
+
+            Assert.Equal(queueId,
+                await invoked.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+            context.QuickMatchSettings.Verify(settings =>
+                settings.SaveQueueId(queueId), Times.Once);
+        }
+
+        [Fact]
+        public async Task QuickStartSelectedCommand_UsesPersistedQueueId()
+        {
+            using var context = new TestContext(
+                quickMatchQueueId: GameQueueIds.Aram);
+            var invoked = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                    GameQueueIds.Aram,
+                    It.IsAny<CancellationToken>()))
+                .Callback<int, CancellationToken>((value, _) =>
+                    invoked.TrySetResult(value))
+                .ReturnsAsync(new MatchmadeLobbyCreationResult
+                {
+                    Status = MatchmadeLobbyCreationStatus.Created,
+                    QueueId = GameQueueIds.Aram
+                });
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            context.ViewModel.QuickStartSelectedCommand.Execute();
+
+            Assert.Equal(GameQueueIds.Aram,
+                await invoked.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+            context.QuickMatchSettings.Verify(settings =>
+                settings.SaveQueueId(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public void UnsupportedPersistedQueue_DefaultsHomeButtonToSoloDuo()
+        {
+            using var context = new TestContext(quickMatchQueueId: 9999);
+
+            Assert.Equal("Quick start · Solo/Duo",
+                context.ViewModel.QuickStartButtonText);
+        }
+
+        [Fact]
+        public void QuickMatchSettingsChanged_RefreshesHomeButtonText()
+        {
+            using var context = new TestContext();
+            context.QuickMatchSettings.SetupGet(settings => settings.QueueId)
+                .Returns(GameQueueIds.HextechAram);
+
+            context.QuickMatchSettings.Raise(
+                settings => settings.Changed += null,
+                EventArgs.Empty);
+
+            Assert.Equal("Quick start · ARAM Mayhem",
+                context.ViewModel.QuickStartButtonText);
+        }
+
         private sealed class TestContext : IDisposable
         {
             private LiveMatchSnapshot _current = LiveMatchSnapshot.Empty;
@@ -272,7 +405,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
             public TestContext(
                 int[] preferredAramChampionIds = null,
-                IReadOnlyList<MatchModel> recentMatches = null)
+                IReadOnlyList<MatchModel> recentMatches = null,
+                int quickMatchQueueId = GameQueueIds.RankedSoloDuo)
             {
                 _preferredAramChampionIds = preferredAramChampionIds ?? [];
                 MatchService.SetupGet(service => service.Current)
@@ -286,9 +420,16 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     .Returns(true);
                 ResourceService.Setup(service => service.FindResource<string>(
                         It.IsAny<string>()))
-                    .Returns((string key) => key == "HomePage.NoSummoner"
-                        ? "Waiting for summoner data"
-                        : key);
+                    .Returns((string key) => key switch
+                    {
+                        "HomePage.NoSummoner" => "Waiting for summoner data",
+                        "HomePage.QuickMatch.Button" => "Quick start · {0}",
+                        "HomePage.QuickMatch.SoloDuo" => "Solo/Duo",
+                        "HomePage.QuickMatch.Flex" => "Ranked Flex",
+                        "HomePage.QuickMatch.Aram" => "ARAM",
+                        "HomePage.QuickMatch.HextechAram" => "ARAM Mayhem",
+                        _ => key
+                    });
                 SummonerService.Setup(service => service.GetCurrentSummoner(
                         It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new SummonerAccount
@@ -322,6 +463,27 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 GameResourceManager.Setup(service => service.GetChampoinIconByIdAsync(
                         It.IsAny<int>()))
                     .ReturnsAsync((int championId) => $"{championId}.png");
+                GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                        It.IsAny<int>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((int queueId, CancellationToken _) =>
+                        new MatchmadeLobbyCreationResult
+                        {
+                            Status = MatchmadeLobbyCreationStatus.Created,
+                            QueueId = queueId,
+                            Lobby = new LobbySnapshot
+                            {
+                                GameConfig = new LobbyGameConfiguration
+                                {
+                                    QueueId = queueId
+                                }
+                            }
+                        });
+                QuickMatchSettings.SetupGet(settings => settings.QueueId)
+                    .Returns(quickMatchQueueId);
+                QuickMatchSettings.Setup(settings => settings.SaveQueueId(
+                        It.IsAny<int>()))
+                    .Returns(true);
 
                 ViewModel = new HomeViewModel(
                     RegionManager.Object,
@@ -330,7 +492,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     SummonerService.Object,
                     GameResourceManager.Object,
                     ResourceService.Object,
-                    ClientService.Object);
+                    ClientService.Object,
+                    GameService.Object,
+                    QuickMatchSettings.Object);
             }
 
             public Mock<IRegionManager> RegionManager { get; } = new();
@@ -348,6 +512,10 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             public Mock<IResourceService> ResourceService { get; } = new();
 
             public Mock<IClientService> ClientService { get; } = new();
+
+            public Mock<IGameService> GameService { get; } = new();
+
+            public Mock<IQuickMatchSettings> QuickMatchSettings { get; } = new();
 
             public HomeViewModel ViewModel { get; }
 

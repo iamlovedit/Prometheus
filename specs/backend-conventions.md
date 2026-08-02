@@ -155,6 +155,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 - 通用 HTTP 层**不做**隐式重试；重试是业务决策，集中在 `MatchService`：
   - 自动接受对局（Accept）：`0ms → 500ms → 1500ms`
   - 自动重连对局（Reconnect）：`0s → 2s → 5s`
+  - 自动选用 / 禁用英雄：只处理本人的 `isInProgress && !completed` 动作，按配置优先级最多尝试 3 个当前可用候选；禁用时必须排除队友预选英雄；通过 `/complete` 显式锁定。
 - 新增自动化动作应沿用"少量、递增延迟、可取消"的模式，禁止无限重试。
 
 ---
@@ -257,6 +258,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `IGameResourceManager` | `GameResourceManager` | 游戏静态资源（装备/符文/英雄/头像）拉取与本地文件缓存 |
 | `IResourceService` | `ResourceService` | 主题/语言/段位图标等 WPF 资源切换 |
 | `IGameAutomationSettings` | `GameAutomationSettings` | 自动化开关的 JSON 持久化（损坏文件按默认关闭处理，线程安全） |
+| `IQuickMatchSettings` | `QuickMatchSettings` | 上次快速匹配队列的本地 JSON 持久化与变更通知（损坏或无效值回退单双排） |
 
 ---
 
@@ -314,13 +316,13 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `lol-summoner/v1/current-summoner/summoner-profile` | GET / POST | 读 / 写生涯背景（`{key:"backgroundSkinId", value}`） | `GameResourceManager` |
 | `lol-summoner/v1/current-summoner/icon` | PUT | 设置召唤师头像 | `GameService` |
 | `lol-chat/v1/me` | PUT | 在线状态 / 签名 / 展示段位 | `GameService` |
-| `lol-lobby/v2/lobby` | GET / POST | 房间快照 / 创建训练模式房间 | `MatchService` / `GameService` |
+| `lol-lobby/v2/lobby` | GET / POST | 房间快照 / 创建训练模式或匹配队列房间 | `MatchService` / `GameService` |
 | `lol-matchmaking/v1/search` | GET | 匹配中状态 | `MatchService` |
 | `lol-matchmaking/v1/ready-check` · `/accept` | GET / POST | 就绪检查 / 接受对局 | `MatchService` / `GameService` |
 | `lol-champ-select/v1/session` | GET | BP 会话快照 | `MatchService` / `GameService` |
-| `lol-champ-select/v1/session/actions/{actionId}` | PATCH | 选择 / 禁用英雄（`{type, championId}`） | `GameService` |
+| `lol-champ-select/v1/session/actions/{actionId}` · `/complete` | PATCH / POST | 更新选择 / 禁用英雄动作，并显式锁定当前动作 | `GameService` / `MatchService` |
 | `lol-champ-select/v1/session/bench/swap/{championId}` | POST | 大乱斗替补席交换英雄 | `GameService` / `MatchService` |
-| `lol-champ-select/v1/current-champion` · `pickable-champions` · `pin-drop-notification` | GET | 当前英雄 / 可选列表 / 分边 | `GameService` |
+| `lol-champ-select/v1/current-champion` · `pickable-champion-ids` · `bannable-champion-ids` · `pin-drop-notification` | GET | 当前英雄 / 当前可选与可禁用列表 / 分边；旧客户端列表端点仅作 404 兼容回退 | `GameService` |
 | `lol-gameflow/v1/gameflow-phase` | GET | 对局阶段（Lobby/ChampSelect/InProgress…） | `MatchService` |
 | `lol-gameflow/v1/session` | GET | 对局会话全量 | `MatchService` / `GameService` |
 | `lol-gameflow/v1/reconnect` | POST | 重连对局 | `GameService` |
