@@ -270,6 +270,17 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 4. **阶段版本**：`_phaseVersion/_phaseInstance` 单调递增，自动化动作（接受/重连）按实例去重，防止同一阶段重复执行。
 5. 新的"实时"状态域必须沿用同一模式（快照不可变 + 事件 + 取消令牌），禁止引入第二种推送机制。
 
+### 8.1 实时阵容分阶段加载
+
+实时阵容与最近战绩必须按游戏阶段渐进加载，禁止在选人阶段提前查询敌方身份：
+
+1. `ChampSelect` 只解析并加载己方可见成员；每名己方成员查询固定的最近 20 场战绩。敌方保持隐藏占位，不得使用 gameflow 会话中提前出现的敌方 PUUID 发起查询。
+2. `GameStart` 仅作为阶段过渡，保留 `ChampSelect` 已发布的己方阵容，不启动双方玩家资料查询。
+3. `InProgress` 使用 gameflow 双方阵容，只对首次出现的敌方 PUUID 加载召唤师、段位和最近 20 场战绩；己方沿用 `ChampSelect` 已加载的数据。
+4. 同一局中相同 PUUID 的自动加载结果必须跨阵容事件和阶段切换复用。英雄、技能、位置或重复 WebSocket 事件变化不得重复查询已成功或已失败的玩家资料。
+5. 单个玩家加载失败只把该玩家标记为失败，不得清空整队去重状态或由后续相同 WebSocket 事件立即重试。用户主动刷新时允许清空玩家缓存并重新加载。
+6. 相同 raw phase 的重复 `/lol-gameflow/v1/gameflow-phase` 事件不得再次执行全量阶段 HTTP 刷新；`_refreshGate` 只用于串行化真实刷新，不能代替事件去重。
+
 ---
 
 ## 9. 资源缓存约定

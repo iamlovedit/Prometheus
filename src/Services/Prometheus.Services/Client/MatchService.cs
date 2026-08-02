@@ -71,12 +71,13 @@ namespace Prometheus.Services.Client
         private readonly SemaphoreSlim _refreshGate = new(1, 1);
         private readonly SemaphoreSlim _playerLoadGate =
             new(MaximumConcurrentPlayerLoads, MaximumConcurrentPlayerLoads);
-        private readonly ConcurrentDictionary<PlayerCacheKey,
-            Lazy<Task<PlayerPerformanceData>>> _playerCache = new();
+        private readonly ConcurrentDictionary<string,
+            Lazy<Task<PlayerPerformanceData>>> _playerCache = new(StringComparer.Ordinal);
 
         private LiveMatchSnapshot _current = LiveMatchSnapshot.Empty;
         private CancellationTokenSource _lifetimeCts;
         private CancellationTokenSource _phaseCts;
+        private CancellationTokenSource _playerLoadCts;
         private CancellationTokenSource _acceptAutomationCts;
         private CancellationTokenSource _reconnectAutomationCts;
         private CancellationTokenSource _aramBenchSwapAutomationCts;
@@ -175,6 +176,8 @@ namespace Prometheus.Services.Client
                 _started = true;
                 _lifetimeCts = new CancellationTokenSource();
                 _phaseCts = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token);
+                _playerLoadCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    _lifetimeCts.Token);
                 _phaseVersion++;
                 _phaseInstance++;
                 _initializedConnection = string.Empty;
@@ -237,11 +240,11 @@ namespace Prometheus.Services.Client
                 phaseVersionBefore = _phaseVersion;
             }
 
-            // RefreshAsync is the user-visible/manual refresh boundary. Any
-            // in-flight roster enrichment belongs to the previous request,
-            // and only successful data may survive in the cache between
-            // automatic websocket updates.
-            _ = CancelRosterEnrichment(clearCache: true, resetSignature: true);
+            // RefreshAsync is the user-visible/manual refresh boundary. Automatic
+            // websocket updates reuse both completed and in-flight player loads;
+            // an explicit refresh cancels that lifetime and starts a clean load.
+            _ = CancelRosterEnrichment(clearCache: false, resetSignature: true);
+            ResetPlayerLoadLifetime();
 
             if (!_leagueClient.Connected || !_httpService.IsInitialized)
             {
@@ -299,9 +302,10 @@ namespace Prometheus.Services.Client
 
             var context = string.IsNullOrWhiteSpace(rawPhase)
                 ? GetCurrentPhaseContext()
-                : TransitionPhase(rawPhase);
+                : TransitionPhase(rawPhase, scheduleRosterRefresh: false).Context;
 
-            await RefreshForPhaseAsync(context, phaseError, phaseException, cancellationToken)
+            await RefreshForPhaseAsync(context, phaseError, phaseException, cancellationToken,
+                    forceRosterReload: true)
                 .ConfigureAwait(false);
         }
 
@@ -314,6 +318,7 @@ namespace Prometheus.Services.Client
         {
             CancellationTokenSource lifetimeCts;
             CancellationTokenSource phaseCts;
+            CancellationTokenSource playerLoadCts;
             CancellationTokenSource acceptCts;
             CancellationTokenSource reconnectCts;
             CancellationTokenSource aramBenchSwapCts;
@@ -337,6 +342,7 @@ namespace Prometheus.Services.Client
                 {
                     lifetimeCts = _lifetimeCts;
                     phaseCts = _phaseCts;
+                    playerLoadCts = _playerLoadCts;
                     acceptCts = _acceptAutomationCts;
                     reconnectCts = _reconnectAutomationCts;
                     aramBenchSwapCts = _aramBenchSwapAutomationCts;
@@ -345,6 +351,7 @@ namespace Prometheus.Services.Client
                     aramBenchSwapTask = _aramBenchSwapAutomationTask;
                     _lifetimeCts = null;
                     _phaseCts = null;
+                    _playerLoadCts = null;
                     _acceptAutomationCts = null;
                     _reconnectAutomationCts = null;
                     _aramBenchSwapAutomationCts = null;
@@ -370,6 +377,7 @@ namespace Prometheus.Services.Client
 
             lifetimeCts?.Cancel();
             phaseCts?.Cancel();
+            playerLoadCts?.Cancel();
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
             aramBenchSwapCts?.Cancel();
@@ -385,6 +393,7 @@ namespace Prometheus.Services.Client
 
             lifetimeCts?.Dispose();
             phaseCts?.Dispose();
+            playerLoadCts?.Dispose();
             acceptCts?.Dispose();
             reconnectCts?.Dispose();
             aramBenchSwapCts?.Dispose();
@@ -584,7 +593,8 @@ namespace Prometheus.Services.Client
             acceptCts?.Cancel();
             reconnectCts?.Cancel();
             aramBenchSwapCts?.Cancel();
-            CancelRosterEnrichment(clearCache: true, resetSignature: true);
+            CancelRosterEnrichment(clearCache: false, resetSignature: true);
+            ResetPlayerLoadLifetime();
             _currentSummoner = null;
             _httpService.Reset();
 
@@ -609,8 +619,11 @@ namespace Prometheus.Services.Client
                 return;
             }
 
-            var context = TransitionPhase(rawPhase);
-            _ = RefreshForPhaseSafelyAsync(context);
+            var transition = TransitionPhase(rawPhase);
+            if (transition.Changed)
+            {
+                _ = RefreshForPhaseSafelyAsync(transition.Context);
+            }
         }
 
         private async Task RefreshForPhaseSafelyAsync(PhaseContext context)
@@ -642,8 +655,11 @@ namespace Prometheus.Services.Client
                 !string.Equals(value.Phase, GetCurrentSnapshot().RawPhase,
                     StringComparison.OrdinalIgnoreCase))
             {
-                var context = TransitionPhase(value.Phase);
-                _ = RefreshForPhaseSafelyAsync(context);
+                var transition = TransitionPhase(value.Phase);
+                if (transition.Changed)
+                {
+                    _ = RefreshForPhaseSafelyAsync(transition.Context);
+                }
                 return;
             }
 
@@ -697,7 +713,8 @@ namespace Prometheus.Services.Client
         }
 
         private async Task RefreshForPhaseAsync(PhaseContext context, string phaseError,
-            Exception phaseException, CancellationToken cancellationToken)
+            Exception phaseException, CancellationToken cancellationToken,
+            bool forceRosterReload = false)
         {
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                 context.Token, cancellationToken);
@@ -819,7 +836,7 @@ namespace Prometheus.Services.Client
                     ApplyRosterDataQuality(next);
                     return next;
                 }, errorLogContext);
-                ScheduleRosterRefresh();
+                ScheduleRosterRefresh(forceRosterReload);
                 TriggerAutomation(context);
             }
             finally
@@ -828,9 +845,14 @@ namespace Prometheus.Services.Client
             }
         }
 
-        private void ScheduleRosterRefresh()
+        private void ScheduleRosterRefresh(bool forcePlayerReload = false)
         {
             var source = GetCurrentSnapshot();
+            if (source.GameflowPhase == GameflowPhase.GameStart)
+            {
+                return;
+            }
+
             var sourceSignature = BuildRosterSourceSignature(source);
             CancellationToken lifetimeToken;
             CancellationToken phaseToken;
@@ -851,8 +873,9 @@ namespace Prometheus.Services.Client
             long generation;
             lock (_rosterSync)
             {
-                if (string.Equals(_rosterSourceSignature, sourceSignature,
-                    StringComparison.Ordinal))
+                if (!forcePlayerReload &&
+                    string.Equals(_rosterSourceSignature, sourceSignature,
+                        StringComparison.Ordinal))
                 {
                     return;
                 }
@@ -870,7 +893,7 @@ namespace Prometheus.Services.Client
             previousCts?.Dispose();
 
             var task = ResolveAndEnrichRosterAsync(source, sourceSignature,
-                generation, rosterCts.Token);
+                generation, forcePlayerReload, rosterCts.Token);
             lock (_rosterSync)
             {
                 if (generation == _rosterGeneration &&
@@ -882,7 +905,8 @@ namespace Prometheus.Services.Client
         }
 
         private async Task ResolveAndEnrichRosterAsync(LiveMatchSnapshot source,
-            string sourceSignature, long generation, CancellationToken cancellationToken)
+            string sourceSignature, long generation, bool forcePlayerReload,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -893,8 +917,7 @@ namespace Prometheus.Services.Client
                 }
 
                 RosterDefinition definition;
-                if (source.GameflowPhase == GameflowPhase.ChampSelect &&
-                    !ShouldUseGameflowRoster(source))
+                if (source.GameflowPhase == GameflowPhase.ChampSelect)
                 {
                     definition = BuildChampionSelectRoster(source, sourceSignature);
                 }
@@ -915,7 +938,11 @@ namespace Prometheus.Services.Client
                     return;
                 }
 
-                PrunePlayerCache(definition.GameId);
+                if (!forcePlayerReload)
+                {
+                    definition = CarryForwardPlayerData(definition, source.Roster);
+                }
+
                 var roster = new LiveMatchRosterSnapshot
                 {
                     GameId = definition.GameId,
@@ -1012,6 +1039,87 @@ namespace Prometheus.Services.Client
             return new RosterDefinition(gameId, sourceSignature, myTeam, theirTeam);
         }
 
+        private static RosterDefinition CarryForwardPlayerData(
+            RosterDefinition definition, LiveMatchRosterSnapshot previousRoster)
+        {
+            if (definition is null || previousRoster is null)
+            {
+                return definition;
+            }
+
+            var previousPlayers = (previousRoster.MyTeam ??
+                    Array.Empty<LiveMatchPlayerSnapshot>())
+                .Concat(previousRoster.TheirTeam ??
+                    Array.Empty<LiveMatchPlayerSnapshot>())
+                .Where(player => player is not null &&
+                    !string.IsNullOrWhiteSpace(player.Puuid) &&
+                    player.DataState is LiveMatchPlayerDataState.Loaded or
+                        LiveMatchPlayerDataState.Error)
+                .GroupBy(player => NormalizePuuid(player.Puuid),
+                    StringComparer.Ordinal)
+                .ToDictionary(group => group.Key,
+                    group => group.OrderByDescending(player =>
+                            player.DataState == LiveMatchPlayerDataState.Loaded)
+                        .First(),
+                    StringComparer.Ordinal);
+
+            if (previousPlayers.Count == 0)
+            {
+                return definition;
+            }
+
+            return new RosterDefinition(definition.GameId, definition.Signature,
+                definition.MyTeam.Select(player => CarryForwardPlayerData(
+                    player, previousPlayers)).ToArray(),
+                definition.TheirTeam.Select(player => CarryForwardPlayerData(
+                    player, previousPlayers)).ToArray());
+        }
+
+        private static LiveMatchPlayerSnapshot CarryForwardPlayerData(
+            LiveMatchPlayerSnapshot player,
+            IReadOnlyDictionary<string, LiveMatchPlayerSnapshot> previousPlayers)
+        {
+            if (player is null || string.IsNullOrWhiteSpace(player.Puuid) ||
+                !previousPlayers.TryGetValue(NormalizePuuid(player.Puuid),
+                    out var previous))
+            {
+                return player;
+            }
+
+            var next = ClonePlayer(player);
+            if (next.ChampionId == previous.ChampionId)
+            {
+                next.ChampionIcon = previous.ChampionIcon;
+            }
+            if (next.Spell1Id == previous.Spell1Id)
+            {
+                next.Spell1Icon = previous.Spell1Icon;
+            }
+            if (next.Spell2Id == previous.Spell2Id)
+            {
+                next.Spell2Icon = previous.Spell2Icon;
+            }
+
+            next.DisplayName = FirstNotEmpty(next.DisplayName, previous.DisplayName);
+            if (previous.DataState == LiveMatchPlayerDataState.Error)
+            {
+                next.DataState = LiveMatchPlayerDataState.Error;
+                next.Error = previous.Error;
+                return next;
+            }
+
+            next.Summoner = previous.Summoner;
+            next.SoloRank = previous.SoloRank;
+            next.RecentWins = previous.RecentWins;
+            next.RecentLosses = previous.RecentLosses;
+            next.RecentMatchCount = previous.RecentMatchCount;
+            next.AverageKda = previous.AverageKda;
+            next.RecentResults = previous.RecentResults?.ToArray() ?? Array.Empty<bool>();
+            next.DataState = LiveMatchPlayerDataState.Loaded;
+            next.Error = string.Empty;
+            return next;
+        }
+
         private async Task EnrichPlayerAsync(long gameId, LiveMatchPlayerSnapshot player,
             int index, bool isMyTeam, long generation,
             CancellationToken cancellationToken)
@@ -1030,7 +1138,7 @@ namespace Prometheus.Services.Client
                 await _playerLoadGate.WaitAsync(cancellationToken).ConfigureAwait(false);
                 gateEntered = true;
 
-                var performance = await GetPlayerPerformanceAsync(gameId, player.Puuid,
+                var performance = await GetPlayerPerformanceAsync(player.Puuid,
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 PublishPlayerUpdate(generation, cancellationToken, isMyTeam, index,
@@ -1052,7 +1160,6 @@ namespace Prometheus.Services.Client
                         current.Error = "Unable to load player performance.";
                         return current;
                     });
-                MarkRosterRetryable(generation);
             }
             finally
             {
@@ -1106,27 +1213,26 @@ namespace Prometheus.Services.Client
             }
         }
 
-        private Task<PlayerPerformanceData> GetPlayerPerformanceAsync(long gameId,
-            string puuid, CancellationToken cancellationToken)
+        private Task<PlayerPerformanceData> GetPlayerPerformanceAsync(string puuid,
+            CancellationToken cancellationToken)
         {
-            // Some client builds briefly omit the game id during champion
-            // select. Never let that sentinel value share player data across
-            // separate matches.
-            if (gameId <= 0)
+            var key = NormalizePuuid(puuid);
+            CancellationToken playerLoadToken;
+            lock (_stateSync)
             {
-                return LoadPlayerPerformanceAsync(puuid, cancellationToken);
+                playerLoadToken = _playerLoadCts?.Token ?? new CancellationToken(true);
             }
 
-            var key = new PlayerCacheKey(gameId, NormalizePuuid(puuid));
             var lazy = _playerCache.GetOrAdd(key, _ =>
                 new Lazy<Task<PlayerPerformanceData>>(
-                    () => LoadPlayerPerformanceAsync(puuid, cancellationToken),
+                    () => LoadPlayerPerformanceAsync(puuid, playerLoadToken),
                     LazyThreadSafetyMode.ExecutionAndPublication));
-            return AwaitCachedPlayerPerformanceAsync(key, lazy);
+            return AwaitCachedPlayerPerformanceAsync(key, lazy)
+                .WaitAsync(cancellationToken);
         }
 
         private async Task<PlayerPerformanceData> AwaitCachedPlayerPerformanceAsync(
-            PlayerCacheKey key, Lazy<Task<PlayerPerformanceData>> lazy)
+            string key, Lazy<Task<PlayerPerformanceData>> lazy)
         {
             try
             {
@@ -1324,12 +1430,20 @@ namespace Prometheus.Services.Client
             return rosterTask ?? Task.CompletedTask;
         }
 
-        private void PrunePlayerCache(long gameId)
+        private void ResetPlayerLoadLifetime()
         {
-            foreach (var key in _playerCache.Keys.Where(key => key.GameId != gameId))
+            CancellationTokenSource previousCts;
+            lock (_stateSync)
             {
-                _playerCache.TryRemove(key, out _);
+                previousCts = _playerLoadCts;
+                _playerLoadCts = _started && _lifetimeCts is not null
+                    ? CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCts.Token)
+                    : null;
             }
+
+            previousCts?.Cancel();
+            previousCts?.Dispose();
+            _playerCache.Clear();
         }
 
         private static LiveMatchPlayerSnapshot ApplyPerformance(
@@ -1508,18 +1622,16 @@ namespace Prometheus.Services.Client
                 .Append(snapshot.GameflowPhase)
                 .Append(':')
                 .Append(GetGameId(snapshot));
-            var useGameflowRoster = ShouldUseGameflowRoster(snapshot);
-            var isGameflowPhase = snapshot.GameflowPhase is GameflowPhase.GameStart or
-                GameflowPhase.InProgress or GameflowPhase.Reconnect;
-            if (snapshot.GameflowPhase == GameflowPhase.ChampSelect &&
-                !useGameflowRoster)
+            var isGameflowPhase = snapshot.GameflowPhase is GameflowPhase.InProgress or
+                GameflowPhase.Reconnect;
+            if (snapshot.GameflowPhase == GameflowPhase.ChampSelect)
             {
                 var championSelect = snapshot.ChampionSelect;
                 builder.Append(':').Append(championSelect?.LocalPlayerCellId ?? 0);
                 AppendChampionSelectSignature(builder, championSelect?.MyTeam, false);
                 AppendChampionSelectSignature(builder, championSelect?.TheirTeam, true);
             }
-            else if (isGameflowPhase || useGameflowRoster)
+            else if (isGameflowPhase)
             {
                 AppendGameflowSignature(builder,
                     snapshot.GameflowSession?.GameData?.TeamOne);
@@ -1590,12 +1702,6 @@ namespace Prometheus.Services.Client
         {
             return gameData is not null && (gameData.TeamOne?.Count ?? 0) > 0 &&
                 (gameData.TeamTwo?.Count ?? 0) > 0;
-        }
-
-        private static bool ShouldUseGameflowRoster(LiveMatchSnapshot snapshot)
-        {
-            return snapshot?.GameflowSession?.GameClient?.Running == true &&
-                HasGameflowTeams(snapshot.GameflowSession.GameData);
         }
 
         private static bool CanLocateCurrentSummoner(GameflowGameData gameData,
@@ -1780,7 +1886,8 @@ namespace Prometheus.Services.Client
                 GameflowPhase.InProgress or GameflowPhase.Reconnect;
         }
 
-        private PhaseContext TransitionPhase(string rawPhase)
+        private PhaseTransitionResult TransitionPhase(string rawPhase,
+            bool scheduleRosterRefresh = true)
         {
             rawPhase = rawPhase?.Trim().Trim('"') ?? string.Empty;
             var parsedPhase = ParsePhase(rawPhase);
@@ -1791,16 +1898,18 @@ namespace Prometheus.Services.Client
             {
                 if (!_started || _lifetimeCts is null)
                 {
-                    return new PhaseContext(_phaseVersion, _phaseInstance, parsedPhase,
-                        rawPhase, new CancellationToken(true));
+                    return new PhaseTransitionResult(
+                        new PhaseContext(_phaseVersion, _phaseInstance, parsedPhase,
+                            rawPhase, new CancellationToken(true)), false);
                 }
 
                 if (string.Equals(GetCurrentSnapshot().RawPhase, rawPhase,
                         StringComparison.OrdinalIgnoreCase) &&
                     _phaseCts is not null)
                 {
-                    return new PhaseContext(_phaseVersion, _phaseInstance, parsedPhase,
-                        rawPhase, _phaseCts.Token);
+                    return new PhaseTransitionResult(
+                        new PhaseContext(_phaseVersion, _phaseInstance, parsedPhase,
+                            rawPhase, _phaseCts.Token), false);
                 }
 
                 oldPhaseCts = _phaseCts;
@@ -1814,10 +1923,19 @@ namespace Prometheus.Services.Client
             oldPhaseCts?.Cancel();
             oldPhaseCts?.Dispose();
 
+            if (!IsRosterPhase(parsedPhase))
+            {
+                CancelRosterEnrichment(clearCache: false, resetSignature: true);
+                ResetPlayerLoadLifetime();
+            }
+
             PublishSnapshot(snapshot => PrepareForPhase(snapshot, parsedPhase, rawPhase));
-            ScheduleRosterRefresh();
+            if (scheduleRosterRefresh)
+            {
+                ScheduleRosterRefresh();
+            }
             TriggerAutomation(context);
-            return context;
+            return new PhaseTransitionResult(context, true);
         }
 
         private PhaseContext GetCurrentPhaseContext()
@@ -2764,7 +2882,9 @@ namespace Prometheus.Services.Client
             public CancellationToken Token { get; }
         }
 
-        private readonly record struct PlayerCacheKey(long GameId, string Puuid);
+        private readonly record struct PhaseTransitionResult(
+            PhaseContext Context,
+            bool Changed);
 
         private sealed record PlayerPerformanceData(
             SummonerAccount Summoner,

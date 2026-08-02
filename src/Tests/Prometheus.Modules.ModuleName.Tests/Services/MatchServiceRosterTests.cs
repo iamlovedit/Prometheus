@@ -137,11 +137,8 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             await context.Service.StopAsync();
         }
 
-        [Theory]
-        [InlineData("GameStart")]
-        [InlineData("InProgress")]
-        public async Task ChampionSelectThenGameflow_LoadsAlliesThenRevealsAndLoadsBothTeams(
-            string gameflowPhase)
+        [Fact]
+        public async Task ChampionSelectThenGameStartThenInProgress_LoadsAlliesThenEnemiesOnce()
         {
             var context = CreateContext();
             context.Phase = "ChampSelect";
@@ -156,7 +153,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                     Puuid = $"champ-select-enemy-{index}"
                 })
                 .ToList();
-            context.GameflowSession = CreateRealShapeGameflowSession(gameflowPhase);
+            context.GameflowSession = CreateRealShapeGameflowSession("GameStart");
 
             await context.Service.StartAsync();
             var championSelect = await WaitForSnapshotAsync(context.Service, value =>
@@ -178,26 +175,24 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Never);
 
-            var transitionSnapshots = new ConcurrentQueue<LiveMatchSnapshot>();
-            EventHandler<LiveMatchSnapshotChangedEventArgs> transitionHandler = (_, args) =>
-            {
-                if (args.Snapshot.GameflowPhase is GameflowPhase.GameStart or
-                    GameflowPhase.InProgress)
-                {
-                    transitionSnapshots.Enqueue(args.Snapshot);
-                }
-            };
-            context.Service.SnapshotChanged += transitionHandler;
-            context.PublishPhase(gameflowPhase);
-            var expectedPhase = Enum.Parse<GameflowPhase>(gameflowPhase);
+            context.PublishPhase("GameStart");
+            var gameStart = await WaitForSnapshotAsync(context.Service, value =>
+                value.GameflowPhase == GameflowPhase.GameStart &&
+                value.GameflowSession?.Phase == "GameStart");
+            Assert.All(gameStart.Roster.TheirTeam, player =>
+                Assert.True(player.IsHidden));
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Never);
+
+            context.GameflowSession.Phase = "InProgress";
+            context.PublishPhase("InProgress");
             var inGame = await WaitForSnapshotAsync(context.Service, value =>
-                value.GameflowPhase == expectedPhase &&
-                value.Roster?.SourcePhase == expectedPhase &&
+                value.GameflowPhase == GameflowPhase.InProgress &&
+                value.Roster?.SourcePhase == GameflowPhase.InProgress &&
                 value.Roster.MyTeam.Count == 5 &&
                 value.Roster.TheirTeam.Count == 5 &&
                 value.Roster.MyTeam.Concat(value.Roster.TheirTeam).All(player =>
                     player.DataState == LiveMatchPlayerDataState.Loaded));
-            context.Service.SnapshotChanged -= transitionHandler;
 
             Assert.Contains(inGame.Roster.MyTeam, player =>
                 player.Puuid == "local-puuid" && player.IsLocalPlayer);
@@ -211,8 +206,6 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             }, inGame.Roster.TheirTeam.Select(player => player.Puuid));
             Assert.All(inGame.Roster.MyTeam.Concat(inGame.Roster.TheirTeam), player =>
                 Assert.False(player.IsHidden));
-            Assert.DoesNotContain(transitionSnapshots, snapshot =>
-                snapshot.Roster is null || snapshot.Roster.MyTeam.Count == 0);
 
             context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
@@ -220,6 +213,12 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
             context.SummonerService.Verify(service => service.GetMatchHistoryAsync(
                 "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "ally-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetRankStatsByPuuid(
+                "ally-1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.GetMatchHistoryAsync(
+                "ally-1", It.IsAny<CancellationToken>()), Times.Once);
             context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Never);
 
@@ -227,7 +226,52 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
-        public async Task ChampionSelect_WhenGameClientStarts_UsesCompleteGameflowRoster()
+        public async Task InFlightAllyLoad_AcrossGameStartAndInProgress_IsNotRequestedTwice()
+        {
+            var context = CreateContext();
+            context.Phase = "ChampSelect";
+            context.ChampionSelect = CreateChampionSelect(
+                "local-puuid", "ally-1", "ally-2", "ally-3", "ally-4");
+            context.GameflowSession = CreateRealShapeGameflowSession("GameStart");
+            var allyEntered = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseAlly = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var allyRequests = 0;
+            context.SummonerService.Setup(service => service.SearchSummonerByPuuid(
+                    "ally-1", It.IsAny<CancellationToken>()))
+                .Returns(async (string puuid, CancellationToken cancellationToken) =>
+                {
+                    Interlocked.Increment(ref allyRequests);
+                    allyEntered.TrySetResult(true);
+                    await releaseAlly.Task.WaitAsync(cancellationToken);
+                    return CreateSummoner(puuid);
+                });
+
+            await context.Service.StartAsync();
+            await allyEntered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+            context.PublishPhase("GameStart");
+            context.GameflowSession.Phase = "InProgress";
+            context.PublishPhase("InProgress");
+            releaseAlly.TrySetResult(true);
+
+            await WaitForSnapshotAsync(context.Service, value =>
+                value.GameflowPhase == GameflowPhase.InProgress &&
+                value.Roster?.MyTeam.Any(player => player.Puuid == "ally-1" &&
+                    player.DataState == LiveMatchPlayerDataState.Loaded) == true &&
+                value.Roster.TheirTeam.Any(player => player.Puuid == "enemy-1" &&
+                    player.DataState == LiveMatchPlayerDataState.Loaded));
+
+            Assert.Equal(1, Volatile.Read(ref allyRequests));
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task ChampionSelect_WhenGameClientStarts_KeepsEnemyRosterHidden()
         {
             var context = CreateContext();
             context.Phase = "ChampSelect";
@@ -248,22 +292,23 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.All(championSelect.Roster.TheirTeam, player =>
                 Assert.True(player.IsHidden));
 
+            var version = championSelect.Version;
             context.GameflowSession.GameClient.Running = true;
             context.PublishSession();
-            var inGameRoster = await WaitForSnapshotAsync(context.Service, value =>
+            var updated = await WaitForSnapshotAsync(context.Service, value =>
+                value.Version > version &&
                 value.GameflowPhase == GameflowPhase.ChampSelect &&
-                value.Roster?.MyTeam.Count == 5 &&
-                value.Roster.TheirTeam.Count == 5 &&
-                value.Roster.TheirTeam.Any(player => player.Puuid == "enemy-1") &&
-                value.Roster.MyTeam.Concat(value.Roster.TheirTeam).All(player =>
-                    player.DataState == LiveMatchPlayerDataState.Loaded));
+                value.GameflowSession?.GameClient?.Running == true);
 
-            Assert.Contains(inGameRoster.Roster.MyTeam, player =>
+            Assert.Contains(updated.Roster.MyTeam, player =>
                 player.Puuid == "local-puuid" && player.IsLocalPlayer);
-            Assert.All(inGameRoster.Roster.TheirTeam, player =>
-                Assert.False(player.IsHidden));
+            Assert.All(updated.Roster.TheirTeam, player =>
+            {
+                Assert.True(player.IsHidden);
+                Assert.Equal(string.Empty, player.Puuid);
+            });
             context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
-                "enemy-1", It.IsAny<CancellationToken>()), Times.Once);
+                "enemy-1", It.IsAny<CancellationToken>()), Times.Never);
             context.SummonerService.Verify(service => service.GetCurrentSummoner(
                 It.IsAny<CancellationToken>()), Times.Never);
 
@@ -383,7 +428,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
-        public async Task FailedPlayerLoad_IsNotCachedAndSameRosterCanRetry()
+        public async Task FailedPlayerLoad_DoesNotRetryUntilManualRefresh()
         {
             var context = CreateContext();
             context.Phase = "ChampSelect";
@@ -406,10 +451,40 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 value.Roster?.MyTeam[0].DataState == LiveMatchPlayerDataState.Error);
             await WaitUntilAsync(() => Volatile.Read(ref attempts) == 1);
 
+            context.ChampionSelect.MyTeam[0].ChampionId = 99;
             context.PublishChampionSelect();
+            await Task.Delay(100);
+            Assert.Equal(1, Volatile.Read(ref attempts));
+            Assert.Equal(LiveMatchPlayerDataState.Error,
+                context.Service.Current.Roster.MyTeam[0].DataState);
+
+            await context.Service.RefreshAsync();
             await WaitForSnapshotAsync(context.Service, value =>
                 value.Roster?.MyTeam[0].DataState == LiveMatchPlayerDataState.Loaded);
             Assert.Equal(2, Volatile.Read(ref attempts));
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task DuplicateGameStartPhaseEvent_DoesNotRepeatResourceRefresh()
+        {
+            var context = CreateContext();
+            context.Phase = "GameStart";
+            context.GameflowSession = CreateRealShapeGameflowSession("GameStart");
+
+            await context.Service.StartAsync();
+            context.GameService.Invocations.Clear();
+
+            context.PublishPhase("GameStart");
+            await Task.Delay(100);
+
+            context.GameService.Verify(service =>
+                service.GetGameflowSessionSnapshotAsync(
+                    It.IsAny<CancellationToken>()), Times.Never);
+            context.GameService.Verify(service =>
+                service.GetChampionSelectSnapshotAsync(
+                    It.IsAny<CancellationToken>()), Times.Never);
 
             await context.Service.StopAsync();
         }
