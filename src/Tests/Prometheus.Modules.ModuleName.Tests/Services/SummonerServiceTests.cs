@@ -1,5 +1,6 @@
 using Moq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Client;
 using Prometheus.Services.Interfaces;
@@ -42,6 +43,62 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.Same(expected, result);
             httpService.Verify(service => service.GetAsync<SummonerAccount>(
                 "lol-summoner/v1/current-summoner", null, cancellationToken), Times.Once);
+        }
+
+        [Fact]
+        public async Task SearchSummonerByName_WhenRiotIdProvided_UsesAliasEndpoint()
+        {
+            var httpService = new Mock<IHttpService>();
+            var cancellationToken = new CancellationTokenSource().Token;
+            var expected = new SummonerAccount { Puuid = "resolved-puuid" };
+            httpService.Setup(service => service.PostAsync<List<SummonerAccount>>(
+                    "lol-summoner/v1/summoners/aliases",
+                    It.Is<object>(body => IsAliasRequest(body, "Visible Player", "CN1")),
+                    null, cancellationToken))
+                .ReturnsAsync([expected]);
+            var service = CreateService(httpService);
+
+            var result = await service.SearchSummonerByName(
+                "  Visible Player＃CN1  ", cancellationToken);
+
+            Assert.Same(expected, result);
+            httpService.Verify(service => service.PostAsync<List<SummonerAccount>>(
+                "lol-summoner/v1/summoners/aliases",
+                It.Is<object>(body => IsAliasRequest(body, "Visible Player", "CN1")),
+                null, cancellationToken), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("Visible Player")]
+        [InlineData("#CN1")]
+        [InlineData("Visible Player#")]
+        public async Task SearchSummonerByName_WhenRiotIdIsIncomplete_DoesNotCallLcu(
+            string riotId)
+        {
+            var httpService = new Mock<IHttpService>();
+            var service = CreateService(httpService);
+
+            var result = await service.SearchSummonerByName(riotId);
+
+            Assert.Null(result);
+            httpService.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task SearchSummonerByName_WhenAliasRequestFails_ReturnsNull()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.PostAsync<List<SummonerAccount>>(
+                    "lol-summoner/v1/summoners/aliases", It.IsAny<object>(), null,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException("Summoner unavailable"));
+            var service = CreateService(httpService);
+
+            var result = await service.SearchSummonerByName("Visible Player#CN1");
+
+            Assert.Null(result);
         }
 
         [Fact]
@@ -322,6 +379,13 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 
             var match = Assert.Single(result.Matches);
             Assert.Equal("CLASSIC", match.DisplayGameMode);
+        }
+
+        private static bool IsAliasRequest(object body, string gameName, string tagLine)
+        {
+            var request = JArray.Parse(JsonConvert.SerializeObject(body)).First as JObject;
+            return request?["gameName"]?.Value<string>() == gameName &&
+                   request["tagLine"]?.Value<string>() == tagLine;
         }
     }
 }

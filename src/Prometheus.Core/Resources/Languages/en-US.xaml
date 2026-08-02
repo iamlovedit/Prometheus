@@ -244,8 +244,8 @@
     <sys:String x:Key="HomePage.Position.Bottom">Bottom</sys:String>
     <sys:String x:Key="HomePage.Position.Utility">Support</sys:String>
     <sys:String x:Key="HomePage.Position.Unknown">Unassigned</sys:String>
-    <sys:String x:Key="Search.SearchNamePlaceHolder">Search summoner</sys:String>
-    <sys:String x:Key="Search.SearchNameTips">Only search for summoners in the same server eg: Yasuo#89757</sys:String>
+    <sys:String x:Key="Search.SearchNamePlaceHolder">Search Riot ID (game name#tag)</sys:String>
+    <sys:String x:Key="Search.SearchNameTips">Enter the complete Riot ID from the same region, for example: Yasuo#89757</sys:String>
     <sys:String x:Key="Search.UserNotFound">User not found</sys:String>
     <sys:String x:Key="Search.Description">Search for summoners in your current region and view their career profiles</sys:String>
     <sys:String x:Key="Search.Section.Title">Search summoner</sys:String>

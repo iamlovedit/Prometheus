@@ -129,7 +129,10 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 
 - 端点一律写成**相对路径常量**（如 `lol-summoner/v1/current-summoner`），集中声明为服务类内的 `private const string`。禁止在调用处散落字符串字面量。
 - 查询参数以 `IEnumerable<string>` 传入，每个元素是**已编码**的 `"key=value"` 片段；`BuildRelativeUrl` 负责用 `?`/`&` 拼接（自动识别 URL 中已有的 `?`），`BuildQueryStringFromParameters` 自动丢弃空白片段。
-- 参数值必须调用方自行 `HttpUtility.UrlEncode`（参考 `SummonerService.SearchSummonerByName`）。中文召唤师名未编码是历史 bug 的高发点。
+- GET 查询参数值必须调用方自行 `HttpUtility.UrlEncode`。Riot ID 搜索使用
+  `SummonerService.SearchSummonerByName` 将完整的 `gameName#tagLine` 拆分后通过
+  `lol-summoner/v1/summoners/aliases` 的 JSON body 提交，不得再把旧召唤师名单独传给
+  `lol-summoner/v1/summoners?name=`，否则新版 LCU 会返回 422。
 
 ### 4.3 请求方法选择
 
@@ -307,7 +310,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `riotclient/unload` · `ux-show` · `ux-flash` · `ux-minimize` | POST | 退出 / 置前 / 闪烁 / 最小化客户端 | `ClientService` |
 | `lol-game-queues/v1/queues` | GET | 队列模式数据 | `ClientService` |
 | `lol-summoner/v1/current-summoner` | GET | 当前登录召唤师 | `SummonerService` |
-| `lol-summoner/v1/summoners?name=` | GET | 按昵称搜索（需 UrlEncode） | `SummonerService` |
+| `lol-summoner/v1/summoners/aliases` | POST | 按完整 Riot ID 搜索；body 为 `[{gameName, tagLine}]` | `SummonerService` |
 | `lol-summoner/v2/summoners/puuid/{puuid}` | GET | 按 PUUID 查询 | `SummonerService` |
 | `lol-ranked/v1/ranked-stats/{puuid}` | GET | 排位段位 | `SummonerService` |
 | `lol-match-history/v1/products/lol/{puuid}/matches?begIndex=0&endIndex=19` | GET | 最近 20 场战绩；所有调用方使用同一固定窗口以规避 LCU 路径缓存 | `SummonerService` |

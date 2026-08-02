@@ -244,8 +244,8 @@
     <sys:String x:Key="HomePage.Position.Bottom">下路</sys:String>
     <sys:String x:Key="HomePage.Position.Utility">辅助</sys:String>
     <sys:String x:Key="HomePage.Position.Unknown">待分配</sys:String>
-    <sys:String x:Key="Search.SearchNamePlaceHolder">搜索召唤师</sys:String>
-    <sys:String x:Key="Search.SearchNameTips">只能搜索同一大区的召唤师 比如: 王慕霸#89757</sys:String>
+    <sys:String x:Key="Search.SearchNamePlaceHolder">搜索 Riot ID（游戏名#标签）</sys:String>
+    <sys:String x:Key="Search.SearchNameTips">请输入同一大区的完整 Riot ID，例如：王慕霸#89757</sys:String>
     <sys:String x:Key="Search.UserNotFound">用户不存在</sys:String>
     <sys:String x:Key="Search.Description">查询同一大区的召唤师并查看其生涯资料</sys:String>
     <sys:String x:Key="Search.Section.Title">查询召唤师</sys:String>

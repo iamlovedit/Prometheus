@@ -16,6 +16,7 @@
     MinHeight="820"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
     prism:ViewModelLocator.AutoWireViewModel="True"
+    Foreground="{DynamicResource PrimaryTextBrush}"
     Icon="../Resources/Prometheus_16.ico"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
@@ -298,14 +299,17 @@
                         <Separator />
                         <MenuItem Header="{Binding TrayAutomationText}">
                             <MenuItem
+                                Foreground="{Binding MainWindow.Foreground, Source={x:Static Application.Current}}"
                                 Header="{Binding TrayAutoAcceptText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAutoAcceptEnabled, Mode=TwoWay}" />
                             <MenuItem
+                                Foreground="{Binding MainWindow.Foreground, Source={x:Static Application.Current}}"
                                 Header="{Binding TrayAutoReconnectText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAutoReconnectEnabled, Mode=TwoWay}" />
                             <MenuItem
+                                Foreground="{Binding MainWindow.Foreground, Source={x:Static Application.Current}}"
                                 Header="{Binding TrayAramSwapText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAramSwapEnabled, Mode=TwoWay}" />

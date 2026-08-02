@@ -176,7 +176,8 @@
                                         Margin="8,0,0,0"
                                         Command="{Binding SecondaryActionCommand}"
                                         Content="{Binding SecondaryActionText}"
-                                        IsEnabled="{Binding CanSecondaryAction}" />
+                                        IsEnabled="{Binding CanSecondaryAction}"
+                                        Visibility="{Binding CanSecondaryAction, Converter={StaticResource Boolean2VisibilityConverter}}" />
                                 </StackPanel>
                             </StackPanel>
                             <StackPanel HorizontalAlignment="Right" VerticalAlignment="Bottom">

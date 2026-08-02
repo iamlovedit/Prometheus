@@ -1,17 +1,15 @@
-using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Newtonsoft.Json;
 using Serilog;
-using System.Web;
 
 namespace Prometheus.Services.Client
 {
     public class SummonerService : ISummonerService
     {
         private const string CurrentSummonerEndpoint = "lol-summoner/v1/current-summoner";
-        private const string SummonerByNameEndpoint = "lol-summoner/v1/summoners";
+        private const string SummonerAliasesEndpoint = "lol-summoner/v1/summoners/aliases";
         private const string SummonerByPuuidEndpoint = "lol-summoner/v2/summoners/puuid/{0}";
         private const string RankedStatsEndpoint = "lol-ranked/v1/ranked-stats/{0}";
         private const string MatchHistoryEndpoint =
@@ -78,12 +76,38 @@ namespace Prometheus.Services.Client
             }
         }
 
-        public async Task<SummonerAccount> SearchSummonerByName(string nickname)
+        public async Task<SummonerAccount> SearchSummonerByName(string riotId,
+            CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync<SummonerAccount>(SummonerByNameEndpoint,
-            [
-               $"name={HttpUtility.UrlEncode(nickname)}"
-            ]);
+            if (!TryParseRiotId(riotId, out var gameName, out var tagLine))
+            {
+                return default;
+            }
+
+            try
+            {
+                var aliases = await _httpService.PostAsync<List<SummonerAccount>>(
+                    SummonerAliasesEndpoint,
+                    new[]
+                    {
+                        new SummonerAliasRequest
+                        {
+                            GameName = gameName,
+                            TagLine = tagLine
+                        }
+                    }, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return aliases?.FirstOrDefault();
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Error(exception, "Unable to search LCU summoner alias");
+                return default;
+            }
+            catch (JsonException exception)
+            {
+                Log.Error(exception, "Unable to parse LCU summoner alias response");
+                return default;
+            }
         }
 
         public async Task<SummonerAccount> SearchSummonerByPuuid(string puuid,
@@ -158,6 +182,34 @@ namespace Prometheus.Services.Client
                     Error = "Unable to parse match history."
                 };
             }
+        }
+
+        private static bool TryParseRiotId(string riotId, out string gameName,
+            out string tagLine)
+        {
+            gameName = null;
+            tagLine = null;
+
+            var normalized = riotId?.Trim().Replace('＃', '#');
+            var separatorIndex = normalized?.LastIndexOf('#') ?? -1;
+            if (separatorIndex <= 0 || separatorIndex >= normalized.Length - 1)
+            {
+                return false;
+            }
+
+            gameName = normalized[..separatorIndex].Trim();
+            tagLine = normalized[(separatorIndex + 1)..].Trim();
+            return !string.IsNullOrWhiteSpace(gameName) &&
+                   !string.IsNullOrWhiteSpace(tagLine);
+        }
+
+        private sealed class SummonerAliasRequest
+        {
+            [JsonProperty("gameName")]
+            public string GameName { get; init; }
+
+            [JsonProperty("tagLine")]
+            public string TagLine { get; init; }
         }
     }
 }

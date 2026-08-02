@@ -10,7 +10,14 @@ namespace Prometheus.Services.Interfaces.Client
         /// </summary>
         Task<SummonerAccount> GetCurrentSummoner(CancellationToken cancellationToken = default);
 
-        Task<SummonerAccount> SearchSummonerByName(string nickname);
+        /// <summary>
+        /// Resolves a complete Riot ID (<c>gameName#tagLine</c>) through
+        /// <c>lol-summoner/v1/summoners/aliases</c>.
+        /// Returns <see langword="null"/> when the Riot ID is invalid, cannot be found, or LCU
+        /// is unavailable, and supports cancellation.
+        /// </summary>
+        Task<SummonerAccount> SearchSummonerByName(string riotId,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets an account from <c>lol-summoner/v2/summoners/puuid/{puuid}</c>.

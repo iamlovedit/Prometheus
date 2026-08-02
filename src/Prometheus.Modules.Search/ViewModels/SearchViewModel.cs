@@ -35,11 +35,19 @@ namespace Prometheus.Modules.Search.ViewModels
         {
             try
             {
-                if (string.IsNullOrEmpty(name))
+                if (string.IsNullOrWhiteSpace(name))
                 {
                     return;
                 }
-                var summoner = await _summonerService.SearchSummonerByName(name);
+
+                HasSummoner = true;
+                var summoner = await _summonerService.SearchSummonerByName(name.Trim());
+                if (summoner is null)
+                {
+                    HasSummoner = false;
+                    return;
+                }
+
                 _eventAggregtor.GetEvent<SearchSummonerEvent>().Publish(summoner);
             }
             catch (HttpRequestException)

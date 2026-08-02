@@ -774,7 +774,7 @@ namespace Prometheus.Modules.Home.ViewModels
             SummaryTitle = Text("HomePage.Summary.Status");
             EmptySummaryText = Text("HomePage.Summary.InGame");
             PrimaryActionText = Text("HomePage.OpenClient");
-            SecondaryActionText = Text("Menu.Utility");
+            CanSecondaryAction = false;
         }
 
         private void ConfigureReconnect()
@@ -1151,8 +1151,12 @@ namespace Prometheus.Modules.Home.ViewModels
                 var summoner = await _summonerService.SearchSummonerByName(name.Trim());
                 if (summoner is not null)
                 {
+                    ErrorText = null;
                     _eventAggregator.GetEvent<SearchSummonerEvent>().Publish(summoner);
+                    return;
                 }
+
+                ErrorText = Text("Search.NotFound.Description");
             }
             catch (Exception exception)
             {
