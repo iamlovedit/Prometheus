@@ -303,7 +303,12 @@ namespace Prometheus.Services.Client
 
             var champion = await _httpService.GetAsync<ChampionSkins>(
                 $"lol-game-data/assets/v1/champions/{championId}.json");
-            skins = champion?.Skins ?? [];
+            if (champion is null)
+            {
+                return [];
+            }
+
+            skins = champion.Skins ?? [];
             _skinsByChampion[championId] = skins;
             return skins;
         }

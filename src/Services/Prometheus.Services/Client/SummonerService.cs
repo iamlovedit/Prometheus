@@ -29,9 +29,25 @@ namespace Prometheus.Services.Client
             _clientService = clientService ?? throw new ArgumentNullException(nameof(clientService));
         }
 
-        public async Task<string> GetBackdorpByIdAsync(long summonerId)
+        public async Task<string> GetBackdorpByIdAsync(long summonerId,
+            CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync(string.Format(BackdropEndpoint, summonerId));
+            if (summonerId <= 0)
+            {
+                return default;
+            }
+
+            try
+            {
+                return await _httpService.GetAsync(
+                    string.Format(BackdropEndpoint, summonerId),
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Error(exception, "Unable to load LCU summoner backdrop");
+                return default;
+            }
         }
 
         public async Task<SummonerAccount> GetCurrentSummoner(
@@ -44,9 +60,22 @@ namespace Prometheus.Services.Client
         public async Task<string> GetRankStatsByPuuid(string puuid,
             CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync(string.Format(
-                RankedStatsEndpoint, Uri.EscapeDataString(puuid)),
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(puuid))
+            {
+                return default;
+            }
+
+            try
+            {
+                return await _httpService.GetAsync(string.Format(
+                    RankedStatsEndpoint, Uri.EscapeDataString(puuid)),
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Error(exception, "Unable to load LCU ranked stats");
+                return default;
+            }
         }
 
         public async Task<SummonerAccount> SearchSummonerByName(string nickname)

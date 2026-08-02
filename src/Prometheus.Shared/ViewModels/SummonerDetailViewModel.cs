@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Prism.Commands;
 using Prism.Ioc;
@@ -8,6 +9,7 @@ using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
+using Serilog;
 using System.Windows;
 
 namespace Prometheus.Shared.ViewModels
@@ -51,73 +53,206 @@ namespace Prometheus.Shared.ViewModels
         private async Task OnNavigatedToAsync(NavigationContext navigationContext)
         {
             IsLoading = true;
-            RecentMatches = null;
 
             try
             {
-                if (navigationContext.Parameters.TryGetValue<bool>(ParameterNames.CanEdit, out var canEdit))
-                {
-                    CanModify = canEdit;
-                }
-                if (navigationContext.Parameters.TryGetValue<SummonerAccount>(ParameterNames.Summoner, out var summoner))
+                ResetPresentation();
+                var canEdit = navigationContext.Parameters.TryGetValue<bool>(
+                    ParameterNames.CanEdit, out var editable) && editable;
+                CanModify = canEdit;
+                if (navigationContext.Parameters.TryGetValue<SummonerAccount>(
+                        ParameterNames.Summoner, out var summoner) && summoner is not null)
                 {
                     Summoner = summoner;
                     IsPublic = summoner.Privacy == "PUBLIC";
-                    var skinId = 0;
-                    if (canEdit)
-                    {
-                        var jsonValue = await _gameResourceManager.GetBackgroundSkinId();
-                        if (!string.IsNullOrEmpty(jsonValue))
-                        {
-                            skinId = JObject.Parse(jsonValue)["backgroundSkinId"].ToObject<int>();
-                        }
-                    }
-                    else
-                    {
-                        var jsonValue = await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId);
-                        if (!string.IsNullOrEmpty(jsonValue))
-                        {
-                            var uri = JObject.Parse(jsonValue)["backdropImage"].ToString();
-                            if (int.TryParse(Path.GetFileNameWithoutExtension(uri), out skinId))
-                            {
-                            }
-                        }
-                    }
-                    BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
-                    ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(_summoner.ProfileIconId);
-                    var rankJson = await _summonerService.GetRankStatsByPuuid(_summoner.Puuid);
-                    if (!string.IsNullOrEmpty(rankJson))
-                    {
-                        var jObject = JObject.Parse(rankJson);
-                        Flex = jObject["queueMap"]["RANKED_FLEX_SR"].ToObject<Rank>();
-                        Solo = jObject["queueMap"]["RANKED_SOLO_5x5"].ToObject<Rank>();
-                        Ranks = [Solo, Flex];
-                        RaisePropertyChanged(nameof(Ranks));
-                        SoloIcon = _resourceService.GetTierIconResourceUri(Solo.Tier.ToString().ToLower());
-                        FlexIcon = _resourceService.GetTierIconResourceUri(Flex.Tier.ToString().ToLower());
-
-                    }
-                    var matchResult = await _summonerService.GetMatchHistoryAsync(
-                        _summoner.Puuid);
-                    var matches = matchResult?.Succeeded == true
-                        ? matchResult.Matches?.ToList() ?? []
-                        : [];
-                    Wins = matches.Where(m => m.Participants[0].Stats.Win).Count();
-                    Losses = matches.Count - Wins;
-                    var killed = matches.Sum(m => m.Participants[0].Stats.Kills);
-                    var deaths = matches.Sum(m => m.Participants[0].Stats.Deaths);
-                    var assists = matches.Sum(m => m.Participants[0].Stats.Assists);
-                    KDA = $"{killed}/{deaths}/{assists}";
-                    await Task.WhenAll(matches.Select(async match =>
-                        match.Participants[0].ChampionIcon = await _gameResourceManager
-                            .GetChampoinIconByIdAsync(match.Participants[0].ChampionId)));
-                    RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
+                    await LoadBackgroundAsync(summoner, canEdit);
+                    await LoadProfileIconAsync(summoner.ProfileIconId);
+                    await LoadRanksAsync(summoner.Puuid);
+                    await LoadRecentMatchesAsync(summoner.Puuid);
                 }
             }
             finally
             {
                 IsLoading = false;
             }
+        }
+
+        private void ResetPresentation()
+        {
+            BackgroundSkin = null;
+            ProfileIcon = null;
+            RecentMatches = null;
+            Wins = 0;
+            Losses = 0;
+            KDA = string.Empty;
+            ApplyRanks(
+                CreateUnrankedRank(QueueType.RANKED_SOLO_5x5),
+                CreateUnrankedRank(QueueType.RANKED_FLEX_SR));
+        }
+
+        private async Task LoadBackgroundAsync(SummonerAccount summoner, bool canEdit)
+        {
+            var skinId = 0;
+            try
+            {
+                var json = canEdit
+                    ? await _gameResourceManager.GetBackgroundSkinId()
+                    : await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId);
+                skinId = ParseBackgroundSkinId(json);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load summoner backdrop metadata");
+            }
+
+            try
+            {
+                BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load summoner backdrop image");
+            }
+        }
+
+        private async Task LoadProfileIconAsync(int profileIconId)
+        {
+            try
+            {
+                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(profileIconId);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load summoner profile icon");
+            }
+        }
+
+        private async Task LoadRanksAsync(string puuid)
+        {
+            var solo = CreateUnrankedRank(QueueType.RANKED_SOLO_5x5);
+            var flex = CreateUnrankedRank(QueueType.RANKED_FLEX_SR);
+
+            try
+            {
+                var rankJson = await _summonerService.GetRankStatsByPuuid(puuid);
+                if (!string.IsNullOrWhiteSpace(rankJson))
+                {
+                    var queueMap = JObject.Parse(rankJson)["queueMap"];
+                    solo = queueMap?["RANKED_SOLO_5x5"]?.ToObject<Rank>() ?? solo;
+                    flex = queueMap?["RANKED_FLEX_SR"]?.ToObject<Rank>() ?? flex;
+                }
+            }
+            catch (JsonException exception)
+            {
+                Log.Warning(exception, "Unable to parse summoner ranked stats");
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Warning(exception, "Unable to load summoner ranked stats");
+            }
+
+            ApplyRanks(solo, flex);
+        }
+
+        private async Task LoadRecentMatchesAsync(string puuid)
+        {
+            var matches = new List<Match>();
+            try
+            {
+                var matchResult = await _summonerService.GetMatchHistoryAsync(puuid);
+                if (matchResult?.Succeeded == true)
+                {
+                    matches = matchResult.Matches?.ToList() ?? [];
+                }
+
+                Wins = matches.Count(match => match.Participants[0].Stats.Win);
+                Losses = matches.Count - Wins;
+                var killed = matches.Sum(match => match.Participants[0].Stats.Kills);
+                var deaths = matches.Sum(match => match.Participants[0].Stats.Deaths);
+                var assists = matches.Sum(match => match.Participants[0].Stats.Assists);
+                KDA = $"{killed}/{deaths}/{assists}";
+                await Task.WhenAll(matches.Select(async match =>
+                    match.Participants[0].ChampionIcon = await _gameResourceManager
+                        .GetChampoinIconByIdAsync(match.Participants[0].ChampionId)));
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to load summoner recent matches");
+                matches = [];
+            }
+
+            RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
+        }
+
+        private void ApplyRanks(Rank solo, Rank flex)
+        {
+            Solo = solo;
+            Flex = flex;
+            Ranks = [Solo, Flex];
+            RaisePropertyChanged(nameof(Ranks));
+            SoloIcon = _resourceService.GetTierIconResourceUri(
+                Solo.Tier.ToString().ToLowerInvariant());
+            FlexIcon = _resourceService.GetTierIconResourceUri(
+                Flex.Tier.ToString().ToLowerInvariant());
+        }
+
+        private static Rank CreateUnrankedRank(QueueType queueType)
+        {
+            return new Rank
+            {
+                QueueType = queueType,
+                Tier = Tier.UNRANKED
+            };
+        }
+
+        private static int ParseBackgroundSkinId(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return 0;
+            }
+
+            var backdrop = JObject.Parse(json);
+            var skinId = backdrop["backgroundSkinId"]?.ToObject<int?>() ?? 0;
+            if (skinId > 0)
+            {
+                return skinId;
+            }
+
+            var imagePath = backdrop["backdropImage"]?.ToString();
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                return 0;
+            }
+
+            var pathWithoutQuery = imagePath.Split(['?', '#'], 2)[0];
+            var fileName = Path.GetFileNameWithoutExtension(pathWithoutQuery);
+            if (int.TryParse(fileName, out skinId))
+            {
+                return BuildSkinId(backdrop, skinId);
+            }
+
+            var separatorIndex = fileName.LastIndexOf('_');
+            if (separatorIndex < 0 || separatorIndex == fileName.Length - 1 ||
+                !int.TryParse(fileName[(separatorIndex + 1)..], out var skinNumber))
+            {
+                return 0;
+            }
+
+            return BuildSkinId(backdrop, skinNumber);
+        }
+
+        private static int BuildSkinId(JObject backdrop, int skinNumberOrId)
+        {
+            if (skinNumberOrId >= 1000)
+            {
+                return skinNumberOrId;
+            }
+
+            var championId = backdrop["championId"]?.ToObject<int?>() ?? 0;
+            return championId > 0 && skinNumberOrId >= 0
+                ? championId * 1000 + skinNumberOrId
+                : 0;
         }
 
         public override void OnNavigatedFrom(NavigationContext navigationContext)

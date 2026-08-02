@@ -84,6 +84,36 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public async Task GetRankStatsByPuuid_WhenLcuRequestFails_ReturnsNull()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync(
+                    "lol-ranked/v1/ranked-stats/player-puuid", null,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException("Ranked stats unavailable"));
+            var service = CreateService(httpService);
+
+            var result = await service.GetRankStatsByPuuid("player-puuid");
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetBackdorpByIdAsync_WhenLcuRequestFails_ReturnsNull()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync(
+                    "lol-collections/v1/inventories/123/backdrop", null,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException("Backdrop unavailable"));
+            var service = CreateService(httpService);
+
+            var result = await service.GetBackdorpByIdAsync(123);
+
+            Assert.Null(result);
+        }
+
+        [Fact]
         public async Task GetMatchHistoryAsync_RequestsStableTwentyMatchWindow()
         {
             var httpService = new Mock<IHttpService>();

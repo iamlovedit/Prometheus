@@ -128,8 +128,12 @@ namespace Prometheus.Modules.Summoner.ViewModels
             }
             else
             {
-                Skins = await _gameResourceManager.GetSkinsByChampionIdAsync(id);
-                _skinsCache[id] = _skins;
+                var loadedSkins = await _gameResourceManager.GetSkinsByChampionIdAsync(id);
+                Skins = loadedSkins;
+                if (loadedSkins is { Count: > 0 })
+                {
+                    _skinsCache[id] = loadedSkins;
+                }
             }
         }
 

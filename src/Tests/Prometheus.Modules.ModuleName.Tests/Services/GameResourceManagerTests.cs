@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Moq;
 using Prism.Ioc;
 using Prometheus.Core;
@@ -10,6 +12,59 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 {
     public class GameResourceManagerTests
     {
+        [Theory]
+        [InlineData(4045, "borders")]
+        [InlineData(7055, "augments")]
+        public void ChampionSkins_WhenSkinAugmentsIsObject_Deserializes(
+            int skinId,
+            string augmentProperty)
+        {
+            var json = $$"""
+                {
+                  "skins": [
+                    {
+                      "id": {{skinId}},
+                      "name": "Regression skin",
+                      "skinAugments": {
+                        "{{augmentProperty}}": {}
+                      }
+                    }
+                  ]
+                }
+                """;
+
+            var champion = JsonConvert.DeserializeObject<ChampionSkins>(json);
+
+            var skin = Assert.Single(Assert.IsType<ChampionSkins>(champion).Skins);
+            Assert.Equal(skinId, skin.Id);
+            var augments = Assert.IsType<JObject>(skin.SkinAugments);
+            Assert.NotNull(augments[augmentProperty]);
+        }
+
+        [Fact]
+        public async Task GetSkinsByChampionIdAsync_WhenMetadataIsTemporarilyUnavailable_Retries()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.SetupSequence(service => service.GetAsync<ChampionSkins>(
+                    "lol-game-data/assets/v1/champions/4.json", null,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((ChampionSkins)null)
+                .ReturnsAsync(new ChampionSkins());
+            var manager = new GameResourceManager(httpService.Object,
+                new Mock<IContainerExtension>().Object);
+
+            var unavailableResult = await manager.GetSkinsByChampionIdAsync(4);
+            var retryResult = await manager.GetSkinsByChampionIdAsync(4);
+            var cachedResult = await manager.GetSkinsByChampionIdAsync(4);
+
+            Assert.Empty(unavailableResult);
+            Assert.Empty(retryResult);
+            Assert.Empty(cachedResult);
+            httpService.Verify(service => service.GetAsync<ChampionSkins>(
+                "lol-game-data/assets/v1/champions/4.json", null,
+                It.IsAny<CancellationToken>()), Times.Exactly(2));
+        }
+
         [Fact]
         public async Task GetPerkIconByIdAsync_WhenPerkIdIsInvalid_ReturnsNull()
         {

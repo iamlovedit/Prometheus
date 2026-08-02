@@ -26,7 +26,14 @@ namespace Prometheus.Services.Interfaces.Client
         Task<string> GetRankStatsByPuuid(string puuid,
             CancellationToken cancellationToken = default);
 
-        Task<string> GetBackdorpByIdAsync(long summonerId);
+        /// <summary>
+        /// Gets the career backdrop from
+        /// <c>lol-collections/v1/inventories/{summonerId}/backdrop</c>.
+        /// Returns <see langword="null"/> when the backdrop is unavailable and supports
+        /// cancellation.
+        /// </summary>
+        Task<string> GetBackdorpByIdAsync(long summonerId,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the 20 most recent matches from

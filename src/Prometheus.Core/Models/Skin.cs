@@ -1,3 +1,4 @@
+using Newtonsoft.Json.Linq;
 
 namespace Prometheus.Core.Models
 {
@@ -53,7 +54,7 @@ namespace Prometheus.Core.Models
 
         public List<SkinLines> SkinLines { get; set; }
 
-        public string SkinAugments { get; set; }
+        public JToken SkinAugments { get; set; }
 
         public string Description { get; set; }
     }
