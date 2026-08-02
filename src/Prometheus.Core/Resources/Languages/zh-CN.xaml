@@ -173,6 +173,15 @@
     <sys:String x:Key="HomePage.Action.Reconnect">重新连接游戏</sys:String>
     <sys:String x:Key="HomePage.Action.Retry">重新同步</sys:String>
     <sys:String x:Key="HomePage.Action.Syncing">同步中</sys:String>
+    <sys:String x:Key="HomePage.Action.LaunchGame">启动游戏</sys:String>
+    <sys:String x:Key="HomePage.Action.LaunchingGame">正在启动游戏…</sys:String>
+    <sys:String x:Key="HomePage.Launch.ExternalLauncherRequired">未找到国服独立登录组件 TCLS；Prometheus 不会自动启动 WeGame。</sys:String>
+    <sys:String x:Key="HomePage.Launch.NotFound">未找到英雄联盟启动器，请确认游戏已正确安装。</sys:String>
+    <sys:String x:Key="HomePage.Launch.Failed">启动游戏失败，请尝试从官方游戏启动器手动启动。</sys:String>
+    <sys:String x:Key="HomePage.Launch.Timeout">客户端尚未连接，请在游戏登录窗口完成登录并确认游戏已更新。</sys:String>
+    <sys:String x:Key="HomePage.Launch.Requested">已向游戏启动器发送启动请求。</sys:String>
+    <sys:String x:Key="HomePage.Launch.AlreadyRunning">英雄联盟客户端已在启动或运行。</sys:String>
+    <sys:String x:Key="HomePage.Launch.Cancelled">启动游戏操作已取消。</sys:String>
     <sys:String x:Key="HomePage.Phase.Syncing.Title">正在同步客户端</sys:String>
     <sys:String x:Key="HomePage.Phase.Syncing.Description">连接已经建立，正在读取账号和当前游戏阶段。</sys:String>
     <sys:String x:Key="HomePage.Phase.Syncing.Detail">这通常只需要几秒钟</sys:String>

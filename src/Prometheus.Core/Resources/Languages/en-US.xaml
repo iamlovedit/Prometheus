@@ -173,6 +173,15 @@
     <sys:String x:Key="HomePage.Action.Reconnect">Reconnect game</sys:String>
     <sys:String x:Key="HomePage.Action.Retry">Synchronize again</sys:String>
     <sys:String x:Key="HomePage.Action.Syncing">Synchronizing</sys:String>
+    <sys:String x:Key="HomePage.Action.LaunchGame">Launch game</sys:String>
+    <sys:String x:Key="HomePage.Action.LaunchingGame">Launching game…</sys:String>
+    <sys:String x:Key="HomePage.Launch.ExternalLauncherRequired">The standalone Tencent login component TCLS was not found. Prometheus will not start WeGame automatically.</sys:String>
+    <sys:String x:Key="HomePage.Launch.NotFound">The League launcher was not found. Confirm that the game is installed correctly.</sys:String>
+    <sys:String x:Key="HomePage.Launch.Failed">Unable to launch the game. Try starting it from the official game launcher.</sys:String>
+    <sys:String x:Key="HomePage.Launch.Timeout">The client has not connected yet. Complete sign-in in the game launcher and confirm that the game is updated.</sys:String>
+    <sys:String x:Key="HomePage.Launch.Requested">The game launch request was sent to the installed launcher.</sys:String>
+    <sys:String x:Key="HomePage.Launch.AlreadyRunning">League Client is already starting or running.</sys:String>
+    <sys:String x:Key="HomePage.Launch.Cancelled">The game launch operation was cancelled.</sys:String>
     <sys:String x:Key="HomePage.Phase.Syncing.Title">Synchronizing the client</sys:String>
     <sys:String x:Key="HomePage.Phase.Syncing.Description">The connection is ready; account and gameflow data are being loaded.</sys:String>
     <sys:String x:Key="HomePage.Phase.Syncing.Detail">This normally takes only a few seconds</sys:String>

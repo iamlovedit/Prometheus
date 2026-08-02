@@ -20,6 +20,8 @@ namespace Prometheus.Modules.Home.ViewModels
 {
     public class HomeViewModel : RegionViewModelBase
     {
+        private static readonly TimeSpan GameLaunchTimeout = TimeSpan.FromSeconds(90);
+
         private readonly IEventAggregator _eventAggregator;
         private readonly IMatchService _matchService;
         private readonly IGameAutomationSettings _automationSettings;
@@ -27,6 +29,7 @@ namespace Prometheus.Modules.Home.ViewModels
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IResourceService _resourceService;
         private readonly IClientService _clientService;
+        private readonly ILeagueClientLauncher _leagueClientLauncher;
         private readonly IGameService _gameService;
         private readonly IQuickMatchSettings _quickMatchSettings;
         private readonly DispatcherTimer _displayTimer;
@@ -34,6 +37,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private CancellationTokenSource _dashboardCts;
         private CancellationTokenSource _quickMatchLobbyCts;
+        private CancellationTokenSource _gameLaunchCts;
         private int _dashboardVersion;
         private int _teamVersion;
         private bool _dashboardLoaded;
@@ -49,6 +53,7 @@ namespace Prometheus.Modules.Home.ViewModels
         private bool _preferredAramChampionDetailsLoaded;
         private bool _preferredAramChampionLoading;
         private bool _isCreatingQuickMatchLobby;
+        private bool _leagueClientProcessRunning;
         private int _selectedQuickMatchQueueId;
         private MenuName _summaryDestination = MenuName.Match;
 
@@ -60,6 +65,7 @@ namespace Prometheus.Modules.Home.ViewModels
             IGameResourceManager gameResourceManager,
             IResourceService resourceService,
             IClientService clientService,
+            ILeagueClientLauncher leagueClientLauncher,
             IGameService gameService,
             IQuickMatchSettings quickMatchSettings) : base(regionManager)
         {
@@ -70,6 +76,7 @@ namespace Prometheus.Modules.Home.ViewModels
             _gameResourceManager = gameResourceManager;
             _resourceService = resourceService;
             _clientService = clientService;
+            _leagueClientLauncher = leagueClientLauncher;
             _gameService = gameService;
             _quickMatchSettings = quickMatchSettings;
             _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
@@ -204,7 +211,13 @@ namespace Prometheus.Modules.Home.ViewModels
         public bool CanPrimaryAction
         {
             get => _canPrimaryAction;
-            set => SetProperty(ref _canPrimaryAction, value);
+            set
+            {
+                if (SetProperty(ref _canPrimaryAction, value))
+                {
+                    _primaryActionCommand?.RaiseCanExecuteChanged();
+                }
+            }
         }
 
         private bool _canSecondaryAction = true;
@@ -347,6 +360,13 @@ namespace Prometheus.Modules.Home.ViewModels
             set => SetProperty(ref _isConnected, value);
         }
 
+        private bool _isLaunchingGame;
+        public bool IsLaunchingGame
+        {
+            get => _isLaunchingGame;
+            private set => SetProperty(ref _isLaunchingGame, value);
+        }
+
         private bool _isError;
         public bool IsError
         {
@@ -429,7 +449,8 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private DelegateCommand _primaryActionCommand;
         public DelegateCommand PrimaryActionCommand =>
-            _primaryActionCommand ??= new DelegateCommand(ExecutePrimaryAction);
+            _primaryActionCommand ??= new DelegateCommand(
+                ExecutePrimaryAction, () => CanPrimaryAction);
 
         private DelegateCommand _secondaryActionCommand;
         public DelegateCommand SecondaryActionCommand =>
@@ -437,7 +458,7 @@ namespace Prometheus.Modules.Home.ViewModels
 
         private DelegateCommand _openClientCommand;
         public DelegateCommand OpenClientCommand =>
-            _openClientCommand ??= new DelegateCommand(OpenClient);
+            _openClientCommand ??= new DelegateCommand(OpenClient, () => IsConnected);
 
         private DelegateCommand _openMatchCommand;
         public DelegateCommand OpenMatchCommand =>
@@ -516,6 +537,7 @@ namespace Prometheus.Modules.Home.ViewModels
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(HandleLanguageChanged);
             _preferredAramChampionVersion++;
             _quickMatchLobbyCts?.Cancel();
+            CancelGameLaunch();
             CancelDashboardLoad();
             base.Destroy();
         }
@@ -561,9 +583,18 @@ namespace Prometheus.Modules.Home.ViewModels
             _teamVersion++;
             var wasConnected = IsConnected;
 
-            IsConnected = _snapshot.ConnectionState == ConnectionState.Connected;
+            var isConnected = _snapshot.ConnectionState == ConnectionState.Connected;
+            if (isConnected && IsLaunchingGame)
+            {
+                CancelGameLaunch();
+            }
+
+            IsConnected = isConnected;
+            _leagueClientProcessRunning = IsConnected ||
+                _leagueClientLauncher.IsLeagueClientRunning();
             IsError = _snapshot.ConnectionState == ConnectionState.Error ||
                       _snapshot.GameflowPhase == GameflowPhase.TerminatedInError;
+            _openClientCommand?.RaiseCanExecuteChanged();
             UpdatedText = string.Format(Text("HomePage.Updated"),
                 _snapshot.UpdatedAt.ToLocalTime().ToString("HH:mm:ss"));
             SyncStatus = string.IsNullOrWhiteSpace(_snapshot.RawPhase)
@@ -586,14 +617,42 @@ namespace Prometheus.Modules.Home.ViewModels
             {
                 case ConnectionState.Connecting:
                 case ConnectionState.Reconnecting:
-                    ConfigureConnecting();
+                    if (ShouldShowLaunchGame())
+                    {
+                        ConfigureDisconnected();
+                    }
+                    else
+                    {
+                        ConfigureConnecting();
+                    }
                     break;
                 case ConnectionState.Disconnected:
+                    if (IsLaunchingGame || _leagueClientProcessRunning)
+                    {
+                        ConfigureConnecting();
+                    }
+                    else
+                    {
+                        ConfigureDisconnected();
+                    }
+                    break;
                 case ConnectionState.Stopping:
                     ConfigureDisconnected();
+                    CanPrimaryAction = false;
                     break;
                 case ConnectionState.Error:
-                    ConfigureError();
+                    if (IsLaunchingGame)
+                    {
+                        ConfigureConnecting();
+                    }
+                    else if (ShouldShowLaunchGame())
+                    {
+                        ConfigureDisconnected();
+                    }
+                    else
+                    {
+                        ConfigureError();
+                    }
                     break;
                 default:
                     ConfigurePhase(_snapshot.GameflowPhase);
@@ -635,9 +694,12 @@ namespace Prometheus.Modules.Home.ViewModels
             PhaseDetail = Text("HomePage.Phase.Syncing.Detail");
             SummaryTitle = Text("HomePage.Summary.Status");
             EmptySummaryText = Text("HomePage.Summary.Syncing");
-            PrimaryActionText = Text("HomePage.Action.Syncing");
-            SecondaryActionText = Text("HomePage.OpenClient");
+            PrimaryActionText = IsLaunchingGame
+                ? Text("HomePage.Action.LaunchingGame")
+                : Text("HomePage.Action.Syncing");
+            SecondaryActionText = Text("Menu.Setting");
             CanPrimaryAction = false;
+            CanSecondaryAction = false;
         }
 
         private void ConfigureDisconnected()
@@ -648,7 +710,7 @@ namespace Prometheus.Modules.Home.ViewModels
             PhaseDetail = Text("HomePage.Phase.Offline.Detail");
             SummaryTitle = Text("HomePage.Summary.Status");
             EmptySummaryText = Text("HomePage.Summary.Offline");
-            PrimaryActionText = Text("HomePage.Action.Retry");
+            PrimaryActionText = Text("HomePage.Action.LaunchGame");
             SecondaryActionText = Text("Menu.Setting");
         }
 
@@ -1084,10 +1146,21 @@ namespace Prometheus.Modules.Home.ViewModels
                     : GameQueueIds.RankedSoloDuo;
         }
 
+        private bool ShouldShowLaunchGame()
+        {
+            return !IsConnected && !IsLaunchingGame && !_leagueClientProcessRunning;
+        }
+
         private async void ExecutePrimaryAction()
         {
             try
             {
+                if (ShouldShowLaunchGame())
+                {
+                    await LaunchGameAsync();
+                    return;
+                }
+
                 if (_snapshot.ConnectionState is ConnectionState.Disconnected or
                     ConnectionState.Error or ConnectionState.Reconnecting)
                 {
@@ -1120,6 +1193,217 @@ namespace Prometheus.Modules.Home.ViewModels
                 ErrorText = exception.Message;
                 Log.Error(exception, "Home primary action failed");
             }
+        }
+
+        private async Task LaunchGameAsync()
+        {
+            if (IsLaunchingGame)
+            {
+                return;
+            }
+
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            var connectionState = _snapshot.ConnectionState;
+            CancelGameLaunch();
+            var launchCts = new CancellationTokenSource();
+            _gameLaunchCts = launchCts;
+            IsLaunchingGame = true;
+            ErrorText = string.Empty;
+            ApplySnapshot(_snapshot);
+
+            LeagueClientLaunchStatus result;
+            try
+            {
+                result = await _leagueClientLauncher.LaunchAsync(launchCts.Token);
+            }
+            catch (OperationCanceledException) when (launchCts.IsCancellationRequested)
+            {
+                WriteGameLaunchOperation(
+                    LogEventLevel.Information,
+                    "Cancelled",
+                    operationId,
+                    connectionState,
+                    stopwatch.ElapsedMilliseconds,
+                    Text("HomePage.Launch.Cancelled"));
+                return;
+            }
+
+            WriteGameLaunchResultOperation(
+                result,
+                operationId,
+                connectionState,
+                stopwatch.ElapsedMilliseconds);
+
+            if (!ReferenceEquals(_gameLaunchCts, launchCts))
+            {
+                return;
+            }
+
+            switch (result)
+            {
+                case LeagueClientLaunchStatus.Started:
+                    WaitForGameLaunchAsync(launchCts).Observe(
+                        "Waiting for League client startup");
+                    break;
+                case LeagueClientLaunchStatus.AlreadyRunning:
+                    WaitForGameLaunchAsync(launchCts).Observe(
+                        "Waiting for League client startup");
+                    break;
+                case LeagueClientLaunchStatus.ExternalLauncherRequired:
+                    FinishGameLaunch(launchCts);
+                    ErrorText = Text("HomePage.Launch.ExternalLauncherRequired");
+                    break;
+                case LeagueClientLaunchStatus.LauncherNotFound:
+                    FinishGameLaunch(launchCts);
+                    ErrorText = Text("HomePage.Launch.NotFound");
+                    break;
+                default:
+                    FinishGameLaunch(launchCts);
+                    ErrorText = Text("HomePage.Launch.Failed");
+                    break;
+            }
+        }
+
+        private void WriteGameLaunchResultOperation(
+            LeagueClientLaunchStatus result,
+            Guid operationId,
+            ConnectionState connectionState,
+            long durationMs)
+        {
+            switch (result)
+            {
+                case LeagueClientLaunchStatus.Started:
+                    WriteGameLaunchOperation(
+                        LogEventLevel.Information,
+                        "Succeeded",
+                        operationId,
+                        connectionState,
+                        durationMs,
+                        Text("HomePage.Launch.Requested"));
+                    break;
+                case LeagueClientLaunchStatus.AlreadyRunning:
+                    WriteGameLaunchOperation(
+                        LogEventLevel.Information,
+                        "Skipped",
+                        operationId,
+                        connectionState,
+                        durationMs,
+                        Text("HomePage.Launch.AlreadyRunning"),
+                        "AlreadyRunning");
+                    break;
+                case LeagueClientLaunchStatus.ExternalLauncherRequired:
+                    WriteGameLaunchOperation(
+                        LogEventLevel.Warning,
+                        "Rejected",
+                        operationId,
+                        connectionState,
+                        durationMs,
+                        Text("HomePage.Launch.ExternalLauncherRequired"),
+                        "ExternalLauncherRequired");
+                    break;
+                case LeagueClientLaunchStatus.LauncherNotFound:
+                    WriteGameLaunchOperation(
+                        LogEventLevel.Warning,
+                        "Rejected",
+                        operationId,
+                        connectionState,
+                        durationMs,
+                        Text("HomePage.Launch.NotFound"),
+                        "GameLauncherNotFound");
+                    break;
+                default:
+                    WriteGameLaunchOperation(
+                        LogEventLevel.Error,
+                        "Failed",
+                        operationId,
+                        connectionState,
+                        durationMs,
+                        Text("HomePage.Launch.Failed"),
+                        "ProcessStartFailed");
+                    break;
+            }
+        }
+
+        private static void WriteGameLaunchOperation(
+            LogEventLevel level,
+            string outcome,
+            Guid operationId,
+            ConnectionState connectionState,
+            long durationMs,
+            string displayMessage,
+            string errorCode = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["ConnectionState"] = connectionState.ToString(),
+                ["DurationMs"] = durationMs
+            };
+            if (!string.IsNullOrWhiteSpace(errorCode))
+            {
+                properties["ErrorCode"] = errorCode;
+            }
+
+            OperationLog.Write(
+                level,
+                "client.game.launch",
+                "Client",
+                "Manual",
+                outcome,
+                operationId,
+                "Home",
+                displayMessage,
+                properties);
+        }
+
+        private async Task WaitForGameLaunchAsync(CancellationTokenSource launchCts)
+        {
+            try
+            {
+                await Task.Delay(GameLaunchTimeout, launchCts.Token);
+            }
+            catch (OperationCanceledException) when (launchCts.IsCancellationRequested)
+            {
+                return;
+            }
+
+            Dispatch(() =>
+            {
+                if (!ReferenceEquals(_gameLaunchCts, launchCts) || IsConnected)
+                {
+                    return;
+                }
+
+                FinishGameLaunch(launchCts);
+                ErrorText = Text("HomePage.Launch.Timeout");
+            });
+        }
+
+        private void FinishGameLaunch(CancellationTokenSource launchCts)
+        {
+            if (!ReferenceEquals(_gameLaunchCts, launchCts))
+            {
+                return;
+            }
+
+            _gameLaunchCts = null;
+            launchCts.Cancel();
+            launchCts.Dispose();
+            IsLaunchingGame = false;
+            ApplySnapshot(_snapshot);
+        }
+
+        private void CancelGameLaunch()
+        {
+            var launchCts = _gameLaunchCts;
+            _gameLaunchCts = null;
+            if (launchCts is not null)
+            {
+                launchCts.Cancel();
+                launchCts.Dispose();
+            }
+
+            IsLaunchingGame = false;
         }
 
         private async void ExecuteSecondaryAction()
@@ -1703,6 +1987,20 @@ namespace Prometheus.Modules.Home.ViewModels
         private void HandleDisplayTimerTick(object sender, EventArgs args)
         {
             UpdateTimerText();
+
+            if (IsConnected)
+            {
+                return;
+            }
+
+            var isRunning = _leagueClientLauncher.IsLeagueClientRunning();
+            if (isRunning == _leagueClientProcessRunning)
+            {
+                return;
+            }
+
+            _leagueClientProcessRunning = isRunning;
+            ApplySnapshot(_snapshot);
         }
 
         private void UpdateTimerText()

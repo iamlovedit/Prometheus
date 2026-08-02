@@ -220,6 +220,20 @@ namespace Prometheus.Services.Client
                 {
                     await HandleConnectedAsync(lifetimeToken).ConfigureAwait(false);
                 }
+                else
+                {
+                    PublishSnapshot(snapshot =>
+                    {
+                        var next = CopySnapshot(snapshot);
+                        next.ConnectionState = ConnectionState.Disconnected;
+                        next.DataQuality = snapshot.DataQuality == DataQuality.Unknown
+                            ? DataQuality.Unknown
+                            : DataQuality.Stale;
+                        next.Error = string.Empty;
+                        next.Errors = Array.Empty<string>();
+                        return next;
+                    });
+                }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

@@ -13,6 +13,23 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
     public class MatchServiceTests
     {
         [Fact]
+        public async Task InitialConnectionUnavailable_PublishesDisconnected()
+        {
+            var context = CreateContext();
+            context.Connected = false;
+            context.LeagueClient.Setup(client => client.StartAsync(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            await context.Service.StartAsync();
+
+            Assert.Equal(ConnectionState.Disconnected,
+                context.Service.Current.ConnectionState);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
         public async Task Disconnect_ResetsHttpAndPublishesReconnecting()
         {
             var context = CreateContext();

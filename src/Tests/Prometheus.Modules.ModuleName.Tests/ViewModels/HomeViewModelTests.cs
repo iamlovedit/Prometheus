@@ -13,6 +13,95 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
     public class HomeViewModelTests
     {
         [Fact]
+        public void DisconnectedSnapshot_ShowsLaunchGameAction()
+        {
+            using var context = new TestContext();
+
+            Assert.Equal("HomePage.Action.LaunchGame",
+                context.ViewModel.PrimaryActionText);
+            Assert.True(context.ViewModel.CanPrimaryAction);
+            Assert.True(context.ViewModel.PrimaryActionCommand.CanExecute());
+        }
+
+        [Fact]
+        public async Task LaunchGameAction_DisablesUntilClientConnects()
+        {
+            using var context = new TestContext();
+            var requested = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.LeagueClientLauncher.Setup(launcher => launcher.LaunchAsync(
+                    It.IsAny<CancellationToken>()))
+                .Callback(() => requested.TrySetResult(true))
+                .ReturnsAsync(LeagueClientLaunchStatus.Started);
+
+            context.ViewModel.PrimaryActionCommand.Execute();
+
+            await requested.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.True(context.ViewModel.IsLaunchingGame);
+            Assert.False(context.ViewModel.CanPrimaryAction);
+            Assert.Equal("HomePage.Action.LaunchingGame",
+                context.ViewModel.PrimaryActionText);
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            Assert.False(context.ViewModel.IsLaunchingGame);
+            Assert.Equal("HomePage.ViewCareer", context.ViewModel.PrimaryActionText);
+        }
+
+        [Fact]
+        public void LaunchGameAction_WhenLauncherIsMissing_ShowsLocalizedError()
+        {
+            using var context = new TestContext();
+            context.LeagueClientLauncher.Setup(launcher => launcher.LaunchAsync(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(LeagueClientLaunchStatus.LauncherNotFound);
+
+            context.ViewModel.PrimaryActionCommand.Execute();
+
+            Assert.False(context.ViewModel.IsLaunchingGame);
+            Assert.True(context.ViewModel.CanPrimaryAction);
+            Assert.Equal("HomePage.Launch.NotFound", context.ViewModel.ErrorText);
+        }
+
+        [Fact]
+        public void LaunchGameAction_WhenExternalLauncherIsRequired_ShowsLocalizedError()
+        {
+            using var context = new TestContext();
+            context.LeagueClientLauncher.Setup(launcher => launcher.LaunchAsync(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(LeagueClientLaunchStatus.ExternalLauncherRequired);
+
+            context.ViewModel.PrimaryActionCommand.Execute();
+
+            Assert.False(context.ViewModel.IsLaunchingGame);
+            Assert.True(context.ViewModel.CanPrimaryAction);
+            Assert.Equal("HomePage.Launch.ExternalLauncherRequired",
+                context.ViewModel.ErrorText);
+        }
+
+        [Fact]
+        public void ReconnectingSnapshot_WithLeagueProcessRunning_DoesNotOfferLaunch()
+        {
+            using var context = new TestContext(leagueClientRunning: true);
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Reconnecting,
+                GameflowPhase = GameflowPhase.Unknown,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+            Assert.Equal("HomePage.Action.Syncing",
+                context.ViewModel.PrimaryActionText);
+            Assert.False(context.ViewModel.CanPrimaryAction);
+        }
+
+        [Fact]
         public void ConnectedSnapshot_AfterOfflinePlaceholder_LoadsCurrentSummoner()
         {
             using var context = new TestContext();
@@ -449,7 +538,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             public TestContext(
                 int[] preferredAramChampionIds = null,
                 IReadOnlyList<MatchModel> recentMatches = null,
-                int quickMatchQueueId = GameQueueIds.RankedSoloDuo)
+                int quickMatchQueueId = GameQueueIds.RankedSoloDuo,
+                bool leagueClientRunning = false)
             {
                 _preferredAramChampionIds = preferredAramChampionIds ?? [];
                 MatchService.SetupGet(service => service.Current)
@@ -530,6 +620,11 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 QuickMatchSettings.Setup(settings => settings.SaveQueueId(
                         It.IsAny<int>()))
                     .Returns(true);
+                LeagueClientLauncher.Setup(launcher => launcher.IsLeagueClientRunning())
+                    .Returns(leagueClientRunning);
+                LeagueClientLauncher.Setup(launcher => launcher.LaunchAsync(
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(LeagueClientLaunchStatus.Started);
 
                 ViewModel = new HomeViewModel(
                     RegionManager.Object,
@@ -539,6 +634,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     GameResourceManager.Object,
                     ResourceService.Object,
                     ClientService.Object,
+                    LeagueClientLauncher.Object,
                     GameService.Object,
                     QuickMatchSettings.Object);
             }
@@ -558,6 +654,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             public Mock<IResourceService> ResourceService { get; } = new();
 
             public Mock<IClientService> ClientService { get; } = new();
+
+            public Mock<ILeagueClientLauncher> LeagueClientLauncher { get; } = new();
 
             public Mock<IGameService> GameService { get; } = new();
 

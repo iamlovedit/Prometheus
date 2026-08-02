@@ -1,0 +1,254 @@
+<Window
+    x:Class="Prometheus.Views.LcuCompanionWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="clr-namespace:Prometheus.ViewModels"
+    Title="Prometheus"
+    Width="344"
+    Height="680"
+    AllowsTransparency="True"
+    Background="Transparent"
+    Focusable="False"
+    ResizeMode="NoResize"
+    ShowActivated="False"
+    ShowInTaskbar="False"
+    SizeToContent="Manual"
+    WindowStartupLocation="Manual"
+    WindowStyle="None"
+    d:DataContext="{d:DesignInstance Type=viewmodels:LcuCompanionViewModel}"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <Style x:Key="CompanionCaption" TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        </Style>
+        <DataTemplate x:Key="AutomationCardTemplate">
+            <Border
+                Margin="0,0,8,0"
+                Padding="10"
+                Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="48"
+                        Height="48"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        CornerRadius="8">
+                        <Grid>
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="15"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Text="?" />
+                            <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock
+                            Style="{StaticResource CompanionCaption}"
+                            Text="{Binding Label}"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Margin="0,3,0,0"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Text="{Binding ChampionName}"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Margin="0,3,0,0"
+                            Style="{StaticResource CompanionCaption}"
+                            Text="{Binding StatusText}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="TeammateTemplate">
+            <Border
+                Height="92"
+                Margin="0,0,0,8"
+                Padding="10"
+                Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="50"
+                        Height="50"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        CornerRadius="9">
+                        <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                    </Border>
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Text="{Binding DisplayName}"
+                            TextTrimming="CharacterEllipsis" />
+                        <Grid Grid.Row="1" Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Style="{StaticResource CompanionCaption}"
+                                Text="{Binding RankText}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource CompanionCaption}"
+                                Text="{Binding RecentRecordText}" />
+                        </Grid>
+                        <Grid Grid.Row="2" Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                FontSize="10"
+                                Text="{Binding StatusText}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource CompanionCaption}"
+                                Text="{Binding KdaText}" />
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border
+        Margin="2"
+        Padding="14"
+        Background="{DynamicResource RegionBrush}"
+        BorderBrush="{DynamicResource BorderBrush}"
+        BorderThickness="1"
+        CornerRadius="14">
+        <Border.Effect>
+            <DropShadowEffect
+                BlurRadius="16"
+                Opacity="0.25"
+                ShadowDepth="2" />
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="58" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="44" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="42" />
+                    <ColumnDefinition Width="10" />
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Border
+                    Width="42"
+                    Height="42"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    CornerRadius="10">
+                    <Image Source="../Resources/Prometheus_16.ico" Stretch="Uniform" />
+                </Border>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                    <TextBlock
+                        FontSize="15"
+                        FontWeight="Bold"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        Text="{DynamicResource Companion.Title}" />
+                    <TextBlock
+                        Margin="0,3,0,0"
+                        Style="{StaticResource CompanionCaption}"
+                        Text="{DynamicResource Match.Live.Phase.ChampionSelect}" />
+                </StackPanel>
+                <Border
+                    Grid.Column="3"
+                    Padding="9,5"
+                    VerticalAlignment="Center"
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    CornerRadius="10">
+                    <TextBlock
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        Text="{Binding ModeText}" />
+                </Border>
+            </Grid>
+
+            <ItemsControl
+                Grid.Row="1"
+                Margin="0,8,0,8"
+                ItemTemplate="{StaticResource AutomationCardTemplate}"
+                ItemsSource="{Binding AutomationCards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="{DynamicResource PrimaryTextBrush}"
+                    Text="{DynamicResource Companion.Team.Title}" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CompanionCaption}"
+                    Text="{Binding TeamStatusText}" />
+            </Grid>
+
+            <ScrollViewer
+                Grid.Row="3"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <ItemsControl
+                    ItemTemplate="{StaticResource TeammateTemplate}"
+                    ItemsSource="{Binding Teammates}" />
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>
