@@ -57,6 +57,8 @@ namespace Prometheus.Modules.Match.ViewModels
             TheirTeam = [];
             RefreshCommand = new DelegateCommand(ExecuteRefresh);
             OpenPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(OpenPlayer);
+            SelectPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(
+                SelectPlayer);
 
             Subscribe();
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty, true);
@@ -69,6 +71,38 @@ namespace Prometheus.Modules.Match.ViewModels
         public DelegateCommand RefreshCommand { get; }
 
         public DelegateCommand<LiveMatchPlayerViewModel> OpenPlayerCommand { get; }
+
+        public DelegateCommand<LiveMatchPlayerViewModel> SelectPlayerCommand { get; }
+
+        private LiveMatchPlayerViewModel _selectedPlayer;
+        public LiveMatchPlayerViewModel SelectedPlayer
+        {
+            get => _selectedPlayer;
+            private set
+            {
+                if (ReferenceEquals(_selectedPlayer, value))
+                {
+                    return;
+                }
+
+                if (_selectedPlayer is not null)
+                {
+                    _selectedPlayer.IsSelected = false;
+                }
+
+                if (SetProperty(ref _selectedPlayer, value))
+                {
+                    if (_selectedPlayer is not null)
+                    {
+                        _selectedPlayer.IsSelected = true;
+                    }
+
+                    RaisePropertyChanged(nameof(HasSelectedPlayer));
+                }
+            }
+        }
+
+        public bool HasSelectedPlayer => SelectedPlayer?.HasRecentMatchDetails == true;
 
         private bool _hasRoster;
         public bool HasRoster
@@ -226,16 +260,18 @@ namespace Prometheus.Modules.Match.ViewModels
             }
 
             _appliedVersion = snapshot.Version;
+            var previousSelection = SelectedPlayer;
             var roster = snapshot.Roster;
             var myTeam = (roster?.MyTeam ?? Array.Empty<LiveMatchPlayerSnapshot>())
-                .Select(CreatePlayer)
+                .Select(source => CreatePlayer(source, true))
                 .ToArray();
             var theirTeam = (roster?.TheirTeam ?? Array.Empty<LiveMatchPlayerSnapshot>())
-                .Select(CreatePlayer)
+                .Select(source => CreatePlayer(source, false))
                 .ToArray();
 
             Replace(MyTeam, myTeam);
             Replace(TheirTeam, theirTeam);
+            SelectedPlayer = FindSelectedPlayer(previousSelection, myTeam, theirTeam);
 
             HasRoster = myTeam.Length > 0 || theirTeam.Length > 0;
             ShowEmptyState = !HasRoster;
@@ -253,7 +289,8 @@ namespace Prometheus.Modules.Match.ViewModels
             DataStatusText = GetDataStatusText(snapshot, myTeam.Concat(theirTeam).ToArray());
         }
 
-        private LiveMatchPlayerViewModel CreatePlayer(LiveMatchPlayerSnapshot source)
+        private LiveMatchPlayerViewModel CreatePlayer(
+            LiveMatchPlayerSnapshot source, bool isMyTeam)
         {
             source ??= new LiveMatchPlayerSnapshot();
             var isHidden = source.IsHidden ||
@@ -295,6 +332,8 @@ namespace Prometheus.Modules.Match.ViewModels
                 HasError = source.DataState == LiveMatchPlayerDataState.Error,
                 HasPerformanceData = isLoaded && recentCount > 0,
                 CanOpenProfile = navigationSummoner is not null,
+                IsMyTeam = isMyTeam,
+                Slot = source.Slot,
                 DataState = source.DataState,
                 Puuid = source.Puuid ?? string.Empty,
                 Summoner = navigationSummoner
@@ -308,7 +347,77 @@ namespace Prometheus.Modules.Match.ViewModels
                 });
             }
 
+            var matchIndex = 0;
+            foreach (var recentMatch in source.RecentMatches ??
+                Array.Empty<LiveMatchRecentMatchSnapshot>())
+            {
+                if (recentMatch is null)
+                {
+                    continue;
+                }
+
+                matchIndex++;
+                var resultText = recentMatch.IsWin
+                    ? Text("Match.Live.RecentDetails.Win", "Win")
+                    : Text("Match.Live.RecentDetails.Loss", "Loss");
+                var gameModeText = string.IsNullOrWhiteSpace(recentMatch.GameMode)
+                    ? "--"
+                    : recentMatch.GameMode;
+                player.RecentMatches.Add(new LiveMatchRecentMatchViewModel
+                {
+                    GameId = recentMatch.GameId,
+                    IndexText = $"#{matchIndex}",
+                    ResultText = resultText,
+                    GameModeText = gameModeText,
+                    ChampionIcon = recentMatch.ChampionIcon ?? string.Empty,
+                    ChampionFallbackText = recentMatch.ChampionId > 0
+                        ? $"#{recentMatch.ChampionId}"
+                        : "--",
+                    Kills = recentMatch.Kills,
+                    Deaths = recentMatch.Deaths,
+                    Assists = recentMatch.Assists,
+                    IsWin = recentMatch.IsWin,
+                    AutomationText = string.Format(
+                        Text("Match.Live.RecentDetails.Automation",
+                            "Match {0}, {1}, K/D/A {2}/{3}/{4}, {5}"),
+                        matchIndex, resultText, recentMatch.Kills,
+                        recentMatch.Deaths, recentMatch.Assists, gameModeText)
+                });
+            }
+            player.HasRecentMatchDetails = player.RecentMatches.Count > 0;
+
             return player;
+        }
+
+        private static LiveMatchPlayerViewModel FindSelectedPlayer(
+            LiveMatchPlayerViewModel previousSelection,
+            IReadOnlyList<LiveMatchPlayerViewModel> myTeam,
+            IReadOnlyList<LiveMatchPlayerViewModel> theirTeam)
+        {
+            var players = myTeam.Concat(theirTeam).ToArray();
+            LiveMatchPlayerViewModel selected = null;
+            if (previousSelection is not null)
+            {
+                if (!string.IsNullOrWhiteSpace(previousSelection.Puuid))
+                {
+                    selected = players.FirstOrDefault(player =>
+                        string.Equals(player.Puuid, previousSelection.Puuid,
+                            StringComparison.Ordinal));
+                }
+
+                selected ??= players.FirstOrDefault(player =>
+                    player.IsMyTeam == previousSelection.IsMyTeam &&
+                    player.Slot == previousSelection.Slot);
+            }
+
+            if (selected?.HasRecentMatchDetails == true)
+            {
+                return selected;
+            }
+
+            return players.FirstOrDefault(player =>
+                    player.IsLocalPlayer && player.HasRecentMatchDetails) ??
+                players.FirstOrDefault(player => player.HasRecentMatchDetails);
         }
 
         private string GetPlayerStatusText(
@@ -564,6 +673,14 @@ namespace Prometheus.Modules.Match.ViewModels
             }
 
             _eventAggregator.GetEvent<SearchSummonerEvent>().Publish(player.Summoner);
+        }
+
+        private void SelectPlayer(LiveMatchPlayerViewModel player)
+        {
+            if (player?.HasRecentMatchDetails == true)
+            {
+                SelectedPlayer = player;
+            }
         }
 
         private string Text(string key, string fallback)

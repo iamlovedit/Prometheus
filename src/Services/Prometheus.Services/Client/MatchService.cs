@@ -76,6 +76,8 @@ namespace Prometheus.Services.Client
             new(MaximumConcurrentPlayerLoads, MaximumConcurrentPlayerLoads);
         private readonly ConcurrentDictionary<string,
             Lazy<Task<PlayerPerformanceData>>> _playerCache = new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<int, Lazy<Task<string>>>
+            _recentChampionIconCache = new();
 
         private LiveMatchSnapshot _current = LiveMatchSnapshot.Empty;
         private CancellationTokenSource _lifetimeCts;
@@ -1145,6 +1147,10 @@ namespace Prometheus.Services.Client
             next.RecentMatchCount = previous.RecentMatchCount;
             next.AverageKda = previous.AverageKda;
             next.RecentResults = previous.RecentResults?.ToArray() ?? Array.Empty<bool>();
+            next.RecentMatches = (previous.RecentMatches ??
+                    Array.Empty<LiveMatchRecentMatchSnapshot>())
+                .Select(CloneRecentMatch)
+                .ToArray();
             next.DataState = LiveMatchPlayerDataState.Loaded;
             next.Error = string.Empty;
             return next;
@@ -1314,21 +1320,101 @@ namespace Prometheus.Services.Client
             var matches = (matchResult.Matches ?? Array.Empty<Match>())
                 .Take(RecentMatchCount)
                 .ToArray();
-            var stats = matches
-                .Select(match => match.Participants?.FirstOrDefault()?.Stats)
-                .Where(value => value is not null)
-                .ToArray();
-            var wins = stats.Count(value => value.Win);
-            var losses = stats.Length - wins;
-            var killsAndAssists = stats.Sum(value => value.Kills + value.Assists);
-            var deaths = stats.Sum(value => value.Deaths);
-            var averageKda = stats.Length == 0
+            var recentMatches = await BuildRecentMatchesAsync(matches, cancellationToken)
+                .ConfigureAwait(false);
+            var wins = recentMatches.Count(value => value.IsWin);
+            var losses = recentMatches.Count - wins;
+            var killsAndAssists = recentMatches.Sum(value => value.Kills + value.Assists);
+            var deaths = recentMatches.Sum(value => value.Deaths);
+            var averageKda = recentMatches.Count == 0
                 ? 0d
                 : killsAndAssists / (double)Math.Max(1, deaths);
 
             return new PlayerPerformanceData(summoner, rank, wins, losses,
-                averageKda, stats.Length,
-                stats.Take(5).Select(value => value.Win).ToArray());
+                averageKda, recentMatches.Count,
+                recentMatches.Select(value => value.IsWin).ToArray(),
+                recentMatches);
+        }
+
+        private async Task<IReadOnlyList<LiveMatchRecentMatchSnapshot>>
+            BuildRecentMatchesAsync(IReadOnlyList<Match> matches,
+                CancellationToken cancellationToken)
+        {
+            var recentMatches = (matches ?? Array.Empty<Match>())
+                .Select(match =>
+                {
+                    var participant = match?.Participants?.FirstOrDefault();
+                    var stats = participant?.Stats;
+                    if (stats is null)
+                    {
+                        return null;
+                    }
+
+                    return new LiveMatchRecentMatchSnapshot
+                    {
+                        GameId = match.GameId,
+                        GameCreation = match.GameCreation,
+                        QueueId = match.QueueId,
+                        GameMode = FirstNotEmpty(match.DisplayGameMode, match.GameMode),
+                        ChampionId = participant.ChampionId,
+                        ChampionIcon = participant.ChampionIcon ?? string.Empty,
+                        IsWin = stats.Win,
+                        Kills = stats.Kills,
+                        Deaths = stats.Deaths,
+                        Assists = stats.Assists
+                    };
+                })
+                .Where(match => match is not null)
+                .ToArray();
+
+            var missingChampionIds = recentMatches
+                .Where(match => match.ChampionId > 0 &&
+                    string.IsNullOrWhiteSpace(match.ChampionIcon))
+                .Select(match => match.ChampionId)
+                .Distinct()
+                .ToArray();
+            var championIcons = new Dictionary<int, string>();
+            foreach (var championId in missingChampionIds)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                championIcons[championId] = await GetRecentChampionIconAsync(championId)
+                    .ConfigureAwait(false);
+            }
+
+            foreach (var match in recentMatches)
+            {
+                if (string.IsNullOrWhiteSpace(match.ChampionIcon) &&
+                    championIcons.TryGetValue(match.ChampionId, out var championIcon))
+                {
+                    match.ChampionIcon = championIcon ?? string.Empty;
+                }
+            }
+
+            return recentMatches;
+        }
+
+        private async Task<string> GetRecentChampionIconAsync(int championId)
+        {
+            var lazy = _recentChampionIconCache.GetOrAdd(championId, id =>
+                new Lazy<Task<string>>(
+                    () => _gameResourceManager.GetChampoinIconByIdAsync(id),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+            try
+            {
+                return await lazy.Value.ConfigureAwait(false) ?? string.Empty;
+            }
+            catch (Exception exception)
+            {
+                if (_recentChampionIconCache.TryGetValue(championId, out var current) &&
+                    ReferenceEquals(current, lazy))
+                {
+                    _recentChampionIconCache.TryRemove(championId, out _);
+                }
+
+                Log.Debug(exception,
+                    "Unable to load recent-match champion icon {ChampionId}", championId);
+                return string.Empty;
+            }
         }
 
         private void PublishRoster(long generation, CancellationToken cancellationToken,
@@ -1486,6 +1572,9 @@ namespace Prometheus.Services.Client
             player.RecentMatchCount = performance.MatchCount;
             player.AverageKda = performance.AverageKda;
             player.RecentResults = performance.RecentResults.ToArray();
+            player.RecentMatches = performance.RecentMatches
+                .Select(CloneRecentMatch)
+                .ToArray();
             player.DisplayName = FormatSummonerName(performance.Summoner,
                 player.DisplayName);
             player.DataState = LiveMatchPlayerDataState.Loaded;
@@ -3096,7 +3185,34 @@ namespace Prometheus.Services.Client
                 RecentMatchCount = source.RecentMatchCount,
                 AverageKda = source.AverageKda,
                 RecentResults = source.RecentResults?.ToArray() ?? Array.Empty<bool>(),
+                RecentMatches = (source.RecentMatches ??
+                        Array.Empty<LiveMatchRecentMatchSnapshot>())
+                    .Select(CloneRecentMatch)
+                    .ToArray(),
                 Error = source.Error
+            };
+        }
+
+        private static LiveMatchRecentMatchSnapshot CloneRecentMatch(
+            LiveMatchRecentMatchSnapshot source)
+        {
+            if (source is null)
+            {
+                return null;
+            }
+
+            return new LiveMatchRecentMatchSnapshot
+            {
+                GameId = source.GameId,
+                GameCreation = source.GameCreation,
+                QueueId = source.QueueId,
+                GameMode = source.GameMode,
+                ChampionId = source.ChampionId,
+                ChampionIcon = source.ChampionIcon,
+                IsWin = source.IsWin,
+                Kills = source.Kills,
+                Deaths = source.Deaths,
+                Assists = source.Assists
             };
         }
 
@@ -3388,7 +3504,8 @@ namespace Prometheus.Services.Client
             int Losses,
             double AverageKda,
             int MatchCount,
-            IReadOnlyList<bool> RecentResults);
+            IReadOnlyList<bool> RecentResults,
+            IReadOnlyList<LiveMatchRecentMatchSnapshot> RecentMatches);
 
         private readonly record struct PlayerVisuals(
             string ChampionIcon,

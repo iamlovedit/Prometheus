@@ -41,9 +41,9 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                     Succeeded = true,
                     Matches =
                     [
-                        CreateMatch(true, 5, 2, 5),
-                        CreateMatch(false, 0, 0, 3),
-                        CreateMatch(true, 3, 3, 1)
+                        CreateMatch(true, 5, 2, 5, 101, 11, "Ranked Solo/Duo"),
+                        CreateMatch(false, 0, 0, 3, 102, 22, "ARAM"),
+                        CreateMatch(true, 3, 3, 1, 103, 33, "Ranked Flex")
                     ]
                 });
 
@@ -73,6 +73,34 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.Equal(3, ally.RecentMatchCount);
             Assert.Equal(3.4, ally.AverageKda, 3);
             Assert.Equal(new[] { true, false, true }, ally.RecentResults);
+            Assert.Collection(ally.RecentMatches,
+                match =>
+                {
+                    Assert.Equal(101, match.GameId);
+                    Assert.True(match.IsWin);
+                    Assert.Equal(11, match.ChampionId);
+                    Assert.Equal("champion-11", match.ChampionIcon);
+                    Assert.Equal(5, match.Kills);
+                    Assert.Equal(2, match.Deaths);
+                    Assert.Equal(5, match.Assists);
+                    Assert.Equal("Ranked Solo/Duo", match.GameMode);
+                },
+                match =>
+                {
+                    Assert.Equal(102, match.GameId);
+                    Assert.False(match.IsWin);
+                    Assert.Equal(0, match.Kills);
+                    Assert.Equal(0, match.Deaths);
+                    Assert.Equal(3, match.Assists);
+                },
+                match =>
+                {
+                    Assert.Equal(103, match.GameId);
+                    Assert.True(match.IsWin);
+                    Assert.Equal(3, match.Kills);
+                    Assert.Equal(3, match.Deaths);
+                    Assert.Equal(1, match.Assists);
+                });
             Assert.Equal("champion-1", ally.ChampionIcon);
             Assert.Equal("spell-4", ally.Spell1Icon);
             Assert.Equal("spell-12", ally.Spell2Icon);
@@ -887,14 +915,19 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             };
         }
 
-        private static MatchModel CreateMatch(bool win, int kills, int deaths, int assists)
+        private static MatchModel CreateMatch(bool win, int kills, int deaths, int assists,
+            long gameId = 0, int championId = 0, string gameMode = "")
         {
             return new MatchModel
             {
+                GameId = gameId,
+                GameMode = gameMode,
+                DisplayGameMode = gameMode,
                 Participants =
                 [
                     new Participant
                     {
+                        ChampionId = championId,
                         Stats = new MatchStats
                         {
                             Win = win,

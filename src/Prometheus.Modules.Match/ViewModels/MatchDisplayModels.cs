@@ -15,6 +15,31 @@ namespace Prometheus.Modules.Match.ViewModels
         }
     }
 
+    public sealed class LiveMatchRecentMatchViewModel
+    {
+        public long GameId { get; init; }
+
+        public string IndexText { get; init; } = string.Empty;
+
+        public string ResultText { get; init; } = string.Empty;
+
+        public string GameModeText { get; init; } = string.Empty;
+
+        public string ChampionIcon { get; init; } = string.Empty;
+
+        public string ChampionFallbackText { get; init; } = string.Empty;
+
+        public int Kills { get; init; }
+
+        public int Deaths { get; init; }
+
+        public int Assists { get; init; }
+
+        public bool IsWin { get; init; }
+
+        public string AutomationText { get; init; } = string.Empty;
+    }
+
     /// <summary>
     /// Bindable row projected from one <see cref="LiveMatchPlayerSnapshot"/>.
     /// Instances are replaced when a newer live-match snapshot is published.
@@ -36,7 +61,11 @@ namespace Prometheus.Modules.Match.ViewModels
         private bool _isLoading;
         private bool _hasError;
         private bool _hasPerformanceData;
+        private bool _hasRecentMatchDetails;
         private bool _canOpenProfile;
+        private bool _isMyTeam;
+        private bool _isSelected;
+        private int _slot;
         private LiveMatchPlayerDataState _dataState;
         private string _puuid = string.Empty;
         private SummonerAccount _summoner;
@@ -44,6 +73,7 @@ namespace Prometheus.Modules.Match.ViewModels
         public LiveMatchPlayerViewModel()
         {
             RecentResults = [];
+            RecentMatches = [];
         }
 
         public string ChampionIcon
@@ -102,6 +132,8 @@ namespace Prometheus.Modules.Match.ViewModels
 
         public ObservableCollection<RecentMatchResultViewModel> RecentResults { get; }
 
+        public ObservableCollection<LiveMatchRecentMatchViewModel> RecentMatches { get; }
+
         public bool IsLocalPlayer
         {
             get => _isLocalPlayer;
@@ -138,10 +170,34 @@ namespace Prometheus.Modules.Match.ViewModels
             set => SetProperty(ref _hasPerformanceData, value);
         }
 
+        public bool HasRecentMatchDetails
+        {
+            get => _hasRecentMatchDetails;
+            set => SetProperty(ref _hasRecentMatchDetails, value);
+        }
+
         public bool CanOpenProfile
         {
             get => _canOpenProfile;
             set => SetProperty(ref _canOpenProfile, value);
+        }
+
+        public bool IsMyTeam
+        {
+            get => _isMyTeam;
+            set => SetProperty(ref _isMyTeam, value);
+        }
+
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set => SetProperty(ref _isSelected, value);
+        }
+
+        public int Slot
+        {
+            get => _slot;
+            set => SetProperty(ref _slot, value);
         }
 
         public LiveMatchPlayerDataState DataState

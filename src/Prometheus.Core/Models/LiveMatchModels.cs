@@ -199,7 +199,33 @@ namespace Prometheus.Core.Models
 
         public IReadOnlyList<bool> RecentResults { get; set; } = Array.Empty<bool>();
 
+        public IReadOnlyList<LiveMatchRecentMatchSnapshot> RecentMatches { get; set; } =
+            Array.Empty<LiveMatchRecentMatchSnapshot>();
+
         public string Error { get; set; } = string.Empty;
+    }
+
+    public class LiveMatchRecentMatchSnapshot
+    {
+        public long GameId { get; set; }
+
+        public long GameCreation { get; set; }
+
+        public int QueueId { get; set; }
+
+        public string GameMode { get; set; } = string.Empty;
+
+        public int ChampionId { get; set; }
+
+        public string ChampionIcon { get; set; } = string.Empty;
+
+        public bool IsWin { get; set; }
+
+        public int Kills { get; set; }
+
+        public int Deaths { get; set; }
+
+        public int Assists { get; set; }
     }
 
     // The following DTOs deliberately contain only the small, stable subset

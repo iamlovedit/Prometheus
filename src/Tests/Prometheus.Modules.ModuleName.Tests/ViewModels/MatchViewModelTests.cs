@@ -45,6 +45,45 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void LoadedPlayer_ProjectsTwentyPerMatchKdaItemsAndSupportsSelection()
+        {
+            using var context = new TestContext(CreateProgressSnapshot(version: 3));
+
+            Assert.True(context.ViewModel.HasSelectedPlayer);
+            Assert.Same(context.ViewModel.MyTeam[0], context.ViewModel.SelectedPlayer);
+            Assert.True(context.ViewModel.SelectedPlayer.IsSelected);
+            Assert.Equal(20, context.ViewModel.SelectedPlayer.RecentMatches.Count);
+
+            var latest = context.ViewModel.SelectedPlayer.RecentMatches[0];
+            Assert.Equal("#1", latest.IndexText);
+            Assert.Equal("Win", latest.ResultText);
+            Assert.Equal(10, latest.Kills);
+            Assert.Equal(2, latest.Deaths);
+            Assert.Equal(8, latest.Assists);
+            Assert.Equal("Ranked Solo/Duo", latest.GameModeText);
+
+            var nextPlayer = context.ViewModel.MyTeam[1];
+            context.ViewModel.SelectPlayerCommand.Execute(nextPlayer);
+
+            Assert.Same(nextPlayer, context.ViewModel.SelectedPlayer);
+            Assert.True(nextPlayer.IsSelected);
+            Assert.False(context.ViewModel.MyTeam[0].IsSelected);
+        }
+
+        [Fact]
+        public void SnapshotRefresh_PreservesSelectedPlayerByPublicIdentity()
+        {
+            using var context = new TestContext(CreateProgressSnapshot(version: 4));
+            context.ViewModel.SelectPlayerCommand.Execute(context.ViewModel.MyTeam[2]);
+
+            context.Publish(CreateProgressSnapshot(version: 5));
+
+            Assert.Equal("puuid-Ally2", context.ViewModel.SelectedPlayer.Puuid);
+            Assert.Same(context.ViewModel.MyTeam[2], context.ViewModel.SelectedPlayer);
+            Assert.True(context.ViewModel.SelectedPlayer.IsSelected);
+        }
+
+        [Fact]
         public void SnapshotChanged_WhenOlderVersionArrivesLast_DoesNotRegressDisplay()
         {
             using var context = new TestContext(CreateNamedSnapshot(1, "Initial"));
@@ -289,7 +328,23 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 RecentLosses = 8,
                 RecentMatchCount = 20,
                 AverageKda = 3.5,
-                RecentResults = [true, false, true, true, false]
+                RecentResults = Enumerable.Range(0, 20)
+                    .Select(index => index % 3 != 1)
+                    .ToArray(),
+                RecentMatches = Enumerable.Range(0, 20)
+                    .Select(index => new LiveMatchRecentMatchSnapshot
+                    {
+                        GameId = 1000 + index,
+                        ChampionId = 10 + index,
+                        ChampionIcon = $"champion-{10 + index}",
+                        IsWin = index % 3 != 1,
+                        Kills = 10 + index,
+                        Deaths = 2 + index,
+                        Assists = 8 + index,
+                        GameMode = index % 2 == 0 ? "Ranked Solo/Duo" : "ARAM"
+                    })
+                    .ToArray(),
+                IsLocalPlayer = slot == 0
             };
         }
 
