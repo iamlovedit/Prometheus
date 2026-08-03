@@ -9,6 +9,7 @@
     Title="Prometheus"
     Width="344"
     Height="680"
+    d:DataContext="{d:DesignInstance Type=viewmodels:LcuCompanionViewModel}"
     AllowsTransparency="True"
     Background="Transparent"
     Focusable="False"
@@ -18,7 +19,6 @@
     SizeToContent="Manual"
     WindowStartupLocation="Manual"
     WindowStyle="None"
-    d:DataContext="{d:DesignInstance Type=viewmodels:LcuCompanionViewModel}"
     mc:Ignorable="d">
     <Window.Resources>
         <Style x:Key="CompanionCaption" TargetType="{x:Type TextBlock}">
@@ -127,7 +127,7 @@
             <Border
                 Height="96"
                 Margin="0,0,0,6"
-                Padding="10"
+                Padding="8"
                 Background="{DynamicResource MainContentForegroundDrawingBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
@@ -145,7 +145,7 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid>
+                <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="44" />
                         <ColumnDefinition Width="10" />
@@ -154,7 +154,6 @@
                     <Border
                         Width="44"
                         Height="44"
-                        VerticalAlignment="Top"
                         Background="{DynamicResource SecondaryRegionBrush}"
                         CornerRadius="8">
                         <Grid>
@@ -168,13 +167,16 @@
                             <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
                         </Grid>
                     </Border>
-                    <Grid Grid.Column="2">
+                    <Grid
+                        Grid.Column="2"
+                        Height="44"
+                        VerticalAlignment="Center">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Grid>
+                        <Grid VerticalAlignment="Top">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
@@ -193,7 +195,7 @@
                                 Text="{Binding RankText}"
                                 TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <Grid Grid.Row="1" Margin="0,6,0,0">
+                        <Grid Grid.Row="1" VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
@@ -211,7 +213,7 @@
                                 Foreground="{DynamicResource PrimaryTextBrush}"
                                 Text="{Binding KdaText}" />
                         </Grid>
-                        <Grid Grid.Row="2" Margin="0,8,0,0">
+                        <Grid Grid.Row="2" VerticalAlignment="Bottom">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
@@ -249,151 +251,147 @@
             BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="1"
             CornerRadius="0,14,14,0">
-        <Border.Effect>
-            <DropShadowEffect
-                x:Name="CompanionShadow"
-                BlurRadius="18"
-                Opacity="0"
-                ShadowDepth="2" />
-        </Border.Effect>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="64" />
-                <RowDefinition Height="1" />
-                <RowDefinition Height="40" />
-                <RowDefinition />
-                <RowDefinition Height="1" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
+            <Border.Effect>
+                <DropShadowEffect
+                    x:Name="CompanionShadow"
+                    BlurRadius="18"
+                    Opacity="0"
+                    ShadowDepth="2" />
+            </Border.Effect>
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="40" />
-                    <ColumnDefinition Width="11" />
-                    <ColumnDefinition />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Border
-                    Width="40"
-                    Height="40"
-                    VerticalAlignment="Center"
-                    Background="{DynamicResource SecondaryRegionBrush}"
-                    CornerRadius="9">
-                    <Image
-                        RenderOptions.BitmapScalingMode="HighQuality"
-                        SnapsToDevicePixels="True"
-                        Source="{x:Static services:PrometheusIconSource.Large}"
-                        Stretch="Uniform" />
-                </Border>
-                <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                    <TextBlock
-                        FontSize="15"
-                        FontWeight="Bold"
-                        Foreground="{DynamicResource PrimaryTextBrush}"
-                        Text="{DynamicResource Companion.Title}"
-                        TextTrimming="CharacterEllipsis" />
-                    <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
-                        <TextBlock
-                            Style="{StaticResource CompanionCaption}"
-                            Text="{DynamicResource Match.Live.Phase.ChampionSelect}" />
-                        <TextBlock
-                            Margin="5,0"
-                            Style="{StaticResource CompanionCaption}"
-                            Text="·" />
-                        <TextBlock
-                            Style="{StaticResource CompanionCaption}"
-                            Text="{Binding ModeText}"
-                            TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                </StackPanel>
-                <StackPanel
-                    Grid.Column="3"
-                    Margin="8,0,0,0"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center">
-                    <Border
-                        Padding="8,4"
-                        HorizontalAlignment="Right"
-                        Background="{DynamicResource SecondaryRegionBrush}"
-                        CornerRadius="9">
-                        <TextBlock
-                            FontSize="10"
-                            FontWeight="SemiBold"
-                            Foreground="{DynamicResource PrimaryTextBrush}"
-                            Text="{Binding TeamStatusText}" />
-                    </Border>
-                </StackPanel>
-            </Grid>
-
-            <Border
-                Grid.Row="1"
-                Background="{DynamicResource BorderBrush}"
-                Opacity="0.7" />
-
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="13"
-                    FontWeight="SemiBold"
-                    Foreground="{DynamicResource PrimaryTextBrush}"
-                    Text="{DynamicResource Companion.Team.Title}" />
-                <TextBlock
-                    Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource CompanionCaption}"
-                    Text="{DynamicResource Companion.Team.RecentWindow}" />
-            </Grid>
-
-            <ScrollViewer
-                Grid.Row="3"
-                HorizontalScrollBarVisibility="Disabled"
-                VerticalScrollBarVisibility="Auto">
-                <ItemsControl
-                    ItemTemplate="{StaticResource TeammateTemplate}"
-                    ItemsSource="{Binding Teammates}" />
-            </ScrollViewer>
-
-            <Border
-                Grid.Row="4"
-                Margin="0,6,0,0"
-                Background="{DynamicResource BorderBrush}"
-                Opacity="0.7" />
-
-            <Grid Grid.Row="5" Margin="0,10,0,0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="64" />
+                    <RowDefinition Height="1" />
+                    <RowDefinition Height="40" />
+                    <RowDefinition />
+                    <RowDefinition Height="1" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock
-                    Margin="3,0,0,2"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Foreground="{DynamicResource PrimaryTextBrush}"
-                    Text="{DynamicResource Companion.Automation.Title}" />
-                <ItemsControl
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="11" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="40"
+                        Height="40"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        CornerRadius="9">
+                        <Image
+                            RenderOptions.BitmapScalingMode="HighQuality"
+                            SnapsToDevicePixels="True"
+                            Source="{x:Static services:PrometheusIconSource.Large}"
+                            Stretch="Uniform" />
+                    </Border>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="15"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Text="{DynamicResource Companion.Title}"
+                            TextTrimming="CharacterEllipsis" />
+                        <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource CompanionCaption}" Text="{DynamicResource Match.Live.Phase.ChampionSelect}" />
+                            <TextBlock
+                                Margin="5,0"
+                                Style="{StaticResource CompanionCaption}"
+                                Text="·" />
+                            <TextBlock
+                                Style="{StaticResource CompanionCaption}"
+                                Text="{Binding ModeText}"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel
+                        Grid.Column="3"
+                        Margin="8,0,0,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                        <Border
+                            Padding="8,4"
+                            HorizontalAlignment="Right"
+                            Background="{DynamicResource SecondaryRegionBrush}"
+                            CornerRadius="9">
+                            <TextBlock
+                                FontSize="10"
+                                FontWeight="SemiBold"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Text="{Binding TeamStatusText}" />
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <Border
                     Grid.Row="1"
-                    Margin="-3,0"
-                    ItemTemplate="{StaticResource AutomationCardTemplate}"
-                    ItemsSource="{Binding AutomationCards}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="2" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
-            </Grid>
+                    Background="{DynamicResource BorderBrush}"
+                    Opacity="0.7" />
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        Text="{DynamicResource Companion.Team.Title}" />
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource CompanionCaption}"
+                        Text="{DynamicResource Companion.Team.RecentWindow}" />
+                </Grid>
+
+                <ScrollViewer
+                    Grid.Row="3"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemTemplate="{StaticResource TeammateTemplate}" ItemsSource="{Binding Teammates}" />
+                </ScrollViewer>
+
+                <Border
+                    Grid.Row="4"
+                    Margin="0,6,0,0"
+                    Background="{DynamicResource BorderBrush}"
+                    Opacity="0.7" />
+
+                <Grid Grid.Row="5" Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock
+                        Margin="3,0,0,2"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        Text="{DynamicResource Companion.Automation.Title}" />
+                    <ItemsControl
+                        Grid.Row="1"
+                        Margin="-3,0"
+                        ItemTemplate="{StaticResource AutomationCardTemplate}"
+                        ItemsSource="{Binding AutomationCards}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </Grid>
 
             </Grid>
         </Border>
         <Rectangle
             x:Name="CompanionSeam"
-            Panel.ZIndex="1"
             Width="3"
             HorizontalAlignment="Left"
+            Panel.ZIndex="1"
             Fill="{DynamicResource InfoBrush}"
             IsHitTestVisible="False" />
     </Grid>
