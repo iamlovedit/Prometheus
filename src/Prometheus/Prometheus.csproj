@@ -58,7 +58,7 @@
     </None>
   </ItemGroup>
   <Target Name="ValidateDesktopUpdateReleaseConfiguration" BeforeTargets="Publish"
-          Condition="'$(Configuration)' == 'Release'">
+          Condition="'$(Configuration)' == 'Release' and '$(EnableAutomaticUpdatePublishing)' == 'true'">
     <Error Condition="'$(UpdateApiBaseUrl)' == ''"
            Text="UpdateApiBaseUrl is required for Release publishing." />
     <Error Condition="'$(UsingDefaultUpdateSigningKey)' == 'true'"

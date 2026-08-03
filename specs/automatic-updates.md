@@ -1,5 +1,7 @@
 # 自动更新规范
 
+> 当前发布阶段：GitHub Actions 仅构建 `win-x64` self-contained 桌面程序，并将便携 ZIP 附加到 GitHub Release。R2、签名 Manifest、Bootstrapper、增量包和应用内自动更新发布链路暂缓实现；下述自动更新协议保留为后续阶段的目标规范。
+
 ## 范围
 
 Prometheus 首版自动更新仅支持 `stable` 通道和 `win-x64`。应用以可写便携目录部署，根目录 Native AOT Bootstrapper 负责启动、安装、健康检查和回滚；WPF 桌面程序位于版本目录。
@@ -45,13 +47,29 @@ Prometheus/
 
 ## 发布
 
-- WPF 主程序以 self-contained、非 single-file、多文件方式发布；Bootstrapper 使用 Native AOT。
+### 当前 GitHub Release 阶段
+
+- WPF 主程序以 self-contained、非 single-file、多文件方式发布，并压缩为 `Prometheus-<version>-win-x64.zip`。
+- 推送 `v<major>.<minor>.<patch>` Tag 时创建或更新同名 GitHub Release，并将便携 ZIP 作为 Release 附件。
+- Tag 版本必须与 `Directory.Build.props` 中的版本一致。
+- 当前包不包含 Bootstrapper、签名 Manifest 或增量更新文件，应用内自动更新 API 保持未配置状态。
+- 当前流水线不依赖 R2 凭据或更新签名密钥。
+
+### 后续 R2 自动更新阶段
+
+- Bootstrapper 使用 Native AOT。
 - 每个版本发布完整包、目标 Manifest、最近三个稳定版本的直接增量包、Bootstrapper 和首次安装便携包。
 - 增量包达到完整包大小的 70% 时不得发布。
 - 所有不可变对象先上传，`channels/stable/win-x64.json` 必须最后上传。
 - Release 发布缺少更新 API 地址、签名密钥或 R2 凭据时必须失败；任何私钥不得写入仓库或日志。
 
-## 验收标准
+## 当前 GitHub Release 阶段验收标准
+
+- 推送与项目版本一致的稳定版 Tag 后，GitHub Release 中存在且仅新增对应的 `Prometheus-<version>-win-x64.zip` 发布附件。
+- ZIP 解压后根目录包含可直接运行的 `Prometheus.Desktop.exe`，不要求用户预装 .NET Runtime。
+- 流水线不读取 R2 凭据或更新签名密钥；应用未配置更新 API 时，自动检查不得打断应用启动。
+
+## 后续 R2 自动更新阶段验收标准
 
 - 未变化文件不会从网络重复下载；篡改签名、包或本地基础文件时不会切换版本。
 - 更新被中断、应用启动失败或 Bootstrapper 自更新失败时，旧版本仍可启动。

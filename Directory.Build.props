@@ -13,6 +13,7 @@
     <UpdateApiBaseUrl Condition="'$(UpdateApiBaseUrl)' == ''"></UpdateApiBaseUrl>
     <UpdateSigningPublicKeyBase64 Condition="'$(UpdateSigningPublicKeyBase64)' == ''">MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAeM6Ch8AThCSZ1hyICH5bYOR1+70NaDS+4ZzSYqDIugTHrhLlD8ANTaSaHQKp/flLFpIwmWAek7Bw6BZV7CXwg==</UpdateSigningPublicKeyBase64>
     <UsingDefaultUpdateSigningKey Condition="'$(UsingDefaultUpdateSigningKey)' == ''">true</UsingDefaultUpdateSigningKey>
+    <EnableAutomaticUpdatePublishing Condition="'$(EnableAutomaticUpdatePublishing)' == ''">true</EnableAutomaticUpdatePublishing>
   </PropertyGroup>
 
 </Project>

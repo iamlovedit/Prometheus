@@ -6,20 +6,13 @@ on:
       - "v*.*.*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
     runs-on: windows-latest
     env:
       VERSION: ${{ github.ref_name }}
-      UPDATE_API_BASE_URL: ${{ vars.UPDATE_API_BASE_URL }}
-      UPDATE_SIGNING_PUBLIC_KEY_BASE64: ${{ vars.UPDATE_SIGNING_PUBLIC_KEY_BASE64 }}
-      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      R2_BUCKET: ${{ secrets.R2_BUCKET }}
-      UPDATE_SIGNING_PRIVATE_KEY_PEM_BASE64: ${{ secrets.UPDATE_SIGNING_PRIVATE_KEY_PEM_BASE64 }}
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +24,18 @@ jobs:
       - name: Resolve version
         shell: pwsh
         run: |
-          $releaseVersion = $env:VERSION.TrimStart('v')
+          $match = [regex]::Match($env:VERSION, '^v(?<version>\d+\.\d+\.\d+)$')
+          if (-not $match.Success) {
+            throw "Release tag must use the form v1.2.3. Received: $env:VERSION"
+          }
+
+          $releaseVersion = $match.Groups['version'].Value
+          [xml]$props = Get-Content -Raw -LiteralPath 'Directory.Build.props'
+          $projectVersion = $props.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+          if ($projectVersion -ne $releaseVersion) {
+            throw "Tag version $releaseVersion does not match Directory.Build.props version $projectVersion."
+          }
+
           "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Restore and test
@@ -44,41 +48,50 @@ jobs:
         run: |
           dotnet publish src/Prometheus/Prometheus.csproj -c Release -r win-x64 --self-contained true `
             -p:PublishSingleFile=false -p:PublishReadyToRun=false -p:DebugType=None -p:DebugSymbols=false `
-            -p:UpdateApiBaseUrl=$env:UPDATE_API_BASE_URL `
-            -p:UpdateSigningPublicKeyBase64=$env:UPDATE_SIGNING_PUBLIC_KEY_BASE64 `
-            -p:UsingDefaultUpdateSigningKey=false -o artifacts/desktop
+            -p:EnableAutomaticUpdatePublishing=false -o artifacts/desktop
 
-      - name: Publish Native AOT bootstrapper
+      - name: Create release package
         shell: pwsh
         run: |
-          dotnet publish src/Prometheus.Updater/Prometheus.Updater.csproj -c Release -r win-x64 `
-            -p:UpdateSigningPublicKeyBase64=$env:UPDATE_SIGNING_PUBLIC_KEY_BASE64 `
-            -p:UsingDefaultUpdateSigningKey=false -o artifacts/bootstrapper
+          $outputDirectory = Join-Path $env:GITHUB_WORKSPACE 'release-output'
+          New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
 
-      - name: Sign, package, and upload release
+          $packageName = "Prometheus-$env:RELEASE_VERSION-win-x64.zip"
+          $packagePath = Join-Path $outputDirectory $packageName
+          [IO.Compression.ZipFile]::CreateFromDirectory(
+            (Join-Path $env:GITHUB_WORKSPACE 'artifacts/desktop'),
+            $packagePath,
+            [IO.Compression.CompressionLevel]::Optimal,
+            $false)
+
+          $hash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash
+          Write-Host "Created $packageName"
+          Write-Host "SHA256: $hash"
+          "PACKAGE_PATH=$packagePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Create or update GitHub Release
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $keyPath = Join-Path $env:RUNNER_TEMP 'prometheus-update-key.pem'
-          [IO.File]::WriteAllBytes($keyPath, [Convert]::FromBase64String($env:UPDATE_SIGNING_PRIVATE_KEY_PEM_BASE64))
-          dotnet run --project src/Prometheus.ReleaseTool/Prometheus.ReleaseTool.csproj -c Release -- `
-            --version $env:RELEASE_VERSION `
-            --git-tag $env:VERSION `
-            --publish-dir artifacts/desktop `
-            --bootstrapper artifacts/bootstrapper/Prometheus.exe `
-            --output release-output `
-            --private-key $keyPath `
-            --repository-root . `
-            --account-id $env:R2_ACCOUNT_ID `
-            --access-key $env:R2_ACCESS_KEY_ID `
-            --secret-key $env:R2_SECRET_ACCESS_KEY `
-            --bucket $env:R2_BUCKET `
-            --minimum-supported 0.0.0 `
-            --minimum-bootstrapper 1.0.0 `
-            --bootstrapper-version $env:RELEASE_VERSION `
-            --notes-zh "Prometheus $env:RELEASE_VERSION" `
-            --notes-en "Prometheus $env:RELEASE_VERSION"
+          $nativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+          $PSNativeCommandUseErrorActionPreference = $false
+          gh release view $env:VERSION --repo $env:GITHUB_REPOSITORY *> $null
+          $releaseExists = $LASTEXITCODE -eq 0
+          $PSNativeCommandUseErrorActionPreference = $nativeErrorPreference
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: prometheus-${{ env.RELEASE_VERSION }}
-          path: release-output/
+          if ($releaseExists) {
+            gh release upload $env:VERSION $env:PACKAGE_PATH `
+              --repo $env:GITHUB_REPOSITORY --clobber
+          }
+          else {
+            gh release create $env:VERSION $env:PACKAGE_PATH `
+              --repo $env:GITHUB_REPOSITORY `
+              --verify-tag `
+              --title "Prometheus $env:RELEASE_VERSION" `
+              --generate-notes
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to publish GitHub Release $env:VERSION."
+          }
