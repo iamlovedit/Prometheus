@@ -20,6 +20,8 @@ namespace Prometheus.Shared.ViewModels
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IDialogService _dialogService;
         private readonly IResourceService _resourceService;
+        private CancellationTokenSource _loadCts;
+        private int _loadVersion;
         //private readonly static Dictionary<Tier, string> _tierIconReosourceMap = new()
         //{
         //    { Tier.UNRANKED,"Career.Rank.Tier.Unranked"},
@@ -47,12 +49,19 @@ namespace Prometheus.Shared.ViewModels
         }
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
-            OnNavigatedToAsync(navigationContext).Observe("Loading summoner career data");
+            var cancellationTokenSource = new CancellationTokenSource();
+            var version = Interlocked.Increment(ref _loadVersion);
+            var previousLoad = Interlocked.Exchange(ref _loadCts, cancellationTokenSource);
+            Cancel(previousLoad);
+            OnNavigatedToAsync(navigationContext, version, cancellationTokenSource)
+                .Observe("Loading summoner career data");
         }
 
-        private async Task OnNavigatedToAsync(NavigationContext navigationContext)
+        private async Task OnNavigatedToAsync(NavigationContext navigationContext,
+            int version, CancellationTokenSource cancellationTokenSource)
         {
             IsLoading = true;
+            var cancellationToken = cancellationTokenSource.Token;
 
             try
             {
@@ -65,15 +74,31 @@ namespace Prometheus.Shared.ViewModels
                 {
                     Summoner = summoner;
                     IsPublic = summoner.Privacy == "PUBLIC";
-                    await LoadBackgroundAsync(summoner, canEdit);
-                    await LoadProfileIconAsync(summoner.ProfileIconId);
-                    await LoadRanksAsync(summoner.Puuid);
-                    await LoadRecentMatchesAsync(summoner.Puuid);
+                    await LoadBackgroundAsync(summoner, canEdit, version,
+                        cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await LoadProfileIconAsync(summoner.ProfileIconId, version,
+                        cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await LoadRanksAsync(summoner.Puuid, version, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await LoadRecentMatchesAsync(summoner.Puuid, version,
+                        cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
             }
             finally
             {
-                IsLoading = false;
+                if (version == Volatile.Read(ref _loadVersion))
+                {
+                    IsLoading = false;
+                }
+
+                Interlocked.CompareExchange(ref _loadCts, null,
+                    cancellationTokenSource);
+                cancellationTokenSource.Dispose();
             }
         }
 
@@ -90,15 +115,22 @@ namespace Prometheus.Shared.ViewModels
                 CreateUnrankedRank(QueueType.RANKED_FLEX_SR));
         }
 
-        private async Task LoadBackgroundAsync(SummonerAccount summoner, bool canEdit)
+        private async Task LoadBackgroundAsync(SummonerAccount summoner, bool canEdit,
+            int version, CancellationToken cancellationToken)
         {
             var skinId = 0;
             try
             {
                 var json = canEdit
                     ? await _gameResourceManager.GetBackgroundSkinId()
-                    : await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId);
+                    : await _summonerService.GetBackdorpByIdAsync(summoner.SummonerId,
+                        cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 skinId = ParseBackgroundSkinId(json);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -107,7 +139,17 @@ namespace Prometheus.Shared.ViewModels
 
             try
             {
-                BackgroundSkin = await _gameResourceManager.GetBackgroundSkinByIdAsync(skinId);
+                var backgroundSkin = await _gameResourceManager
+                    .GetBackgroundSkinByIdAsync(skinId);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (version == Volatile.Read(ref _loadVersion))
+                {
+                    BackgroundSkin = backgroundSkin;
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -115,11 +157,22 @@ namespace Prometheus.Shared.ViewModels
             }
         }
 
-        private async Task LoadProfileIconAsync(int profileIconId)
+        private async Task LoadProfileIconAsync(int profileIconId, int version,
+            CancellationToken cancellationToken)
         {
             try
             {
-                ProfileIcon = await _gameResourceManager.GetProfileIconByIdAsync(profileIconId);
+                var profileIcon = await _gameResourceManager
+                    .GetProfileIconByIdAsync(profileIconId);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (version == Volatile.Read(ref _loadVersion))
+                {
+                    ProfileIcon = profileIcon;
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -127,14 +180,17 @@ namespace Prometheus.Shared.ViewModels
             }
         }
 
-        private async Task LoadRanksAsync(string puuid)
+        private async Task LoadRanksAsync(string puuid, int version,
+            CancellationToken cancellationToken)
         {
             var solo = CreateUnrankedRank(QueueType.RANKED_SOLO_5x5);
             var flex = CreateUnrankedRank(QueueType.RANKED_FLEX_SR);
 
             try
             {
-                var rankJson = await _summonerService.GetRankStatsByPuuid(puuid);
+                var rankJson = await _summonerService.GetRankStatsByPuuid(puuid,
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrWhiteSpace(rankJson))
                 {
                     var queueMap = JObject.Parse(rankJson)["queueMap"];
@@ -151,29 +207,34 @@ namespace Prometheus.Shared.ViewModels
                 Log.Warning(exception, "Unable to load summoner ranked stats");
             }
 
-            ApplyRanks(solo, flex);
+            if (version == Volatile.Read(ref _loadVersion))
+            {
+                ApplyRanks(solo, flex);
+            }
         }
 
-        private async Task LoadRecentMatchesAsync(string puuid)
+        private async Task LoadRecentMatchesAsync(string puuid, int version,
+            CancellationToken cancellationToken)
         {
             var matches = new List<Match>();
             try
             {
-                var matchResult = await _summonerService.GetMatchHistoryAsync(puuid);
+                var matchResult = await _summonerService.GetMatchHistoryAsync(puuid,
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (matchResult?.Succeeded == true)
                 {
                     matches = matchResult.Matches?.ToList() ?? [];
                 }
 
-                Wins = matches.Count(match => match.Participants[0].Stats.Win);
-                Losses = matches.Count - Wins;
-                var killed = matches.Sum(match => match.Participants[0].Stats.Kills);
-                var deaths = matches.Sum(match => match.Participants[0].Stats.Deaths);
-                var assists = matches.Sum(match => match.Participants[0].Stats.Assists);
-                KDA = $"{killed}/{deaths}/{assists}";
                 await Task.WhenAll(matches.Select(async match =>
                     match.Participants[0].ChampionIcon = await _gameResourceManager
                         .GetChampoinIconByIdAsync(match.Participants[0].ChampionId)));
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -181,6 +242,17 @@ namespace Prometheus.Shared.ViewModels
                 matches = [];
             }
 
+            if (version != Volatile.Read(ref _loadVersion))
+            {
+                return;
+            }
+
+            Wins = matches.Count(match => match.Participants[0].Stats.Win);
+            Losses = matches.Count - Wins;
+            var killed = matches.Sum(match => match.Participants[0].Stats.Kills);
+            var deaths = matches.Sum(match => match.Participants[0].Stats.Deaths);
+            var assists = matches.Sum(match => match.Participants[0].Stats.Assists);
+            KDA = $"{killed}/{deaths}/{assists}";
             RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
         }
 
@@ -257,8 +329,33 @@ namespace Prometheus.Shared.ViewModels
 
         public override void OnNavigatedFrom(NavigationContext navigationContext)
         {
+            CancelPendingLoad();
             RecentMatches = null;
             SelectedMatchTypeIndex = 0;
+            IsLoading = false;
+        }
+
+        public override void Destroy()
+        {
+            CancelPendingLoad();
+            base.Destroy();
+        }
+
+        private void CancelPendingLoad()
+        {
+            Interlocked.Increment(ref _loadVersion);
+            Cancel(Interlocked.Exchange(ref _loadCts, null));
+        }
+
+        private static void Cancel(CancellationTokenSource cancellationTokenSource)
+        {
+            try
+            {
+                cancellationTokenSource?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
         }
 
         public Rank[] Ranks { get; set; }

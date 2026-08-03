@@ -77,6 +77,73 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 "player-puuid", It.IsAny<CancellationToken>()), Times.Once);
         }
 
+        [Fact]
+        public async Task OnNavigatedTo_WhenAccountChanges_DoesNotApplyThePreviousLoad()
+        {
+            using var context = new TestContext();
+            var oldRankStarted = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var oldRankCompletion = new TaskCompletionSource<string>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.SummonerService.Setup(service => service.GetRankStatsByPuuid(
+                    "old-puuid", It.IsAny<CancellationToken>()))
+                .Returns(() =>
+                {
+                    oldRankStarted.TrySetResult(true);
+                    return oldRankCompletion.Task;
+                });
+            context.SummonerService.Setup(service => service.GetRankStatsByPuuid(
+                    "new-puuid", It.IsAny<CancellationToken>()))
+                .ReturnsAsync("""
+                    {
+                      "queueMap": {
+                        "RANKED_SOLO_5x5": {
+                          "tier": "DIAMOND",
+                          "queueType": "RANKED_SOLO_5x5"
+                        }
+                      }
+                    }
+                    """);
+            context.SummonerService.Setup(service => service.GetMatchHistoryAsync(
+                    It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new MatchHistoryQueryResult
+                {
+                    Succeeded = true,
+                    Matches = []
+                });
+
+            context.Navigate(CreateSummoner("old-puuid"));
+            await oldRankStarted.Task.WaitAsync(TimeSpan.FromSeconds(1));
+            context.Navigate(CreateSummoner("new-puuid"));
+            await WaitForIdleAsync(context.ViewModel);
+
+            oldRankCompletion.TrySetResult("""
+                {
+                  "queueMap": {
+                    "RANKED_SOLO_5x5": {
+                      "tier": "BRONZE",
+                      "queueType": "RANKED_SOLO_5x5"
+                    }
+                  }
+                }
+                """);
+            await Task.Delay(50);
+
+            Assert.Equal("new-puuid", context.ViewModel.Summoner.Puuid);
+            Assert.Equal(Tier.DIAMOND, context.ViewModel.Solo.Tier);
+        }
+
+        private static SummonerAccount CreateSummoner(string puuid)
+        {
+            return new SummonerAccount
+            {
+                Puuid = puuid,
+                SummonerId = 123,
+                ProfileIconId = 7,
+                Privacy = "PUBLIC"
+            };
+        }
+
         private static async Task WaitForIdleAsync(SummonerDetailViewModel viewModel)
         {
             for (var attempt = 0; attempt < 100; attempt++)
@@ -141,18 +208,15 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
             public async Task NavigateAsync()
             {
+                Navigate(CreateSummoner("player-puuid"));
+                await WaitForIdleAsync(ViewModel);
+            }
+
+            public void Navigate(SummonerAccount summoner)
+            {
                 var parameters = new NavigationParameters
                 {
-                    {
-                        ParameterNames.Summoner,
-                        new SummonerAccount
-                        {
-                            Puuid = "player-puuid",
-                            SummonerId = 123,
-                            ProfileIconId = 7,
-                            Privacy = "PUBLIC"
-                        }
-                    },
+                    { ParameterNames.Summoner, summoner },
                     { ParameterNames.CanEdit, false }
                 };
                 var navigationContext = new NavigationContext(
@@ -164,7 +228,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     ?.SetValue(navigationContext, parameters);
 
                 ViewModel.OnNavigatedTo(navigationContext);
-                await WaitForIdleAsync(ViewModel);
             }
 
             public void Dispose()

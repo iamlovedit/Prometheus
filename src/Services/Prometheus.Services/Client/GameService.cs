@@ -205,9 +205,10 @@ namespace Prometheus.Services.Client
             var body = new
             {
                 customGameLobby,
-                isCustom = true
+                isCustom = true,
+                queueId = GameQueueIds.PracticeTool
             };
-            await _httpService.PostAsync("lol-lobby/v2/lobby", body);
+            await _httpService.PostAsync(_lobby, body);
         }
 
         public async Task<MatchmadeLobbyCreationResult> CreateMatchmadeLobbyAsync(

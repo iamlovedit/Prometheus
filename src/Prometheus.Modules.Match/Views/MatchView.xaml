@@ -141,9 +141,7 @@
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="8">
-                            <ContentPresenter
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -357,24 +355,38 @@
                                 Style="{StaticResource LiveCaption}"
                                 Text="{Binding KdaText}" />
                             <ItemsControl
-                                Margin="0,6,0,0"
-                                HorizontalAlignment="Right"
-                                ItemsSource="{Binding RecentResults}">
+                                Height="8"
+                                Margin="0,4,0,0"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Top"
+                                ItemsSource="{Binding RecentResults}"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel Orientation="Horizontal" />
+                                        <StackPanel
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Orientation="Horizontal" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemContainerStyle>
+                                    <Style TargetType="{x:Type ContentPresenter}">
+                                        <Setter Property="Height" Value="8" />
+                                        <Setter Property="VerticalAlignment" Value="Top" />
+                                        <Setter Property="SnapsToDevicePixels" Value="True" />
+                                    </Style>
+                                </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Rectangle
-                                            Width="5"
-                                            Height="6"
+                                        <Ellipse
+                                            Width="8"
+                                            Height="8"
                                             Margin="1,0,0,0"
-                                            RadiusX="2"
-                                            RadiusY="2">
-                                            <Rectangle.Style>
-                                                <Style TargetType="{x:Type Rectangle}">
+                                            VerticalAlignment="Top"
+                                            SnapsToDevicePixels="True">
+                                            <Ellipse.Style>
+                                                <Style TargetType="{x:Type Ellipse}">
                                                     <Setter Property="Fill" Value="#D85C5C" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsWin}" Value="True">
@@ -382,8 +394,8 @@
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Rectangle.Style>
-                                        </Rectangle>
+                                            </Ellipse.Style>
+                                        </Ellipse>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -479,98 +491,98 @@
                         Grid.Column="0"
                         Padding="14,12,14,6"
                         Style="{StaticResource LiveCard}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="42" />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <Border
-                        Height="3"
-                        VerticalAlignment="Top"
-                        Background="#4C8DFF"
-                        CornerRadius="2" />
-                    <Grid Margin="0,7,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="16"
-                            FontWeight="Bold"
-                            Text="{DynamicResource Match.Live.MyTeam}" />
-                        <StackPanel
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Orientation="Horizontal">
-                            <TextBlock
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{DynamicResource Match.Live.Recent20}" />
-                            <TextBlock
-                                Margin="8,0,0,0"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{Binding MyTeamStatusText}" />
-                        </StackPanel>
-                    </Grid>
-                    <ItemsControl
-                        Grid.Row="1"
-                        ItemTemplate="{StaticResource LivePlayerTemplate}"
-                        ItemsSource="{Binding MyTeam}" />
-                </Grid>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="42" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Border
+                                Height="3"
+                                VerticalAlignment="Top"
+                                Background="#4C8DFF"
+                                CornerRadius="2" />
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    FontWeight="Bold"
+                                    Text="{DynamicResource Match.Live.MyTeam}" />
+                                <StackPanel
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <TextBlock
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{DynamicResource Match.Live.Recent20}" />
+                                    <TextBlock
+                                        Margin="8,0,0,0"
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{Binding MyTeamStatusText}" />
+                                </StackPanel>
+                            </Grid>
+                            <ItemsControl
+                                Grid.Row="1"
+                                ItemTemplate="{StaticResource LivePlayerTemplate}"
+                                ItemsSource="{Binding MyTeam}" />
+                        </Grid>
                     </Border>
 
                     <Border
                         Grid.Column="2"
                         Padding="14,12,14,6"
                         Style="{StaticResource LiveCard}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="42" />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <Border
-                        Height="3"
-                        VerticalAlignment="Top"
-                        Background="#D96C75"
-                        CornerRadius="2" />
-                    <Grid Margin="0,7,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontSize="16"
-                            FontWeight="Bold"
-                            Text="{DynamicResource Match.Live.EnemyTeam}" />
-                        <StackPanel
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Orientation="Horizontal">
-                            <TextBlock
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{DynamicResource Match.Live.Recent20}" />
-                            <TextBlock
-                                Margin="8,0,0,0"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{Binding TheirTeamStatusText}" />
-                        </StackPanel>
-                    </Grid>
-                    <ItemsControl
-                        Grid.Row="1"
-                        ItemTemplate="{StaticResource LivePlayerTemplate}"
-                        ItemsSource="{Binding TheirTeam}" />
-                </Grid>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="42" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Border
+                                Height="3"
+                                VerticalAlignment="Top"
+                                Background="#D96C75"
+                                CornerRadius="2" />
+                            <Grid Margin="0,7,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    FontWeight="Bold"
+                                    Text="{DynamicResource Match.Live.EnemyTeam}" />
+                                <StackPanel
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <TextBlock
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{DynamicResource Match.Live.Recent20}" />
+                                    <TextBlock
+                                        Margin="8,0,0,0"
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{Binding TheirTeamStatusText}" />
+                                </StackPanel>
+                            </Grid>
+                            <ItemsControl
+                                Grid.Row="1"
+                                ItemTemplate="{StaticResource LivePlayerTemplate}"
+                                ItemsSource="{Binding TheirTeam}" />
+                        </Grid>
                     </Border>
                 </Grid>
 
                 <Border
                     Margin="0,12,0,0"
-                    Padding="14"
+                    Padding="12"
                     Style="{StaticResource LiveCard}"
                     Visibility="{Binding HasSelectedPlayer, Converter={StaticResource Boolean2VisibilityConverter}}">
                     <Grid>
@@ -608,11 +620,20 @@
                                 </StackPanel>
                                 <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource LiveCaption}" Text="{Binding SelectedPlayer.RankText}" />
-                                    <TextBlock Margin="10,0,0,0" Style="{StaticResource LiveCaption}" Text="{Binding SelectedPlayer.RecentRecordText}" />
-                                    <TextBlock Margin="10,0,0,0" Style="{StaticResource LiveCaption}" Text="{Binding SelectedPlayer.KdaText}" />
+                                    <TextBlock
+                                        Margin="10,0,0,0"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{Binding SelectedPlayer.RecentRecordText}" />
+                                    <TextBlock
+                                        Margin="10,0,0,0"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{Binding SelectedPlayer.KdaText}" />
                                 </StackPanel>
                             </StackPanel>
-                            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <StackPanel
+                                Grid.Column="2"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
                                 <TextBlock
                                     HorizontalAlignment="Right"
                                     FontWeight="SemiBold"

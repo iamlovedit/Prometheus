@@ -74,6 +74,26 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public async Task CreatePracticeLobbyAsync_PostsPracticeToolQueueId()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.PostAsync(
+                    "lol-lobby/v2/lobby",
+                    It.Is<object>(body =>
+                        ReadQueueId(body) == GameQueueIds.PracticeTool)))
+                .Returns(Task.CompletedTask);
+            var gameService = new GameService(
+                httpService.Object, new Mock<IClientService>().Object);
+
+            await gameService.CreatePracticeLobbyAsync("Practice", "secret");
+
+            httpService.Verify(service => service.PostAsync(
+                "lol-lobby/v2/lobby",
+                It.Is<object>(body =>
+                    ReadQueueId(body) == GameQueueIds.PracticeTool)), Times.Once);
+        }
+
+        [Fact]
         public async Task CreateMatchmadeLobbyAsync_WhenQueueIsAvailable_PostsQueueAndConfirmsLobby()
         {
             var httpService = new Mock<IHttpService>();

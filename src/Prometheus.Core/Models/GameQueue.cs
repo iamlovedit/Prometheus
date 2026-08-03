@@ -56,5 +56,7 @@ namespace Prometheus.Core.Models
         public const int Aram = 450;
 
         public const int HextechAram = 2400;
+
+        public const int PracticeTool = 3140;
     }
 }

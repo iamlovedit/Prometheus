@@ -339,6 +339,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 
 | URI | 用途 |
 |-----|------|
+| `/lol-summoner/v1/current-summoner` | 当前登录召唤师变化；驱动当前账号生涯页刷新 |
 | `/lol-gameflow/v1/gameflow-phase` | 阶段切换驱动快照刷新 |
 | `/lol-gameflow/v1/session` | 对局会话变化 |
 | `/lol-lobby/v2/lobby` | 房间变化 |
