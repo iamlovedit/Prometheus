@@ -160,7 +160,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 updateService,
                 new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
-                CreateQuickMatchSettings().Object);
+                CreateQuickMatchSettings().Object,
+                new Mock<ILcuCompanionSettings>().Object);
         }
 
         private static Mock<IQuickMatchSettings> CreateQuickMatchSettings()

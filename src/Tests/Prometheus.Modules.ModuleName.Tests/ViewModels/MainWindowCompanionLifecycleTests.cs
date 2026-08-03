@@ -50,6 +50,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 quickMatchSettings.Object,
+                new Mock<ILcuCompanionSettings>().Object,
                 companion.Object);
 
             viewModel.LoadedCommand.Execute();

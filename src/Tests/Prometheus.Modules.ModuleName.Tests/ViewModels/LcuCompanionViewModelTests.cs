@@ -37,7 +37,10 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                             DataState = LiveMatchPlayerDataState.Loaded,
                             RecentMatchCount = 20,
                             RecentWins = 10,
-                            RecentLosses = 10
+                            RecentLosses = 10,
+                            RecentResults = Enumerable.Range(0, 25)
+                                .Select(match => match % 2 == 0)
+                                .ToArray()
                         })
                         .ToArray()
                 }
@@ -67,6 +70,10 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal(4, viewModel.Teammates.Count);
             Assert.DoesNotContain(viewModel.Teammates,
                 teammate => teammate.DisplayName == "Local");
+            Assert.All(viewModel.Teammates,
+                teammate => Assert.Equal(20, teammate.RecentResults.Count));
+            Assert.True(viewModel.Teammates[0].RecentResults[0].IsWin);
+            Assert.False(viewModel.Teammates[0].RecentResults[1].IsWin);
 
             viewModel.Stop();
         }

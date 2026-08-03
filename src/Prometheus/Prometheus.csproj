@@ -8,10 +8,8 @@
 	<ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <None Remove="Resources\Prometheus_16.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Prometheus.ico" />
+    <None Remove="Prometheus.ico" />
+    <Resource Include="Prometheus.ico" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="HandyControl" />
@@ -34,9 +32,6 @@
   </ItemGroup>
   <ItemGroup>
     <AssemblyMetadata Include="UpdateApiBaseUrl" Value="$(UpdateApiBaseUrl)" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Resources\Prometheus_16.ico" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">

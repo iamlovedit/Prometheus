@@ -59,15 +59,5 @@ namespace Prometheus.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   查找 System.Byte[] 类型的本地化资源。
-        /// </summary>
-        internal static byte[] Prometheus_16 {
-            get {
-                object obj = ResourceManager.GetObject("Prometheus_16", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
     }
 }

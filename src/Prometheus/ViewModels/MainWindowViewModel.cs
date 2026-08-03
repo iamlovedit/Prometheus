@@ -21,6 +21,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Serilog;
 using Serilog.Events;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
@@ -40,6 +41,7 @@ namespace Prometheus.ViewModels
         private readonly IResourceService _resourceService;
         private readonly IProfilePresentationStartupService _profilePresentationStartupService;
         private readonly IGameAutomationSettings _automationSettings;
+        private readonly ILcuCompanionSettings _companionSettings;
         private readonly IUpdateService _updateService;
         private readonly IDialogService _dialogService;
         private readonly IGameService _gameService;
@@ -69,6 +71,7 @@ namespace Prometheus.ViewModels
             IDialogService dialogService,
             IGameService gameService,
             IQuickMatchSettings quickMatchSettings,
+            ILcuCompanionSettings companionSettings,
             ILcuCompanionWindowController lcuCompanionWindowController = null)
         {
             _regionManager = regionManager;
@@ -84,6 +87,7 @@ namespace Prometheus.ViewModels
             _dialogService = dialogService;
             _gameService = gameService;
             _quickMatchSettings = quickMatchSettings;
+            _companionSettings = companionSettings;
             _lcuCompanionWindowController = lcuCompanionWindowController;
             _selectedQuickMatchQueueId = NormalizeQuickMatchQueueId(
                 _quickMatchSettings.QueueId);
@@ -93,6 +97,7 @@ namespace Prometheus.ViewModels
 
             _matchService.SnapshotChanged += HandleSnapshotChanged;
             _automationSettings.Changed += HandleAutomationSettingsChanged;
+            _companionSettings.PropertyChanged += HandleCompanionSettingsChanged;
             _quickMatchSettings.Changed += HandleQuickMatchSettingsChanged;
             _updateService.StateChanged += HandleUpdateStateChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Subscribe(HandleNavigateMenu);
@@ -261,6 +266,13 @@ namespace Prometheus.ViewModels
             private set => SetProperty(ref _trayAramSwapText, value);
         }
 
+        private string _trayCompanionText;
+        public string TrayCompanionText
+        {
+            get => _trayCompanionText;
+            private set => SetProperty(ref _trayCompanionText, value);
+        }
+
         private string _traySettingsText;
         public string TraySettingsText
         {
@@ -333,6 +345,24 @@ namespace Prometheus.ViewModels
                 if (!persisted)
                 {
                     Growl.Warning(Text("Utility.AramSwap.PersistenceFailed"));
+                }
+            }
+        }
+
+        public bool IsTrayCompanionEnabled
+        {
+            get => _companionSettings.IsEnabled;
+            set
+            {
+                if (_companionSettings.IsEnabled == value)
+                {
+                    return;
+                }
+
+                _companionSettings.IsEnabled = value;
+                if (!_companionSettings.LastPersistenceSucceeded)
+                {
+                    Growl.Warning(Text("Utility.Companion.PersistenceFailed"));
                 }
             }
         }
@@ -499,6 +529,7 @@ namespace Prometheus.ViewModels
             _lcuCompanionWindowController?.Stop();
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationSettingsChanged;
+            _companionSettings.PropertyChanged -= HandleCompanionSettingsChanged;
             _quickMatchSettings.Changed -= HandleQuickMatchSettingsChanged;
             _updateService.StateChanged -= HandleUpdateStateChanged;
             _eventAggregator.GetEvent<NavigateMenuEvent>().Unsubscribe(HandleNavigateMenu);
@@ -544,6 +575,18 @@ namespace Prometheus.ViewModels
                 RaisePropertyChanged(nameof(IsTrayAutoReconnectEnabled));
                 RaisePropertyChanged(nameof(IsTrayAramSwapEnabled));
             });
+        }
+
+        private void HandleCompanionSettingsChanged(
+            object sender,
+            PropertyChangedEventArgs args)
+        {
+            if (string.IsNullOrEmpty(args?.PropertyName) ||
+                args.PropertyName == nameof(ILcuCompanionSettings.IsEnabled))
+            {
+                Dispatch(() => RaisePropertyChanged(
+                    nameof(IsTrayCompanionEnabled)));
+            }
         }
 
         private void HandleUpdateStateChanged(object sender, UpdateStateChangedEventArgs args)
@@ -904,6 +947,7 @@ namespace Prometheus.ViewModels
             TrayAutoAcceptText = Text("Setting.Automation.AutoAccept");
             TrayAutoReconnectText = Text("Setting.Automation.AutoReconnect");
             TrayAramSwapText = Text("Utility.AramSwap");
+            TrayCompanionText = Text("Utility.Companion.Title");
             TraySettingsText = Text("Menu.Setting");
             TrayExitText = Text("Tray.Exit");
         }

@@ -12,6 +12,11 @@ using System.Windows.Threading;
 
 namespace Prometheus.ViewModels
 {
+    public sealed class LcuCompanionRecentResultViewModel
+    {
+        public bool IsWin { get; init; }
+    }
+
     public sealed class LcuCompanionPlayerViewModel
     {
         public string ChampionIcon { get; init; } = string.Empty;
@@ -25,6 +30,12 @@ namespace Prometheus.ViewModels
         public string KdaText { get; init; } = string.Empty;
 
         public string StatusText { get; init; } = string.Empty;
+
+        public IReadOnlyList<LcuCompanionRecentResultViewModel> RecentResults
+        {
+            get;
+            init;
+        } = [];
 
         public bool IsLoading { get; init; }
 
@@ -218,11 +229,33 @@ namespace Prometheus.ViewModels
                         player.AverageKda)
                     : "KDA --",
                 StatusText = GetPlayerStatusText(player, isHidden, isLoaded, recentCount),
+                RecentResults = isLoaded ? CreateRecentResults(player) : [],
                 IsLoading = player.DataState == LiveMatchPlayerDataState.Loading,
                 IsUnavailable = isHidden ||
                     player.DataState is LiveMatchPlayerDataState.Error or
                         LiveMatchPlayerDataState.Unavailable
             };
+        }
+
+        private static IReadOnlyList<LcuCompanionRecentResultViewModel>
+            CreateRecentResults(LiveMatchPlayerSnapshot player)
+        {
+            var results = player.RecentResults ?? Array.Empty<bool>();
+            if (results.Count == 0)
+            {
+                results = (player.RecentMatches ??
+                        Array.Empty<LiveMatchRecentMatchSnapshot>())
+                    .Select(match => match.IsWin)
+                    .ToArray();
+            }
+
+            return results
+                .Take(20)
+                .Select(isWin => new LcuCompanionRecentResultViewModel
+                {
+                    IsWin = isWin
+                })
+                .ToArray();
         }
 
         private LcuCompanionPlayerViewModel CreateLoadingPlayer(int slot)

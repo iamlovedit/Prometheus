@@ -353,6 +353,10 @@
     <sys:String x:Key="Utility.Panel.Automation.BanOff">Auto ban: Off</sys:String>
     <sys:String x:Key="Utility.Panel.Automation.AramOn">ARAM swap: On</sys:String>
     <sys:String x:Key="Utility.Panel.Automation.AramOff">ARAM swap: Off</sys:String>
+    <sys:String x:Key="Utility.Companion.Title">Champion-select companion</sys:String>
+    <sys:String x:Key="Utility.Companion.Description">Attach the teammate-performance panel to the League Client during champion select. Turning it off hides the panel immediately and prevents it from opening automatically.</sys:String>
+    <sys:String x:Key="Utility.Companion.Enable">Enable companion</sys:String>
+    <sys:String x:Key="Utility.Companion.PersistenceFailed">The setting is active for this session but could not be saved locally</sys:String>
     <sys:String x:Key="Utility.AutoAccept">Auto Accept</sys:String>
     <sys:String x:Key="Utility.AutoReconnect">Auto Reconnect</sys:String>
     <sys:String x:Key="Utility.SelectChampion">Auto select champion</sys:String>
@@ -439,6 +443,15 @@
     <sys:String x:Key="Match.Live.Rank.Unranked">Unranked</sys:String>
     <sys:String x:Key="Match.Live.Record.Format">{0}W {1}L · {2}%</sys:String>
     <sys:String x:Key="Match.Live.Kda.Format">KDA {0:0.0}</sys:String>
+    <sys:String x:Key="Match.Live.Profile.Short">Career</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Open">View per-match K/D/A</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Open.Short">Details</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Title">Per-match K/D/A · last 20</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Order">Newest to oldest</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.KdaLabel">K / D / A</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Win">Win</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Loss">Loss</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Automation">Match {0}, {1}, K/D/A {2}/{3}/{4}, {5}</sys:String>
     <sys:String x:Key="Match.Live.Position.Top">Top</sys:String>
     <sys:String x:Key="Match.Live.Position.Jungle">Jungle</sys:String>
     <sys:String x:Key="Match.Live.Position.Middle">Middle</sys:String>
@@ -477,6 +490,7 @@
     <sys:String x:Key="Companion.Team.Loading">Loading teammates</sys:String>
     <sys:String x:Key="Companion.Team.Available">Available {0}/{1}</sys:String>
     <sys:String x:Key="Companion.Team.Slot">Teammate {0}</sys:String>
+    <sys:String x:Key="Companion.Team.RecentWindow">Recent 20</sys:String>
     <sys:String x:Key="Companion.Mode.Matchmade">Matchmade</sys:String>
     <sys:String x:Key="Companion.Mode.RankedSoloDuo">Ranked Solo/Duo</sys:String>
     <sys:String x:Key="Companion.Mode.RankedFlex">Ranked Flex</sys:String>
@@ -486,6 +500,7 @@
     <sys:String x:Key="Companion.Automation.Aram">Auto swap</sys:String>
     <sys:String x:Key="Companion.Automation.Ban">Auto Ban</sys:String>
     <sys:String x:Key="Companion.Automation.Pick">Auto Pick</sys:String>
+    <sys:String x:Key="Companion.Automation.Title">Automation</sys:String>
     <sys:String x:Key="Companion.Status.Disabled">Disabled</sys:String>
     <sys:String x:Key="Companion.Status.NotConfigured">No champion configured</sys:String>
     <sys:String x:Key="Companion.Status.Waiting">Waiting for action</sys:String>

@@ -352,6 +352,10 @@
     <sys:String x:Key="Utility.Panel.Automation.BanOff">自动禁用：关</sys:String>
     <sys:String x:Key="Utility.Panel.Automation.AramOn">大乱斗交换：开</sys:String>
     <sys:String x:Key="Utility.Panel.Automation.AramOff">大乱斗交换：关</sys:String>
+    <sys:String x:Key="Utility.Companion.Title">选人阶段吸附窗</sys:String>
+    <sys:String x:Key="Utility.Companion.Description">进入英雄选择时，将队友战绩面板吸附到英雄联盟客户端边缘；关闭后会立即隐藏，并阻止后续自动弹出。</sys:String>
+    <sys:String x:Key="Utility.Companion.Enable">启用吸附窗</sys:String>
+    <sys:String x:Key="Utility.Companion.PersistenceFailed">配置已在本次运行中生效，但无法保存到本地</sys:String>
     <sys:String x:Key="Utility.AutoAccept">自动接受</sys:String>
     <sys:String x:Key="Utility.AutoReconnect">自动重连</sys:String>
     <sys:String x:Key="Utility.SelectChampion">自动选择英雄</sys:String>
@@ -438,6 +442,15 @@
     <sys:String x:Key="Match.Live.Rank.Unranked">未定级</sys:String>
     <sys:String x:Key="Match.Live.Record.Format">{0}胜 {1}负 · {2}%</sys:String>
     <sys:String x:Key="Match.Live.Kda.Format">KDA {0:0.0}</sys:String>
+    <sys:String x:Key="Match.Live.Profile.Short">生涯</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Open">查看逐场 K/D/A</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Open.Short">逐场</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Title">近 20 场逐场 K/D/A</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Order">从最新到较早</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.KdaLabel">K / D / A</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Win">胜</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Loss">负</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Automation">第 {0} 场，{1}，K/D/A {2}/{3}/{4}，{5}</sys:String>
     <sys:String x:Key="Match.Live.Position.Top">上路</sys:String>
     <sys:String x:Key="Match.Live.Position.Jungle">打野</sys:String>
     <sys:String x:Key="Match.Live.Position.Middle">中路</sys:String>
@@ -476,6 +489,7 @@
     <sys:String x:Key="Companion.Team.Loading">正在加载队友</sys:String>
     <sys:String x:Key="Companion.Team.Available">已获取 {0}/{1}</sys:String>
     <sys:String x:Key="Companion.Team.Slot">队友 {0}</sys:String>
+    <sys:String x:Key="Companion.Team.RecentWindow">近 20 场</sys:String>
     <sys:String x:Key="Companion.Mode.Matchmade">匹配模式</sys:String>
     <sys:String x:Key="Companion.Mode.RankedSoloDuo">单双排</sys:String>
     <sys:String x:Key="Companion.Mode.RankedFlex">灵活排位</sys:String>
@@ -485,6 +499,7 @@
     <sys:String x:Key="Companion.Automation.Aram">自动交换</sys:String>
     <sys:String x:Key="Companion.Automation.Ban">自动 Ban</sys:String>
     <sys:String x:Key="Companion.Automation.Pick">自动 Pick</sys:String>
+    <sys:String x:Key="Companion.Automation.Title">自动操作</sys:String>
     <sys:String x:Key="Companion.Status.Disabled">未启用</sys:String>
     <sys:String x:Key="Companion.Status.NotConfigured">未配置英雄</sys:String>
     <sys:String x:Key="Companion.Status.Waiting">等待操作阶段</sys:String>

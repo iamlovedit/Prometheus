@@ -67,6 +67,8 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IGameResourceManager, GameResourceManager>();
             containerRegistry.RegisterSingleton<ISummonerService, SummonerService>();
             containerRegistry.RegisterSingleton<IGameAutomationSettings, GameAutomationSettings>();
+            containerRegistry.RegisterSingleton<ILcuCompanionSettings,
+                LcuCompanionSettings>();
             containerRegistry.RegisterSingleton<IMatchService, MatchService>();
             containerRegistry.RegisterSingleton<ILcuWindowTracker, LcuWindowTracker>();
             containerRegistry.RegisterSingleton<LcuCompanionViewModel>();

@@ -388,6 +388,32 @@
                     </Border>
                 </Expander>
 
+                <Border
+                    Margin="0,8,0,0"
+                    Style="{StaticResource UtilityCard}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,24,0" VerticalAlignment="Center">
+                            <TextBlock
+                                Style="{StaticResource SectionTitle}"
+                                Text="{DynamicResource Utility.Companion.Title}" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                Style="{StaticResource CaptionText}"
+                                Text="{DynamicResource Utility.Companion.Description}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <CheckBox
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Content="{DynamicResource Utility.Companion.Enable}"
+                            IsChecked="{Binding IsChampionSelectCompanionEnabled, Mode=TwoWay}" />
+                    </Grid>
+                </Border>
+
                 <Expander
                     Margin="0,8,0,0"
                     IsExpanded="False"

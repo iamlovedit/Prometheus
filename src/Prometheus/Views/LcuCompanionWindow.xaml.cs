@@ -1,3 +1,4 @@
+using Prometheus.Desktop.Services;
 using Prometheus.ViewModels;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -18,6 +19,31 @@ namespace Prometheus.Views
             InitializeComponent();
             DataContext = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
             SourceInitialized += HandleSourceInitialized;
+        }
+
+        public void ApplyPlacementSide(LcuCompanionSide side)
+        {
+            var chrome = LcuCompanionChromeCalculator.Calculate(side);
+            CompanionChrome.Margin = new Thickness(chrome.Inset);
+            CompanionChrome.BorderThickness = new Thickness(
+                chrome.LeftBorderThickness,
+                chrome.TopBorderThickness,
+                chrome.RightBorderThickness,
+                chrome.BottomBorderThickness);
+            CompanionChrome.CornerRadius = new CornerRadius(
+                chrome.TopLeftRadius,
+                chrome.TopRightRadius,
+                chrome.BottomRightRadius,
+                chrome.BottomLeftRadius);
+            CompanionShadow.Opacity = chrome.ShowShadow ? 0.24 : 0;
+            CompanionSeam.Width = chrome.SeamThickness;
+            CompanionSeam.Visibility = chrome.SeamSide == LcuCompanionSeamSide.None
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+            CompanionSeam.HorizontalAlignment =
+                chrome.SeamSide == LcuCompanionSeamSide.Right
+                    ? HorizontalAlignment.Right
+                    : HorizontalAlignment.Left;
         }
 
         private void HandleSourceInitialized(object sender, EventArgs args)

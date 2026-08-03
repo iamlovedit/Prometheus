@@ -59,6 +59,8 @@ namespace Prometheus.Modules.Utility.ViewModels
         private readonly IProfilePresentationSettings _profileSettings;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IGameAutomationSettings _automationSettings;
+        private readonly ILcuCompanionSettings _companionSettings;
+        private bool _isCompanionSettingsSubscribed;
 
         public UtilityViewModel(
             IRegionManager regionManager,
@@ -66,7 +68,8 @@ namespace Prometheus.Modules.Utility.ViewModels
             IGameService gameService,
             IProfilePresentationSettings profileSettings,
             IGameResourceManager gameResourceManager,
-            IGameAutomationSettings automationSettings)
+            IGameAutomationSettings automationSettings,
+            ILcuCompanionSettings companionSettings)
             : base(regionManager)
         {
             _resourceService = resourceService;
@@ -74,6 +77,7 @@ namespace Prometheus.Modules.Utility.ViewModels
             _profileSettings = profileSettings;
             _gameResourceManager = gameResourceManager;
             _automationSettings = automationSettings;
+            _companionSettings = companionSettings;
             PickChampionEditor = new ChampionPriorityEditorViewModel(
                 EnsureChampionCatalogLoaded,
                 PersistPreferredPickChampionIds);
@@ -110,10 +114,28 @@ namespace Prometheus.Modules.Utility.ViewModels
 
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
+            if (!_isCompanionSettingsSubscribed)
+            {
+                _companionSettings.PropertyChanged +=
+                    HandleCompanionSettingsPropertyChanged;
+                _isCompanionSettingsSubscribed = true;
+            }
+
             RaisePropertyChanged(nameof(AutoSwapAramBench));
             RaisePropertyChanged(nameof(AutoPickChampion));
             RaisePropertyChanged(nameof(AutoBanChampion));
+            RaisePropertyChanged(nameof(IsChampionSelectCompanionEnabled));
             LoadAramChampionsAsync().Observe("Loading champion automation preferences");
+        }
+
+        public override void OnNavigatedFrom(NavigationContext navigationContext)
+        {
+            if (_isCompanionSettingsSubscribed)
+            {
+                _companionSettings.PropertyChanged -=
+                    HandleCompanionSettingsPropertyChanged;
+                _isCompanionSettingsSubscribed = false;
+            }
         }
 
         public ChampionPriorityEditorViewModel PickChampionEditor { get; }
@@ -386,6 +408,37 @@ namespace Prometheus.Modules.Utility.ViewModels
                 nameof(AutoBanChampion),
                 "automation.auto_ban.changed",
                 "Automatic champion banning");
+        }
+
+        public bool IsChampionSelectCompanionEnabled
+        {
+            get => _companionSettings.IsEnabled;
+            set
+            {
+                if (_companionSettings.IsEnabled == value)
+                {
+                    return;
+                }
+
+                _companionSettings.IsEnabled = value;
+                RaisePropertyChanged();
+                if (!_companionSettings.LastPersistenceSucceeded)
+                {
+                    Growl.Warning(_resourceService.FindResource<string>(
+                        "Utility.Companion.PersistenceFailed"));
+                }
+            }
+        }
+
+        private void HandleCompanionSettingsPropertyChanged(
+            object sender,
+            PropertyChangedEventArgs args)
+        {
+            if (string.IsNullOrEmpty(args?.PropertyName) ||
+                args.PropertyName == nameof(ILcuCompanionSettings.IsEnabled))
+            {
+                RaisePropertyChanged(nameof(IsChampionSelectCompanionEnabled));
+            }
         }
 
         private DelegateCommand _confirmStatusCommand;

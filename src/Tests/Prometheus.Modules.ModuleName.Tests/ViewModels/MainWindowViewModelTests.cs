@@ -8,6 +8,7 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Prometheus.ViewModels;
+using System.ComponentModel;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.ViewModels
@@ -40,7 +41,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IUpdateService>().Object,
                 new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
-                CreateQuickMatchSettings().Object);
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
 
             Assert.Equal("zh:Tray.ShowMainWindow", viewModel.TrayShowMainWindowText);
             Assert.Equal("zh:Tray.QuickMatch", viewModel.TrayQuickMatchText);
@@ -60,6 +62,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal("en:Setting.Automation.AutoReconnect",
                 viewModel.TrayAutoReconnectText);
             Assert.Equal("en:Utility.AramSwap", viewModel.TrayAramSwapText);
+            Assert.Equal("en:Utility.Companion.Title", viewModel.TrayCompanionText);
             Assert.Equal("en:Menu.Setting", viewModel.TraySettingsText);
             Assert.Equal("en:Tray.Exit", viewModel.TrayExitText);
         }
@@ -92,7 +95,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IUpdateService>().Object,
                 new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
-                CreateQuickMatchSettings().Object);
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
 
             viewModel.IsTrayAramSwapEnabled = true;
 
@@ -108,6 +112,48 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
             Assert.False(viewModel.IsTrayAramSwapEnabled);
             Assert.Contains(nameof(MainWindowViewModel.IsTrayAramSwapEnabled),
+                changedProperties);
+        }
+
+        [Fact]
+        public void CompanionTrayToggle_UpdatesAndTracksSharedSetting()
+        {
+            var matchService = new Mock<IMatchService>();
+            var companionSettings = CreateCompanionSettings();
+            var resourceService = CreateQuickMatchResourceService();
+            matchService.SetupGet(service => service.Current)
+                .Returns(LiveMatchSnapshot.Empty);
+            var viewModel = new MainWindowViewModel(
+                new Mock<IRegionManager>().Object,
+                new EventAggregator(),
+                new Mock<IModuleManager>().Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                resourceService.Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                companionSettings.Object);
+
+            viewModel.IsTrayCompanionEnabled = false;
+
+            Assert.False(companionSettings.Object.IsEnabled);
+
+            var changedProperties = new List<string>();
+            viewModel.PropertyChanged += (_, args) =>
+                changedProperties.Add(args.PropertyName);
+            companionSettings.Object.IsEnabled = true;
+            companionSettings.Raise(
+                settings => settings.PropertyChanged += null,
+                new PropertyChangedEventArgs(
+                    nameof(ILcuCompanionSettings.IsEnabled)));
+
+            Assert.True(viewModel.IsTrayCompanionEnabled);
+            Assert.Contains(nameof(MainWindowViewModel.IsTrayCompanionEnabled),
                 changedProperties);
         }
 
@@ -268,7 +314,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IUpdateService>().Object,
                 new Mock<IDialogService>().Object,
                 gameService.Object,
-                quickMatchSettings.Object);
+                quickMatchSettings.Object,
+                CreateCompanionSettings().Object);
         }
 
         private static Mock<IMatchService> CreateMatchService()
@@ -316,6 +363,14 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             settings.SetupGet(value => value.QueueId).Returns(queueId);
             settings.Setup(value => value.SaveQueueId(It.IsAny<int>()))
                 .Returns(true);
+            return settings;
+        }
+
+        private static Mock<ILcuCompanionSettings> CreateCompanionSettings()
+        {
+            var settings = new Mock<ILcuCompanionSettings>();
+            settings.SetupProperty(value => value.IsEnabled, true);
+            settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
             return settings;
         }
     }

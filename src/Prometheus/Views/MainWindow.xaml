@@ -8,6 +8,7 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:services="clr-namespace:Prometheus.Desktop.Services"
     xmlns:viewmodels="clr-namespace:Prometheus.ViewModels"
     Title="{Binding Title}"
     Width="1280"
@@ -174,7 +175,9 @@
                             <Image
                                 Width="22"
                                 Height="22"
-                                Source="../Resources/Prometheus_16.ico"
+                                RenderOptions.BitmapScalingMode="HighQuality"
+                                SnapsToDevicePixels="True"
+                                Source="{x:Static services:PrometheusIconSource.Large}"
                                 Stretch="Uniform" />
                         </Border>
                         <TextBlock
@@ -282,7 +285,7 @@
             </Grid>
             <hc:NotifyIcon
                 x:Name="TrayIcon"
-                Icon="../Resources/Prometheus_16.ico"
+                Icon="../Prometheus.ico"
                 MouseDoubleClick="TrayIcon_MouseDoubleClick"
                 Text="{Binding TrayToolTip}"
                 Visibility="Visible">
@@ -325,6 +328,12 @@
                                 Header="{Binding TrayAramSwapText}"
                                 IsCheckable="True"
                                 IsChecked="{Binding IsTrayAramSwapEnabled, Mode=TwoWay}" />
+                            <Separator />
+                            <MenuItem
+                                Foreground="{Binding MainWindow.Foreground, Source={x:Static Application.Current}}"
+                                Header="{Binding TrayCompanionText}"
+                                IsCheckable="True"
+                                IsChecked="{Binding IsTrayCompanionEnabled, Mode=TwoWay}" />
                         </MenuItem>
                         <Separator />
                         <MenuItem Command="{Binding OpenSettingsFromTrayCommand}" Header="{Binding TraySettingsText}" />

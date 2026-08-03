@@ -3,6 +3,7 @@ using Prism.Regions;
 using Prometheus.Core.Models;
 using Prometheus.Modules.Utility.ViewModels;
 using Prometheus.Services.Interfaces.Client;
+using System.ComponentModel;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.ViewModels
@@ -100,6 +101,36 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal(
                 [84],
                 automationSettings.Object.PreferredBanChampionIds);
+        }
+
+        [Fact]
+        public void CompanionToggle_UpdatesSharedSetting()
+        {
+            var companionSettings = CreateCompanionSettings();
+            var viewModel = CreateViewModel(companionSettings: companionSettings);
+            viewModel.OnNavigatedTo(null);
+
+            Assert.True(viewModel.IsChampionSelectCompanionEnabled);
+
+            viewModel.IsChampionSelectCompanionEnabled = false;
+
+            Assert.False(companionSettings.Object.IsEnabled);
+
+            var changedProperties = new List<string>();
+            viewModel.PropertyChanged += (_, args) =>
+                changedProperties.Add(args.PropertyName);
+            companionSettings.Object.IsEnabled = true;
+            companionSettings.Raise(
+                settings => settings.PropertyChanged += null,
+                new PropertyChangedEventArgs(
+                    nameof(ILcuCompanionSettings.IsEnabled)));
+
+            Assert.True(viewModel.IsChampionSelectCompanionEnabled);
+            Assert.Contains(
+                nameof(UtilityViewModel.IsChampionSelectCompanionEnabled),
+                changedProperties);
+
+            viewModel.OnNavigatedFrom(null);
         }
 
         [Fact]
@@ -233,7 +264,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Mock<IGameService> gameService = null,
             Mock<IProfilePresentationSettings> settings = null,
             Mock<IGameAutomationSettings> automationSettings = null,
-            Mock<IGameResourceManager> gameResourceManager = null)
+            Mock<IGameResourceManager> gameResourceManager = null,
+            Mock<ILcuCompanionSettings> companionSettings = null)
         {
             return new UtilityViewModel(
                 new Mock<IRegionManager>().Object,
@@ -241,7 +273,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 (gameService ?? new Mock<IGameService>()).Object,
                 (settings ?? new Mock<IProfilePresentationSettings>()).Object,
                 (gameResourceManager ?? new Mock<IGameResourceManager>()).Object,
-                (automationSettings ?? CreateAutomationSettings()).Object);
+                (automationSettings ?? CreateAutomationSettings()).Object,
+                (companionSettings ?? CreateCompanionSettings()).Object);
         }
 
         private static Mock<IGameAutomationSettings> CreateAutomationSettings()
@@ -259,6 +292,14 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             settings.SetupProperty(
                 value => value.PreferredBanChampionIds,
                 Array.Empty<int>());
+            settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
+            return settings;
+        }
+
+        private static Mock<ILcuCompanionSettings> CreateCompanionSettings()
+        {
+            var settings = new Mock<ILcuCompanionSettings>();
+            settings.SetupProperty(value => value.IsEnabled, true);
             settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
             return settings;
         }

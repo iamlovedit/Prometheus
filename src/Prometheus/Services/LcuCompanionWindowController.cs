@@ -3,6 +3,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.ViewModels;
 using Prometheus.Views;
 using Serilog;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -22,9 +23,11 @@ namespace Prometheus.Desktop.Services
         private const uint NoZOrder = 0x0004;
         private const uint ShowWindowFlag = 0x0040;
         private const uint NoOwnerZOrder = 0x0200;
+        private const uint PreviousWindowCommand = 3;
 
         private readonly ILcuWindowTracker _windowTracker;
         private readonly IMatchService _matchService;
+        private readonly ILcuCompanionSettings _settings;
         private readonly LcuCompanionWindow _window;
         private readonly LcuCompanionViewModel _viewModel;
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
@@ -35,12 +38,14 @@ namespace Prometheus.Desktop.Services
         public LcuCompanionWindowController(
             ILcuWindowTracker windowTracker,
             IMatchService matchService,
+            ILcuCompanionSettings settings,
             LcuCompanionWindow window,
             LcuCompanionViewModel viewModel)
         {
             _windowTracker = windowTracker ??
                 throw new ArgumentNullException(nameof(windowTracker));
             _matchService = matchService ?? throw new ArgumentNullException(nameof(matchService));
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _window = window ?? throw new ArgumentNullException(nameof(window));
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         }
@@ -55,6 +60,7 @@ namespace Prometheus.Desktop.Services
             _started = true;
             _snapshot = _matchService.Current ?? LiveMatchSnapshot.Empty;
             _matchService.SnapshotChanged += HandleSnapshotChanged;
+            _settings.PropertyChanged += HandleSettingsPropertyChanged;
             _windowTracker.StateChanged += HandleWindowStateChanged;
             _viewModel.Start();
             _windowTracker.Start();
@@ -72,6 +78,7 @@ namespace Prometheus.Desktop.Services
             {
                 _started = false;
                 _matchService.SnapshotChanged -= HandleSnapshotChanged;
+                _settings.PropertyChanged -= HandleSettingsPropertyChanged;
                 _windowTracker.StateChanged -= HandleWindowStateChanged;
                 _windowTracker.Stop();
                 _viewModel.Stop();
@@ -104,6 +111,17 @@ namespace Prometheus.Desktop.Services
             Dispatch(UpdateWindow);
         }
 
+        private void HandleSettingsPropertyChanged(
+            object sender,
+            PropertyChangedEventArgs args)
+        {
+            if (string.IsNullOrEmpty(args?.PropertyName) ||
+                args.PropertyName == nameof(ILcuCompanionSettings.IsEnabled))
+            {
+                Dispatch(UpdateWindow);
+            }
+        }
+
         private void UpdateWindow()
         {
             if (!_started || _windowClosed)
@@ -116,6 +134,12 @@ namespace Prometheus.Desktop.Services
             if (!isChampionSelect)
             {
                 _mainWindowHiddenForPhase = false;
+                HideWindow();
+                return;
+            }
+
+            if (!_settings.IsEnabled)
+            {
                 HideWindow();
                 return;
             }
@@ -133,21 +157,26 @@ namespace Prometheus.Desktop.Services
                 var dpi = state.Dpi > 0 ? state.Dpi : 96;
                 _window.Width = placement.Width * 96d / dpi;
                 _window.Height = placement.Height * 96d / dpi;
+                _window.ApplyPlacementSide(placement.Side);
                 if (!_window.IsVisible)
                 {
                     _window.Show();
                 }
 
                 var handle = new WindowInteropHelper(_window).Handle;
+                var zOrder = LcuCompanionZOrderCalculator.Calculate(
+                    state.Handle,
+                    handle,
+                    window => GetWindow(window, PreviousWindowCommand));
                 var flags = NoActivate | ShowWindowFlag | NoOwnerZOrder;
-                if (!state.IsForeground)
+                if (zOrder.PreserveCurrent)
                 {
                     flags |= NoZOrder;
                 }
 
                 if (!SetWindowPos(
                         handle,
-                        IntPtr.Zero,
+                        zOrder.InsertAfter,
                         placement.Left,
                         placement.Top,
                         placement.Width,
@@ -208,5 +237,10 @@ namespace Prometheus.Desktop.Services
             int width,
             int height,
             uint flags);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindow(
+            IntPtr window,
+            uint command);
     }
 }
