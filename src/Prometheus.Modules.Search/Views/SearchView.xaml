@@ -5,7 +5,6 @@
     xmlns:core="clr-namespace:Prometheus.Core;assembly=Prometheus.Core"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
-    xmlns:local="clr-namespace:Prometheus.Modules.Search.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:Prometheus.Modules.Search.ViewModels"
@@ -18,55 +17,40 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="76" />
             <RowDefinition Height="12" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="12" />
             <RowDefinition />
         </Grid.RowDefinitions>
         <Border Style="{DynamicResource PageHeaderCard}">
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Menu.Search}" />
-                <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Search.Description}" />
-            </StackPanel>
-        </Border>
-        <Border
-            Grid.Row="2"
-            VerticalAlignment="Top"
-            Style="{DynamicResource PageCard}">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="32" />
-                        <ColumnDefinition Width="420" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Style="{DynamicResource PageSectionTitle}" Text="{DynamicResource Search.Section.Title}" />
-                        <TextBlock
-                            Margin="0,4,0,0"
-                            Style="{DynamicResource PageCaption}"
-                            Text="{DynamicResource Search.SearchNameTips}" />
-                    </StackPanel>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="420" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Menu.Search}" />
+                    <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Search.Description}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center">
                     <hc:SearchBar
-                        Grid.Column="2"
                         Width="420"
                         Height="40"
                         hc:InfoElement.Placeholder="{DynamicResource Search.SearchNamePlaceHolder}"
                         hc:InfoElement.ShowClearButton="True"
                         Command="{Binding SearchCommand}"
+                        Style="{DynamicResource SearchBarPlus}"
                         Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        Style="{DynamicResource SearchBarPlus}" />
-                </Grid>
-                <local:NotFoundView
-                    Grid.Row="1"
-                    Margin="0,14,0,0"
-                    Visibility="{Binding ShowNotFound, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                        ToolTip="{DynamicResource Search.SearchNameTips}" />
+                    <TextBlock
+                        Margin="2,3,0,0"
+                        Foreground="{DynamicResource WarningBrush}"
+                        Text="{DynamicResource Search.UserNotFound}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{DynamicResource Search.NotFound.Description}"
+                        Visibility="{Binding ShowNotFound, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                </StackPanel>
             </Grid>
         </Border>
-        <Grid Grid.Row="4">
+        <Grid Grid.Row="2">
             <ContentControl
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"

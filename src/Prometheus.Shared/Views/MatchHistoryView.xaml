@@ -216,157 +216,198 @@
                                 <StackPanel>
                                     <StackPanel Visibility="{Binding ShowPreviewError, Converter={StaticResource Boolean2VisibilityReConverter}}">
                                         <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="64" />
-                                            <ColumnDefinition />
-                                        </Grid.ColumnDefinitions>
-                                        <hc:Gravatar
-                                            Width="58"
-                                            Height="58"
-                                            Style="{StaticResource GravatarCircleImg}">
-                                            <Image Source="{Binding Preview.ProfileIcon}" Stretch="UniformToFill" />
-                                        </hc:Gravatar>
-                                        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock
-                                                FontSize="17"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding Preview.Summoner.FullName}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Margin="0,5,0,0" Style="{DynamicResource PageCaption}">
-                                                <Run Text="{DynamicResource Career.Preview.Level}" />
-                                                <Run Text=" " />
-                                                <Run Text="{Binding Preview.Summoner.SummonerLevel}" />
-                                                <Run Text=" · " />
-                                                <Run Text="{DynamicResource Career.Preview.SameRegion}" />
-                                            </TextBlock>
-                                        </StackPanel>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="64" />
+                                                <ColumnDefinition />
+                                            </Grid.ColumnDefinitions>
+                                            <hc:Gravatar
+                                                Width="58"
+                                                Height="58"
+                                                Style="{StaticResource GravatarCircleImg}">
+                                                <Image Source="{Binding Preview.ProfileIcon}" Stretch="UniformToFill" />
+                                            </hc:Gravatar>
+                                            <StackPanel
+                                                Grid.Column="1"
+                                                Margin="12,0,0,0"
+                                                VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontSize="17"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding Preview.Summoner.FullName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Margin="0,5,0,0" Style="{DynamicResource PageCaption}">
+                                                    <Run Text="{DynamicResource Career.Preview.Level}" />
+                                                    <Run Text=" " />
+                                                    <Run Text="{Binding Preview.Summoner.SummonerLevel, Mode=OneWay}" />
+                                                    <Run Text=" · " />
+                                                    <Run Text="{DynamicResource Career.Preview.SameRegion}" />
+                                                </TextBlock>
+                                            </StackPanel>
                                         </Grid>
 
                                         <Grid Margin="0,16,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
-                                            <ColumnDefinition Width="8" />
-                                            <ColumnDefinition />
-                                        </Grid.ColumnDefinitions>
-                                        <Border Style="{DynamicResource PageMetricCard}">
-                                            <StackPanel>
-                                                <TextBlock Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Rank.Solo}" />
-                                                <TextBlock Margin="0,5,0,0" FontWeight="SemiBold" Text="{Binding Preview.Solo.DisplayTier}" />
-                                                <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}">
-                                                    <Run Text="{Binding Preview.Solo.LeaguePoints}" />
-                                                    <Run Text=" LP · " />
-                                                    <Run Text="{Binding Preview.Solo.WinRate}" />
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Grid.Column="2" Style="{DynamicResource PageMetricCard}">
-                                            <StackPanel>
-                                                <TextBlock Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Rank.Flex}" />
-                                                <TextBlock Margin="0,5,0,0" FontWeight="SemiBold" Text="{Binding Preview.Flex.DisplayTier}" />
-                                                <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}">
-                                                    <Run Text="{Binding Preview.Flex.LeaguePoints}" />
-                                                    <Run Text=" LP · " />
-                                                    <Run Text="{Binding Preview.Flex.WinRate}" />
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Border>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Style="{DynamicResource PageMetricCard}">
+                                                <StackPanel>
+                                                    <TextBlock Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Rank.Solo}" />
+                                                    <TextBlock
+                                                        Margin="0,5,0,0"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding Preview.Solo.DisplayTier}" />
+                                                    <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}">
+                                                        <Run Text="{Binding Preview.Solo.LeaguePoints, Mode=OneWay}" />
+                                                        <Run Text=" LP · " />
+                                                        <Run Text="{Binding Preview.Solo.WinRate, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="2" Style="{DynamicResource PageMetricCard}">
+                                                <StackPanel>
+                                                    <TextBlock Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Rank.Flex}" />
+                                                    <TextBlock
+                                                        Margin="0,5,0,0"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding Preview.Flex.DisplayTier}" />
+                                                    <TextBlock Margin="0,3,0,0" Style="{DynamicResource PageCaption}">
+                                                        <Run Text="{Binding Preview.Flex.LeaguePoints, Mode=OneWay}" />
+                                                        <Run Text=" LP · " />
+                                                        <Run Text="{Binding Preview.Flex.WinRate, Mode=OneWay}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
                                         </Grid>
 
                                         <UniformGrid Margin="0,12,0,0" Columns="3">
-                                        <Border Margin="0,0,6,0" Style="{DynamicResource PageMetricCard}">
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock HorizontalAlignment="Center" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.Record}" />
-                                                <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center" FontWeight="SemiBold">
-                                                    <Run Text="{Binding Preview.Wins}" />
-                                                    <Run Text="{DynamicResource Career.Preview.WinSuffix}" />
-                                                    <Run Text=" " />
-                                                    <Run Text="{Binding Preview.Losses}" />
-                                                    <Run Text="{DynamicResource Career.Preview.LossSuffix}" />
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Margin="0,0,6,0" Style="{DynamicResource PageMetricCard}">
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock HorizontalAlignment="Center" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.WinRate}" />
-                                                <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center" FontWeight="SemiBold" Text="{Binding Preview.WinRate}" />
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Style="{DynamicResource PageMetricCard}">
-                                            <StackPanel HorizontalAlignment="Center">
-                                                <TextBlock HorizontalAlignment="Center" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.AverageKda}" />
-                                                <TextBlock Margin="0,5,0,0" HorizontalAlignment="Center" FontWeight="SemiBold" Text="{Binding Preview.Kda}" />
-                                            </StackPanel>
-                                        </Border>
+                                            <Border Margin="0,0,6,0" Style="{DynamicResource PageMetricCard}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        Style="{DynamicResource PageCaption}"
+                                                        Text="{DynamicResource Career.Preview.Record}" />
+                                                    <TextBlock
+                                                        Margin="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        FontWeight="SemiBold">
+                                                        <Run Text="{Binding Preview.Wins, Mode=OneWay}" />
+                                                        <Run Text="{DynamicResource Career.Preview.WinSuffix}" />
+                                                        <Run Text=" " />
+                                                        <Run Text="{Binding Preview.Losses, Mode=OneWay}" />
+                                                        <Run Text="{DynamicResource Career.Preview.LossSuffix}" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Margin="0,0,6,0" Style="{DynamicResource PageMetricCard}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        Style="{DynamicResource PageCaption}"
+                                                        Text="{DynamicResource Career.Preview.WinRate}" />
+                                                    <TextBlock
+                                                        Margin="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding Preview.WinRate}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Style="{DynamicResource PageMetricCard}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        Style="{DynamicResource PageCaption}"
+                                                        Text="{DynamicResource Career.Preview.AverageKda}" />
+                                                    <TextBlock
+                                                        Margin="0,5,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        FontWeight="SemiBold"
+                                                        Text="{Binding Preview.Kda}" />
+                                                </StackPanel>
+                                            </Border>
                                         </UniformGrid>
 
                                         <Grid Margin="0,18,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Style="{DynamicResource PageSectionTitle}">
-                                            <Run Text="{DynamicResource Career.Preview.RecentPrefix}" />
-                                            <Run Text=" " />
-                                            <Run Text="{Binding Preview.MatchCount}" />
-                                            <Run Text=" " />
-                                            <Run Text="{DynamicResource Career.Preview.RecentSuffix}" />
-                                        </TextBlock>
-                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{DynamicResource PageCaption}">
-                                            <Run Text="{Binding Preview.Wins}" />
-                                            <Run Text="{DynamicResource Career.Preview.WinSuffix}" />
-                                            <Run Text=" · " />
-                                            <Run Text="{Binding Preview.Losses}" />
-                                            <Run Text="{DynamicResource Career.Preview.LossSuffix}" />
-                                            <Run Text=" · " />
-                                            <Run Text="{Binding Preview.WinRate}" />
-                                        </TextBlock>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Style="{DynamicResource PageSectionTitle}">
+                                                <Run Text="{DynamicResource Career.Preview.RecentPrefix}" />
+                                                <Run Text=" " />
+                                                <Run Text="{Binding Preview.MatchCount, Mode=OneWay}" />
+                                                <Run Text=" " />
+                                                <Run Text="{DynamicResource Career.Preview.RecentSuffix}" />
+                                            </TextBlock>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                VerticalAlignment="Center"
+                                                Style="{DynamicResource PageCaption}">
+                                                <Run Text="{Binding Preview.Wins, Mode=OneWay}" />
+                                                <Run Text="{DynamicResource Career.Preview.WinSuffix}" />
+                                                <Run Text=" · " />
+                                                <Run Text="{Binding Preview.Losses, Mode=OneWay}" />
+                                                <Run Text="{DynamicResource Career.Preview.LossSuffix}" />
+                                                <Run Text=" · " />
+                                                <Run Text="{Binding Preview.WinRate, Mode=OneWay}" />
+                                            </TextBlock>
                                         </Grid>
                                         <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding Preview.Results}">
-                                        <ItemsControl.ItemsPanel>
-                                            <ItemsPanelTemplate>
-                                                <UniformGrid Columns="10" />
-                                            </ItemsPanelTemplate>
-                                        </ItemsControl.ItemsPanel>
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border
-                                                    x:Name="ResultBubble"
-                                                    Width="26"
-                                                    Height="26"
-                                                    Margin="3"
-                                                    Background="OrangeRed"
-                                                    CornerRadius="13"
-                                                    ToolTip="{DynamicResource Career.Preview.Loss}">
-                                                    <TextBlock
-                                                        x:Name="ResultText"
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        FontWeight="Bold"
-                                                        Foreground="White"
-                                                        Text="×" />
-                                                </Border>
-                                                <DataTemplate.Triggers>
-                                                    <DataTrigger Binding="{Binding IsWin}" Value="True">
-                                                        <Setter TargetName="ResultBubble" Property="Background" Value="ForestGreen" />
-                                                        <Setter TargetName="ResultBubble" Property="ToolTip" Value="{DynamicResource Career.Preview.Win}" />
-                                                        <Setter TargetName="ResultText" Property="Text" Value="✓" />
-                                                    </DataTrigger>
-                                                </DataTemplate.Triggers>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="10" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border
+                                                        x:Name="ResultBubble"
+                                                        Width="24"
+                                                        Height="24"
+                                                        Margin="4"
+                                                        Background="{DynamicResource DangerBrush}"
+                                                        CornerRadius="14"
+                                                        ToolTip="{DynamicResource Career.Preview.Loss}" />
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsWin}" Value="True">
+                                                            <Setter TargetName="ResultBubble" Property="Background" Value="{DynamicResource SuccessBrush}" />
+                                                            <Setter TargetName="ResultBubble" Property="ToolTip" Value="{DynamicResource Career.Preview.Win}" />
+
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                         <Grid Margin="3,5,3,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="ForestGreen" />
-                                            <TextBlock Margin="5,0,12,0" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.Win}" />
-                                            <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="OrangeRed" />
-                                            <TextBlock Margin="5,0,0,0" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.Loss}" />
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="1" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.Order}" />
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse
+                                                    Width="8"
+                                                    Height="8"
+                                                    VerticalAlignment="Center"
+                                                    Fill="{DynamicResource SuccessBrush}" />
+                                                <TextBlock
+                                                    Margin="5,0,12,0"
+                                                    Style="{DynamicResource PageCaption}"
+                                                    Text="{DynamicResource Career.Preview.Win}" />
+                                                <Ellipse
+                                                    Width="8"
+                                                    Height="8"
+                                                    VerticalAlignment="Center"
+                                                    Fill="{DynamicResource DangerBrush}" />
+                                                <TextBlock
+                                                    Margin="5,0,0,0"
+                                                    Style="{DynamicResource PageCaption}"
+                                                    Text="{DynamicResource Career.Preview.Loss}" />
+                                            </StackPanel>
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Style="{DynamicResource PageCaption}"
+                                                Text="{DynamicResource Career.Preview.Order}" />
                                         </Grid>
                                     </StackPanel>
 
@@ -376,8 +417,15 @@
                                         Style="{DynamicResource PageMetricCard}"
                                         Visibility="{Binding ShowPreviewError, Converter={StaticResource Boolean2VisibilityConverter}}">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{DynamicResource Career.Preview.LoadFailed}" />
-                                            <TextBlock Margin="0,4,0,0" HorizontalAlignment="Center" Style="{DynamicResource PageCaption}" Text="{DynamicResource Career.Preview.LoadFailed.Description}" />
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                FontWeight="SemiBold"
+                                                Text="{DynamicResource Career.Preview.LoadFailed}" />
+                                            <TextBlock
+                                                Margin="0,4,0,0"
+                                                HorizontalAlignment="Center"
+                                                Style="{DynamicResource PageCaption}"
+                                                Text="{DynamicResource Career.Preview.LoadFailed.Description}" />
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
