@@ -659,7 +659,7 @@
                                 <DataTemplate>
                                     <Border
                                         Width="94"
-                                        Height="94"
+                                        Height="104"
                                         Margin="3"
                                         Padding="7"
                                         AutomationProperties.Name="{Binding AutomationText}"
@@ -679,7 +679,7 @@
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
-                                                <RowDefinition />
+                                                <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
@@ -701,7 +701,17 @@
                                                 Margin="0,5,0,4"
                                                 HorizontalAlignment="Center"
                                                 Background="{DynamicResource SecondaryRegionBrush}"
-                                                CornerRadius="6" />
+                                                CornerRadius="6">
+                                                <Grid>
+                                                    <TextBlock
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        FontSize="10"
+                                                        Foreground="{DynamicResource SecondaryTextBrush}"
+                                                        Text="{Binding ChampionFallbackText}" />
+                                                    <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                                                </Grid>
+                                            </Border>
                                             <TextBlock
                                                 Grid.Row="2"
                                                 HorizontalAlignment="Center"
