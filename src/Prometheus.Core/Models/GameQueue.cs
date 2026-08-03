@@ -49,11 +49,19 @@ namespace Prometheus.Core.Models
 
     public static class GameQueueIds
     {
+        public const int NormalDraft = 400;
+
         public const int RankedSoloDuo = 420;
+
+        public const int NormalBlind = 430;
 
         public const int RankedFlex = 440;
 
         public const int Aram = 450;
+
+        public const int Swiftplay = 480;
+
+        public const int Quickplay = 490;
 
         public const int HextechAram = 2400;
 

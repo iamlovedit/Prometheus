@@ -7,6 +7,7 @@ using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Shared.ViewModels;
 using Xunit;
+using MatchModel = Prometheus.Core.Models.Match;
 
 namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 {
@@ -133,6 +134,90 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal(Tier.DIAMOND, context.ViewModel.Solo.Tier);
         }
 
+        [Fact]
+        public async Task SelectedMatchTypeIndex_WhenChanged_FiltersMatchesByQueue()
+        {
+            using var context = new TestContext();
+            context.SummonerService.Setup(service => service.GetMatchHistoryAsync(
+                    "player-puuid", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new MatchHistoryQueryResult
+                {
+                    Succeeded = true,
+                    Matches =
+                    [
+                        CreateMatch(1, GameQueueIds.Aram, "ARAM"),
+                        CreateMatch(2, GameQueueIds.NormalDraft, "CLASSIC"),
+                        CreateMatch(3, GameQueueIds.RankedSoloDuo, "CLASSIC"),
+                        CreateMatch(4, GameQueueIds.RankedFlex, "CLASSIC"),
+                        CreateMatch(5, 1700, "CHERRY")
+                    ]
+                });
+
+            await context.NavigateAsync();
+
+            AssertVisibleMatches(context.ViewModel, 1, 2, 3, 4, 5);
+
+            context.ViewModel.SelectedMatchTypeIndex = 1;
+            AssertVisibleMatches(context.ViewModel, 1);
+
+            context.ViewModel.SelectedMatchTypeIndex = 2;
+            AssertVisibleMatches(context.ViewModel, 2);
+
+            context.ViewModel.SelectedMatchTypeIndex = 3;
+            AssertVisibleMatches(context.ViewModel, 3);
+
+            context.ViewModel.SelectedMatchTypeIndex = 4;
+            AssertVisibleMatches(context.ViewModel, 4);
+
+            context.ViewModel.SelectedMatchTypeIndex = 0;
+            AssertVisibleMatches(context.ViewModel, 1, 2, 3, 4, 5);
+        }
+
+        [Fact]
+        public async Task MoreMatchCommand_WhenHostedBySearch_NavigatesWithinSearchRegion()
+        {
+            using var context = new TestContext();
+            context.Navigate(CreateSummoner("player-puuid"),
+                RegionNames.SearchContent, false);
+            await WaitForIdleAsync(context.ViewModel);
+
+            context.ViewModel.MoreMatchCommand.Execute();
+
+            Assert.False(context.ViewModel.ShowPageHeader);
+            context.RegionManager.Verify(manager => manager.RequestNavigate(
+                    RegionNames.SearchContent,
+                    RegionNames.MatchHistoryView,
+                    It.Is<NavigationParameters>(parameters =>
+                        Equals(parameters[ParameterNames.HostRegionName],
+                            RegionNames.SearchContent))),
+                Times.Once);
+        }
+
+        private static MatchModel CreateMatch(long gameId, int queueId, string gameMode)
+        {
+            return new MatchModel
+            {
+                GameId = gameId,
+                QueueId = queueId,
+                GameMode = gameMode,
+                Participants =
+                [
+                    new Participant
+                    {
+                        ChampionId = 22,
+                        Stats = new MatchStats()
+                    }
+                ]
+            };
+        }
+
+        private static void AssertVisibleMatches(
+            SummonerDetailViewModel viewModel, params long[] expectedGameIds)
+        {
+            Assert.Equal(expectedGameIds,
+                viewModel.RecentMatches.Cast<MatchModel>().Select(match => match.GameId));
+        }
+
         private static SummonerAccount CreateSummoner(string puuid)
         {
             return new SummonerAccount
@@ -179,6 +264,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     .ReturnsAsync((int skinId) => $"background-{skinId}.jpg");
                 GameResourceManager.Setup(service => service.GetProfileIconByIdAsync(7))
                     .ReturnsAsync("profile-7.jpg");
+                GameResourceManager.Setup(service => service.GetChampoinIconByIdAsync(
+                        It.IsAny<int>()))
+                    .ReturnsAsync((int championId) => $"champion-{championId}.png");
                 SummonerService.Setup(service => service.GetMatchHistoryAsync(
                         "player-puuid", It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new MatchHistoryQueryResult
@@ -212,12 +300,16 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 await WaitForIdleAsync(ViewModel);
             }
 
-            public void Navigate(SummonerAccount summoner)
+            public void Navigate(SummonerAccount summoner,
+                string hostRegionName = RegionNames.SummonerContent,
+                bool showPageHeader = true)
             {
                 var parameters = new NavigationParameters
                 {
                     { ParameterNames.Summoner, summoner },
-                    { ParameterNames.CanEdit, false }
+                    { ParameterNames.CanEdit, false },
+                    { ParameterNames.HostRegionName, hostRegionName },
+                    { ParameterNames.ShowPageHeader, showPageHeader }
                 };
                 var navigationContext = new NavigationContext(
                     NavigationService.Object,

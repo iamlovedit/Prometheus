@@ -22,6 +22,7 @@ namespace Prometheus.Shared.ViewModels
         private readonly IResourceService _resourceService;
         private CancellationTokenSource _loadCts;
         private int _loadVersion;
+        private string _hostRegionName = RegionNames.SummonerContent;
         //private readonly static Dictionary<Tier, string> _tierIconReosourceMap = new()
         //{
         //    { Tier.UNRANKED,"Career.Rank.Tier.Unranked"},
@@ -49,6 +50,14 @@ namespace Prometheus.Shared.ViewModels
         }
         public override void OnNavigatedTo(NavigationContext navigationContext)
         {
+            _hostRegionName = navigationContext.Parameters.TryGetValue<string>(
+                    ParameterNames.HostRegionName, out var hostRegionName) &&
+                !string.IsNullOrWhiteSpace(hostRegionName)
+                ? hostRegionName
+                : RegionNames.SummonerContent;
+            ShowPageHeader = !navigationContext.Parameters.TryGetValue<bool>(
+                    ParameterNames.ShowPageHeader, out var showPageHeader) ||
+                showPageHeader;
             var cancellationTokenSource = new CancellationTokenSource();
             var version = Interlocked.Increment(ref _loadVersion);
             var previousLoad = Interlocked.Exchange(ref _loadCts, cancellationTokenSource);
@@ -254,6 +263,7 @@ namespace Prometheus.Shared.ViewModels
             var assists = matches.Sum(match => match.Participants[0].Stats.Assists);
             KDA = $"{killed}/{deaths}/{assists}";
             RecentMatches = CollectionViewSource.GetDefaultView(matches) as ListCollectionView;
+            ApplyMatchTypeFilter();
         }
 
         private void ApplyRanks(Rank solo, Rank flex)
@@ -381,6 +391,13 @@ namespace Prometheus.Shared.ViewModels
             set { SetProperty(ref _isLoading, value); }
         }
 
+        private bool _showPageHeader = true;
+        public bool ShowPageHeader
+        {
+            get { return _showPageHeader; }
+            private set { SetProperty(ref _showPageHeader, value); }
+        }
+
         private ListCollectionView _recentMatches;
         public ListCollectionView RecentMatches
         {
@@ -475,40 +492,57 @@ namespace Prometheus.Shared.ViewModels
         public int SelectedMatchTypeIndex
         {
             get { return _selectedMatchTypeIndex; }
-            set { SetProperty(ref _selectedMatchTypeIndex, value); }
+            set
+            {
+                if (SetProperty(ref _selectedMatchTypeIndex, value))
+                {
+                    ApplyMatchTypeFilter();
+                }
+            }
         }
 
-        private DelegateCommand _matchTypeChangedCommand;
-        public DelegateCommand MatchTypeChangedCommand =>
-            _matchTypeChangedCommand ?? (_matchTypeChangedCommand = new DelegateCommand(ExecuteMatchTypeChangedCommand));
-        void ExecuteMatchTypeChangedCommand()
+        private void ApplyMatchTypeFilter()
         {
-            //TODO:
-            switch (_selectedMatchTypeIndex)
+            if (_recentMatches is null)
             {
-                case 1:
-                    _recentMatches.Filter = (@object) =>
-                    {
-                        if (@object is Match match)
-                        {
-                            return match.GameMode == "ARAM";
-                        }
-                        return true;
-                    };
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    break;
-                case 4:
-                    break;
-                default:
-                    if (_recentMatches != null)
-                    {
-                        _recentMatches.Filter = null;
-                    }
-                    break;
+                return;
             }
+
+            _recentMatches.Filter = _selectedMatchTypeIndex switch
+            {
+                1 => IsAramMatch,
+                2 => IsNormalMatch,
+                3 => IsRankedSoloDuoMatch,
+                4 => IsRankedFlexMatch,
+                _ => null
+            };
+        }
+
+        private static bool IsAramMatch(object item)
+        {
+            return item is Match match &&
+                   (match.QueueId is GameQueueIds.Aram or GameQueueIds.HextechAram ||
+                    string.Equals(match.GameMode, "ARAM",
+                        StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool IsNormalMatch(object item)
+        {
+            return item is Match match &&
+                   match.QueueId is GameQueueIds.NormalDraft or
+                       GameQueueIds.NormalBlind or
+                       GameQueueIds.Swiftplay or
+                       GameQueueIds.Quickplay;
+        }
+
+        private static bool IsRankedSoloDuoMatch(object item)
+        {
+            return item is Match match && match.QueueId == GameQueueIds.RankedSoloDuo;
+        }
+
+        private static bool IsRankedFlexMatch(object item)
+        {
+            return item is Match match && match.QueueId == GameQueueIds.RankedFlex;
         }
 
         private DelegateCommand _moreMatchCommand;
@@ -520,8 +554,11 @@ namespace Prometheus.Shared.ViewModels
             {
                 {ParameterNames.CanEdit,CanModify },
                 {ParameterNames.Summoner,_summoner },
+                {ParameterNames.HostRegionName,_hostRegionName },
+                {ParameterNames.ShowPageHeader,true },
             };
-            RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);
+            RegionManager.RequestNavigate(_hostRegionName,
+                RegionNames.MatchHistoryView, parameters);
         }
 
         private DelegateCommand<Match> _matchDetailCommand;
@@ -534,8 +571,11 @@ namespace Prometheus.Shared.ViewModels
                 {ParameterNames.CanEdit,CanModify },
                 {ParameterNames.SelectedMatch,match},
                 {ParameterNames.Summoner,_summoner },
+                {ParameterNames.HostRegionName,_hostRegionName },
+                {ParameterNames.ShowPageHeader,true },
             };
-            RegionManager.RequestNavigate(CanModify ? RegionNames.SummonerContent : RegionNames.SummonerContent, RegionNames.MatchHistoryView, parameters);
+            RegionManager.RequestNavigate(_hostRegionName,
+                RegionNames.MatchHistoryView, parameters);
         }
 
         private DelegateCommand _modifyCommand;
@@ -567,7 +607,8 @@ namespace Prometheus.Shared.ViewModels
                 {ParameterNames.Summoner,summoner},
             };
 
-            RegionManager.RequestNavigate(RegionNames.SummonerContent, RegionNames.SummonerDetailView, parameters);
+            RegionManager.RequestNavigate(_hostRegionName,
+                RegionNames.SummonerDetailView, parameters);
         }
 
         private DelegateCommand _refreshCommand;

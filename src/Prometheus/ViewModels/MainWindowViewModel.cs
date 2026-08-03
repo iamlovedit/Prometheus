@@ -54,7 +54,7 @@ namespace Prometheus.ViewModels
         private bool _isCreatingQuickMatchLobby;
         private int _selectedQuickMatchQueueId;
 
-        private GameflowPhase _lastFlashedPhase = GameflowPhase.Unknown;
+        private GameflowPhase _lastObservedPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
 
         public MainWindowViewModel(
@@ -497,7 +497,7 @@ namespace Prometheus.ViewModels
 
         private void HandleSearchSummoner(SummonerAccount summoner)
         {
-            Dispatch(() => Navigate(MenuName.Career, summoner));
+            Dispatch(() => Navigate(MenuName.Search, summoner));
         }
 
         private void HandleTitleChange(string value)
@@ -558,13 +558,19 @@ namespace Prometheus.ViewModels
         {
             UpdateTrayState(snapshot);
             var phase = snapshot.GameflowPhase;
-            if (_lastFlashedPhase != phase &&
+            var phaseChanged = _lastObservedPhase != phase;
+            _lastObservedPhase = phase;
+
+            if (phaseChanged && phase == GameflowPhase.ChampSelect)
+            {
+                Navigate(MenuName.Match);
+            }
+
+            if (phaseChanged &&
                 phase is GameflowPhase.ReadyCheck or GameflowPhase.ChampSelect)
             {
                 _ = FlashClientSafelyAsync();
             }
-
-            _lastFlashedPhase = phase;
         }
 
         private void HandleAutomationSettingsChanged(object sender, EventArgs e)
@@ -862,7 +868,7 @@ namespace Prometheus.ViewModels
         {
             EnsureModuleLoaded(menuName);
             var parameters = new NavigationParameters();
-            if (menuName == MenuName.Career)
+            if (menuName is MenuName.Career or MenuName.Search)
             {
                 parameters.Add(ParameterNames.Summoner, summoner);
             }

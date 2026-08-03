@@ -3,8 +3,11 @@ using Prism.Events;
 using Prism.Modularity;
 using Prism.Regions;
 using Prism.Services.Dialogs;
+using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
+using Prometheus.Modules.Match;
+using Prometheus.Modules.Search;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Prometheus.ViewModels;
@@ -155,6 +158,87 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.True(viewModel.IsTrayCompanionEnabled);
             Assert.Contains(nameof(MainWindowViewModel.IsTrayCompanionEnabled),
                 changedProperties);
+        }
+
+        [Fact]
+        public void SnapshotChanged_WhenEnteringChampionSelect_NavigatesToMatchOnce()
+        {
+            var matchService = CreateMatchService();
+            var regionManager = new Mock<IRegionManager>();
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var viewModel = new MainWindowViewModel(
+                regionManager.Object,
+                new EventAggregator(),
+                moduleManager.Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
+
+            PublishSnapshot(matchService, GameflowPhase.ReadyCheck);
+            PublishSnapshot(matchService, GameflowPhase.ChampSelect);
+            PublishSnapshot(matchService, GameflowPhase.ChampSelect);
+
+            moduleManager.Verify(manager => manager.LoadModule(
+                nameof(MatchModule)), Times.Once);
+            regionManager.Verify(manager => manager.RequestNavigate(
+                    RegionNames.ContentRegion,
+                    MenuName.Match.ToString(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.IsAny<NavigationParameters>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public void SearchSummonerEvent_NavigatesToSearchWithSummonerParameter()
+        {
+            var regionManager = new Mock<IRegionManager>();
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var eventAggregator = new EventAggregator();
+            _ = new MainWindowViewModel(
+                regionManager.Object,
+                eventAggregator,
+                moduleManager.Object,
+                CreateMatchService().Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
+            var summoner = new SummonerAccount
+            {
+                Puuid = "searched-puuid",
+                GameName = "Visible Player",
+                TagLine = "CN1"
+            };
+
+            eventAggregator.GetEvent<SearchSummonerEvent>().Publish(summoner);
+
+            moduleManager.Verify(manager => manager.LoadModule(
+                nameof(SearchModule)), Times.Once);
+            regionManager.Verify(manager => manager.RequestNavigate(
+                    RegionNames.ContentRegion,
+                    MenuName.Search.ToString(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.Is<NavigationParameters>(parameters =>
+                        ReferenceEquals(parameters[ParameterNames.Summoner], summoner))),
+                Times.Once);
         }
 
         [Fact]
@@ -328,11 +412,18 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
         private static void PublishIdleSnapshot(Mock<IMatchService> matchService)
         {
+            PublishSnapshot(matchService, GameflowPhase.None);
+        }
+
+        private static void PublishSnapshot(
+            Mock<IMatchService> matchService,
+            GameflowPhase phase)
+        {
             matchService.Raise(service => service.SnapshotChanged += null,
                 new LiveMatchSnapshotChangedEventArgs(new LiveMatchSnapshot
                 {
                     ConnectionState = ConnectionState.Connected,
-                    GameflowPhase = GameflowPhase.None,
+                    GameflowPhase = phase,
                     UpdatedAt = DateTimeOffset.UtcNow
                 }));
         }

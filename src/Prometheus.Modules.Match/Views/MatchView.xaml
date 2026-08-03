@@ -701,17 +701,7 @@
                                                 Margin="0,5,0,4"
                                                 HorizontalAlignment="Center"
                                                 Background="{DynamicResource SecondaryRegionBrush}"
-                                                CornerRadius="6">
-                                                <Grid>
-                                                    <TextBlock
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="10"
-                                                        Foreground="{DynamicResource SecondaryTextBrush}"
-                                                        Text="{Binding ChampionFallbackText}" />
-                                                    <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
-                                                </Grid>
-                                            </Border>
+                                                CornerRadius="6" />
                                             <TextBlock
                                                 Grid.Row="2"
                                                 HorizontalAlignment="Center"

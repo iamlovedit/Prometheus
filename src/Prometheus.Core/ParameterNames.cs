@@ -30,6 +30,10 @@
 
         public const string SelectedMatch = "SelectedMatch";
 
+        public const string HostRegionName = "HostRegionName";
+
+        public const string ShowPageHeader = "ShowPageHeader";
+
         public const string SkinsCache = "SkinsCache";
 
         public const string Matches = "Matches";
