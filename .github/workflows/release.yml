@@ -30,12 +30,6 @@ jobs:
           }
 
           $releaseVersion = $match.Groups['version'].Value
-          [xml]$props = Get-Content -Raw -LiteralPath 'Directory.Build.props'
-          $projectVersion = $props.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
-          if ($projectVersion -ne $releaseVersion) {
-            throw "Tag version $releaseVersion does not match Directory.Build.props version $projectVersion."
-          }
-
           "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Restore, build, and test

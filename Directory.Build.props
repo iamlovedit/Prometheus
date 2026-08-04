@@ -2,11 +2,14 @@
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <!-- Update this version for each product release. -->
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <InformationalVersion>$(Version)</InformationalVersion>
+    <!-- Local builds use the fallback version. Release workflows inject
+         RELEASE_VERSION from the validated v<major>.<minor>.<patch> Git tag. -->
+    <EffectiveVersion Condition="'$(RELEASE_VERSION)' == ''">1.0.0</EffectiveVersion>
+    <EffectiveVersion Condition="'$(RELEASE_VERSION)' != ''">$(RELEASE_VERSION)</EffectiveVersion>
+    <Version>$(EffectiveVersion)</Version>
+    <AssemblyVersion>$(EffectiveVersion).0</AssemblyVersion>
+    <FileVersion>$(EffectiveVersion).0</FileVersion>
+    <InformationalVersion>$(EffectiveVersion)</InformationalVersion>
 
     <!-- Release automation overrides these values. The default public key is
          intentionally unusable for production signing and keeps local builds working. -->

@@ -55,7 +55,7 @@ Prometheus/
 - MSI 安装界面允许选择安装目录、桌面快捷方式和登录 Windows 后自动启动；桌面快捷方式默认启用，自动启动默认关闭，完成页允许立即启动应用。
 - MSI 卸载或执行 Major Upgrade 前必须关闭正在运行的 Prometheus；静默卸载不得因应用仍在运行而遗留程序文件或要求重启。
 - 推送 `v<major>.<minor>.<patch>` Tag 时创建或更新同名 GitHub Release，并将便携 ZIP 和 MSI 作为 Release 附件。
-- Tag 版本必须与 `Directory.Build.props` 中的版本一致。
+- 稳定版 Tag 是发布版本的唯一来源；流水线去除 `v` 前缀后通过 `RELEASE_VERSION` 注入 MSBuild，程序集、ZIP 和 MSI 必须使用同一版本。本地非发布构建使用 `Directory.Build.props` 中的默认版本。
 - 当前包不包含 Bootstrapper、签名 Manifest 或增量更新文件，应用内自动更新 API 保持未配置状态。
 - 当前流水线不依赖 R2 凭据或更新签名密钥。
 
@@ -69,7 +69,7 @@ Prometheus/
 
 ## 当前 GitHub Release 阶段验收标准
 
-- 推送与项目版本一致的稳定版 Tag 后，GitHub Release 中存在对应的 `Prometheus-<version>-win-x64.zip` 和 `Prometheus-<version>-win-x64.msi` 发布附件。
+- 推送稳定版 Tag 后，GitHub Release 中存在对应的 `Prometheus-<version>-win-x64.zip` 和 `Prometheus-<version>-win-x64.msi` 发布附件，且程序集和 MSI 内部版本与 Tag 去除 `v` 前缀后的版本一致。
 - ZIP 解压后根目录包含可直接运行的 `Prometheus.Desktop.exe`，不要求用户预装 .NET Runtime。
 - MSI 支持图形安装以及 `/qn` 静默安装；安装和卸载后文件、开始菜单快捷方式与安装器注册表状态一致，卸载不得删除 `%LocalAppData%\Prometheus` 用户数据。
 - Prometheus 正在运行时，MSI 卸载必须先结束应用进程，再删除程序文件和快捷方式。
