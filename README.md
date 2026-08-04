@@ -222,12 +222,13 @@ Prometheus 将“本地连接、凭据隔离、可控自动化”作为重要设
 ### 安装步骤
 
 1. 前往 [GitHub Releases](https://github.com/iamlovedit/Prometheus/releases)；
-2. 下载最新稳定版的 Windows x64 便携包；
-3. 解压到具有写入权限的目录；
+2. 推荐下载最新稳定版的 Windows x64 MSI 安装包并按向导安装；
+3. 也可以下载便携 ZIP，解压到具有写入权限的目录；
 4. 启动英雄联盟客户端；
-5. 运行 <code>Prometheus.exe</code>，应用会自动探测并连接本机客户端。
+5. 从开始菜单启动 Prometheus，或在便携目录运行 <code>Prometheus.Desktop.exe</code>。
 
 发布包采用 self-contained 方式构建，普通用户不需要单独安装 .NET SDK。
+MSI 默认安装到当前用户目录，不需要管理员权限；卸载不会删除用户配置和日志。
 应用关闭主窗口后可以继续驻留系统托盘。
 
 如果暂时没有可用的 Release，可以按照下方步骤从源码构建。

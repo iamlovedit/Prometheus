@@ -19,6 +19,7 @@
   <Project Path="Prometheus.ReleaseTool/Prometheus.ReleaseTool.csproj" />
   <Project Path="Prometheus.Update/Prometheus.Update.csproj" />
   <Project Path="Prometheus.Core/Prometheus.Core.csproj" />
+  <Project Path="Prometheus.Installer/Prometheus.Installer.wixproj" />
   <Project Path="Prometheus.Shared/Prometheus.Shared.csproj" />
   <Project Path="Prometheus.Updater/Prometheus.Updater.csproj" />
   <Project Path="Prometheus/Prometheus.csproj" />

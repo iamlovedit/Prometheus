@@ -1,0 +1,42 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <OutputType>Package</OutputType>
+    <Cultures Condition="'$(Cultures)' == ''">zh-CN</Cultures>
+    <SuppressIces>$(SuppressIces);ICE38;ICE61;ICE64;ICE91</SuppressIces>
+    <OutputName>Prometheus-$(Version)-win-x64</OutputName>
+    <DefineConstants>$(DefineConstants);ProductVersion=$(Version)</DefineConstants>
+    <PrometheusPublishDir Condition="'$(PrometheusPublishDir)' == ''">$(MSBuildProjectDirectory)\obj\$(Configuration)\prometheus-publish\</PrometheusPublishDir>
+    <ResolvedPrometheusPublishDir>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(PrometheusPublishDir)'))))</ResolvedPrometheusPublishDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" />
+    <PackageReference Include="WixToolset.Util.wixext" />
+    <ProjectReference Include="..\Prometheus\Prometheus.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BindPath Include="$(ResolvedPrometheusPublishDir)">
+      <BindName>PrometheusPublish</BindName>
+    </BindPath>
+  </ItemGroup>
+
+  <Target Name="PublishPrometheusForInstaller"
+          BeforeTargets="CoreCompile"
+          Condition="'$(UseExistingPrometheusPublish)' != 'true'">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\..\Prometheus\Prometheus.csproj"
+             Targets="Publish"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=false;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;EnableAutomaticUpdatePublishing=false;PublishDir=$(ResolvedPrometheusPublishDir)" />
+  </Target>
+
+  <Target Name="ValidatePrometheusPublishDirectory"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="PublishPrometheusForInstaller">
+    <Error Condition="!Exists('$(ResolvedPrometheusPublishDir)Prometheus.Desktop.exe')"
+           Text="Prometheus.Desktop.exe was not found in $(ResolvedPrometheusPublishDir). Publish the desktop application first or omit UseExistingPrometheusPublish." />
+  </Target>
+</Project>

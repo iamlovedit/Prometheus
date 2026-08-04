@@ -1,6 +1,6 @@
 # 自动更新规范
 
-> 当前发布阶段：GitHub Actions 仅构建 `win-x64` self-contained 桌面程序，并将便携 ZIP 附加到 GitHub Release。R2、签名 Manifest、Bootstrapper、增量包和应用内自动更新发布链路暂缓实现；下述自动更新协议保留为后续阶段的目标规范。
+> 当前发布阶段：GitHub Actions 构建 `win-x64` self-contained 桌面程序，同时将便携 ZIP 和首次安装用 MSI 附加到 GitHub Release。R2、签名 Manifest、Bootstrapper、增量包和应用内自动更新发布链路暂缓实现；下述自动更新协议保留为后续阶段的目标规范。
 
 ## 范围
 
@@ -50,7 +50,11 @@ Prometheus/
 ### 当前 GitHub Release 阶段
 
 - WPF 主程序以 self-contained、非 single-file、多文件方式发布，并压缩为 `Prometheus-<version>-win-x64.zip`。
-- 推送 `v<major>.<minor>.<patch>` Tag 时创建或更新同名 GitHub Release，并将便携 ZIP 作为 Release 附件。
+- 同一发布目录通过 WiX Toolset 打包为 `Prometheus-<version>-win-x64.msi`；MSI 仅用于首次安装、MSI 版本升级和卸载，不作为应用内自动更新载体。
+- MSI 以当前用户范围安装到 `%LocalAppData%\Programs\Prometheus`，不得要求管理员权限；用户数据仍位于 `%LocalAppData%\Prometheus` 并在卸载时保留。
+- MSI 安装界面允许选择安装目录、桌面快捷方式和登录 Windows 后自动启动；桌面快捷方式默认启用，自动启动默认关闭，完成页允许立即启动应用。
+- MSI 卸载或执行 Major Upgrade 前必须关闭正在运行的 Prometheus；静默卸载不得因应用仍在运行而遗留程序文件或要求重启。
+- 推送 `v<major>.<minor>.<patch>` Tag 时创建或更新同名 GitHub Release，并将便携 ZIP 和 MSI 作为 Release 附件。
 - Tag 版本必须与 `Directory.Build.props` 中的版本一致。
 - 当前包不包含 Bootstrapper、签名 Manifest 或增量更新文件，应用内自动更新 API 保持未配置状态。
 - 当前流水线不依赖 R2 凭据或更新签名密钥。
@@ -65,8 +69,11 @@ Prometheus/
 
 ## 当前 GitHub Release 阶段验收标准
 
-- 推送与项目版本一致的稳定版 Tag 后，GitHub Release 中存在且仅新增对应的 `Prometheus-<version>-win-x64.zip` 发布附件。
+- 推送与项目版本一致的稳定版 Tag 后，GitHub Release 中存在对应的 `Prometheus-<version>-win-x64.zip` 和 `Prometheus-<version>-win-x64.msi` 发布附件。
 - ZIP 解压后根目录包含可直接运行的 `Prometheus.Desktop.exe`，不要求用户预装 .NET Runtime。
+- MSI 支持图形安装以及 `/qn` 静默安装；安装和卸载后文件、开始菜单快捷方式与安装器注册表状态一致，卸载不得删除 `%LocalAppData%\Prometheus` 用户数据。
+- Prometheus 正在运行时，MSI 卸载必须先结束应用进程，再删除程序文件和快捷方式。
+- MSI 不得替代 ZIP、签名 Manifest 或后续增量包参与应用内自动更新。
 - 流水线不读取 R2 凭据或更新签名密钥；应用未配置更新 API 时，自动检查不得打断应用启动。
 
 ## 后续 R2 自动更新阶段验收标准

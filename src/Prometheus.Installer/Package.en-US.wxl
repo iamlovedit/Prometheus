@@ -1,0 +1,18 @@
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en-US" Codepage="1252">
+  <String Id="ProductName" Value="Prometheus" />
+  <String Id="Manufacturer" Value="Prometheus Project" />
+  <String Id="ProductLanguage" Value="1033" />
+  <String Id="ProductCodepage" Value="1252" />
+  <String Id="ApplicationDescription" Value="Prometheus League of Legends desktop companion" />
+  <String Id="DowngradeErrorMessage" Value="A newer version of Prometheus is already installed." />
+  <String Id="OptionsDialogWindowTitle" Value="[ProductName] Setup" />
+  <String Id="OptionsDialogTitle" Value="Installation options" />
+  <String Id="OptionsDialogDescription" Value="Choose the additional options to enable for the current user." />
+  <String Id="DesktopShortcutCheckBox" Value="Create a desktop shortcut" />
+  <String Id="StartupCheckBox" Value="Start Prometheus after signing in to Windows" />
+  <String Id="OptionsHelpText" Value="The application is installed for the current user without administrator access. User data and logs are preserved during uninstall." />
+  <String Id="LaunchPrometheusCheckBox" Value="Launch Prometheus when setup finishes" />
+  <String Id="WixUIBack" Value="&amp;Back" />
+  <String Id="WixUINext" Value="&amp;Next" />
+  <String Id="WixUICancel" Value="Cancel" />
+</WixLocalization>

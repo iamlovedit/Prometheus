@@ -38,10 +38,11 @@ jobs:
 
           "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Restore and test
+      - name: Restore, build, and test
         run: |
           dotnet restore src/Prometheus.slnx
-          dotnet test src/Prometheus.slnx -c Release --no-restore
+          dotnet build src/Prometheus.slnx -c Release --no-restore
+          dotnet test src/Prometheus.slnx -c Release --no-build
 
       - name: Publish desktop
         shell: pwsh
@@ -67,7 +68,38 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash
           Write-Host "Created $packageName"
           Write-Host "SHA256: $hash"
-          "PACKAGE_PATH=$packagePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_PATH=$packagePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: |
+          dotnet build src/Prometheus.Installer/Prometheus.Installer.wixproj -c Release --no-restore `
+            -p:UseExistingPrometheusPublish=true `
+            -p:BuildProjectReferences=false `
+            -p:PrometheusPublishDir="$env:GITHUB_WORKSPACE\artifacts\desktop"
+
+          $installerName = "Prometheus-$env:RELEASE_VERSION-win-x64.msi"
+          $builtInstaller = Join-Path $env:GITHUB_WORKSPACE `
+            "src\Prometheus.Installer\bin\Release\zh-CN\$installerName"
+          if (-not (Test-Path -LiteralPath $builtInstaller)) {
+            throw "MSI installer was not created: $builtInstaller"
+          }
+
+          $installerPath = Join-Path $env:GITHUB_WORKSPACE "release-output\$installerName"
+          Copy-Item -LiteralPath $builtInstaller -Destination $installerPath
+
+          $hash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash
+          Write-Host "Created $installerName"
+          Write-Host "SHA256: $hash"
+          "MSI_PATH=$installerPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Test MSI installer
+        shell: pwsh
+        run: |
+          & src/Prometheus.Installer/Test-Msi.ps1 -MsiPath $env:MSI_PATH `
+            -DesktopShortcut 0 -StartWithWindows 0
+          & src/Prometheus.Installer/Test-Msi.ps1 -MsiPath $env:MSI_PATH `
+            -DesktopShortcut 1 -StartWithWindows 1 -VerifyRunningApplicationClosure
 
       - name: Create or update GitHub Release
         shell: pwsh
@@ -81,11 +113,11 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $nativeErrorPreference
 
           if ($releaseExists) {
-            gh release upload $env:VERSION $env:PACKAGE_PATH `
+            gh release upload $env:VERSION $env:ZIP_PATH $env:MSI_PATH `
               --repo $env:GITHUB_REPOSITORY --clobber
           }
           else {
-            gh release create $env:VERSION $env:PACKAGE_PATH `
+            gh release create $env:VERSION $env:ZIP_PATH $env:MSI_PATH `
               --repo $env:GITHUB_REPOSITORY `
               --verify-tag `
               --title "Prometheus $env:RELEASE_VERSION" `

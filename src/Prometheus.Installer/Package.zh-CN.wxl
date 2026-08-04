@@ -1,0 +1,18 @@
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="zh-CN" Codepage="936">
+  <String Id="ProductName" Value="Prometheus" />
+  <String Id="Manufacturer" Value="Prometheus Project" />
+  <String Id="ProductLanguage" Value="2052" />
+  <String Id="ProductCodepage" Value="936" />
+  <String Id="ApplicationDescription" Value="Prometheus 英雄联盟桌面助手" />
+  <String Id="DowngradeErrorMessage" Value="已经安装了更新版本的 Prometheus。" />
+  <String Id="OptionsDialogWindowTitle" Value="[ProductName] 安装程序" />
+  <String Id="OptionsDialogTitle" Value="安装选项" />
+  <String Id="OptionsDialogDescription" Value="选择要为当前用户启用的附加选项。" />
+  <String Id="DesktopShortcutCheckBox" Value="创建桌面快捷方式" />
+  <String Id="StartupCheckBox" Value="登录 Windows 后自动启动 Prometheus" />
+  <String Id="OptionsHelpText" Value="应用将安装到当前用户目录，不需要管理员权限。用户数据和日志不会在卸载时删除。" />
+  <String Id="LaunchPrometheusCheckBox" Value="安装完成后启动 Prometheus" />
+  <String Id="WixUIBack" Value="上一步(&amp;B)" />
+  <String Id="WixUINext" Value="下一步(&amp;N)" />
+  <String Id="WixUICancel" Value="取消" />
+</WixLocalization>

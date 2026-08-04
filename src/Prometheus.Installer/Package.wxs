@@ -1,0 +1,227 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package
+    Name="!(loc.ProductName)"
+    Manufacturer="!(loc.Manufacturer)"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="{C424803D-E1B8-46C8-BE41-F3BA985C89BA}"
+    Language="!(loc.ProductLanguage)"
+    Codepage="!(loc.ProductCodepage)"
+    Scope="perUser"
+    InstallerVersion="500"
+    Compressed="yes">
+
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      DowngradeErrorMessage="!(loc.DowngradeErrorMessage)"
+      Schedule="afterInstallInitialize" />
+    <util:CloseApplication
+      Id="ClosePrometheusDesktop"
+      Target="Prometheus.Desktop.exe"
+      CloseMessage="yes"
+      EndSessionMessage="yes"
+      Timeout="5"
+      TerminateProcess="0"
+      RebootPrompt="no"
+      Condition="Installed OR WIX_UPGRADE_DETECTED" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Binary
+      Id="PrometheusBannerBmp"
+      SourceFile="$(sys.SOURCEFILEDIR)..\..\doc\images\PrometheusBanner.png" />
+
+    <Icon Id="PrometheusIcon" SourceFile="$(sys.SOURCEFILEDIR)..\Prometheus\Prometheus.ico" />
+    <Property Id="ARPPRODUCTICON" Value="PrometheusIcon" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/iamlovedit/Prometheus" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="DESKTOP_SHORTCUT" Value="1" Secure="yes">
+      <RegistrySearch
+        Id="PreviousDesktopShortcutSearch"
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="DesktopShortcut"
+        Type="raw" />
+    </Property>
+    <Property Id="START_WITH_WINDOWS" Value="0" Secure="yes">
+      <RegistrySearch
+        Id="PreviousStartWithWindowsSearch"
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="StartWithWindows"
+        Type="raw" />
+    </Property>
+    <Property Id="PREVIOUS_INSTALLFOLDER" Secure="yes">
+      <RegistrySearch
+        Id="PreviousInstallFolderSearch"
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="InstallFolder"
+        Type="raw" />
+    </Property>
+    <Property
+      Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
+      Value="!(loc.LaunchPrometheusCheckBox)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+
+    <SetProperty
+      Id="DESKTOP_SHORTCUT"
+      Value="0"
+      Before="CostFinalize"
+      Sequence="execute"
+      Condition="NOT DESKTOP_SHORTCUT" />
+    <SetProperty
+      Id="START_WITH_WINDOWS"
+      Value="0"
+      Before="CostFinalize"
+      Sequence="execute"
+      Condition="NOT START_WITH_WINDOWS" />
+    <SetProperty
+      Id="INSTALLFOLDER"
+      Value="[PREVIOUS_INSTALLFOLDER]"
+      After="AppSearch"
+      Sequence="both"
+      Condition="PREVIOUS_INSTALLFOLDER AND NOT INSTALLFOLDER" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="LocalProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="Prometheus" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="PrometheusProgramMenuFolder" Name="Prometheus" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="StartupFolder" />
+
+    <Component Id="PrometheusExecutableComponent"
+               Directory="INSTALLFOLDER"
+               Guid="{78434F39-6306-4C80-A20B-DA4253D91495}">
+      <File
+        Id="PrometheusDesktopExecutable"
+        Source="!(bindpath.PrometheusPublish)\Prometheus.Desktop.exe"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="LicenseComponent"
+               Directory="INSTALLFOLDER"
+               Guid="{52065AD1-516C-41A8-8B79-1087CD669C99}">
+      <File Id="PrometheusLicense" Source="$(sys.SOURCEFILEDIR)..\..\LICENSE" Name="LICENSE.txt" KeyPath="yes" />
+    </Component>
+
+    <Component Id="InstallerSettingsComponent"
+               Directory="INSTALLFOLDER"
+               Guid="{2B8966F2-F944-4AF1-9B3E-0C7AD64E905D}">
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="Installed"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="InstallFolder"
+        Type="string"
+        Value="[INSTALLFOLDER]" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="DesktopShortcut"
+        Type="string"
+        Value="[DESKTOP_SHORTCUT]" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="StartWithWindows"
+        Type="string"
+        Value="[START_WITH_WINDOWS]" />
+      <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+    </Component>
+
+    <Component Id="StartMenuShortcutComponent"
+               Directory="PrometheusProgramMenuFolder"
+               Guid="{DFE40967-DBB0-4105-88F9-8C0655B0268F}">
+      <Shortcut
+        Id="StartMenuShortcut"
+        Name="Prometheus"
+        Description="!(loc.ApplicationDescription)"
+        Target="[INSTALLFOLDER]Prometheus.Desktop.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="PrometheusIcon" />
+      <RemoveFolder Id="RemovePrometheusProgramMenuFolder" On="uninstall" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="StartMenuShortcut"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcutComponent"
+               Directory="DesktopFolder"
+               Guid="{43FFF1C5-31F5-4E82-A96C-4DCB327C8D26}"
+               Condition="DESKTOP_SHORTCUT = 1">
+      <Shortcut
+        Id="DesktopShortcut"
+        Name="Prometheus"
+        Description="!(loc.ApplicationDescription)"
+        Target="[INSTALLFOLDER]Prometheus.Desktop.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="PrometheusIcon" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="DesktopShortcutInstalled"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="StartupShortcutComponent"
+               Directory="StartupFolder"
+               Guid="{ECB8462F-21A9-4A7C-8DD0-DE7C20CAEC93}"
+               Condition="START_WITH_WINDOWS = 1">
+      <Shortcut
+        Id="StartupShortcut"
+        Name="Prometheus"
+        Description="!(loc.ApplicationDescription)"
+        Target="[INSTALLFOLDER]Prometheus.Desktop.exe"
+        WorkingDirectory="INSTALLFOLDER"
+        Icon="PrometheusIcon" />
+      <RegistryValue
+        Root="HKCU"
+        Key="Software\Prometheus\Installer"
+        Name="StartupShortcutInstalled"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Feature Id="ProductFeature" Title="Prometheus" Level="1">
+      <Files Directory="INSTALLFOLDER" Include="!(bindpath.PrometheusPublish)\**">
+        <Exclude Files="!(bindpath.PrometheusPublish)\Prometheus.Desktop.exe" />
+      </Files>
+      <ComponentRef Id="PrometheusExecutableComponent" />
+      <ComponentRef Id="LicenseComponent" />
+      <ComponentRef Id="InstallerSettingsComponent" />
+      <ComponentRef Id="StartMenuShortcutComponent" />
+      <ComponentRef Id="DesktopShortcutComponent" />
+      <ComponentRef Id="StartupShortcutComponent" />
+    </Feature>
+
+    <CustomAction
+      Id="LaunchPrometheus"
+      FileRef="PrometheusDesktopExecutable"
+      ExeCommand=""
+      Execute="immediate"
+      Return="asyncNoWait" />
+
+    <UIRef Id="PrometheusInstallerUI" />
+  </Package>
+</Wix>
