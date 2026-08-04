@@ -25,8 +25,8 @@ namespace Prometheus.Modules.Setting
             var languageIndex = Settings.Default.LanguageIndex;
             if (languageIndex == -1)
             {
-                var cultrue = CultureInfo.CurrentCulture.Name;
-                languageIndex = cultrue == "zh-CN" ? 0 : 1;
+                languageIndex = ApplicationPreferenceDefaults.ResolveLanguageIndex(
+                    CultureInfo.CurrentUICulture);
                 Settings.Default.LanguageIndex = languageIndex;
                 Settings.Default.Save();
             }
@@ -36,12 +36,21 @@ namespace Prometheus.Modules.Setting
             }
 
             var themeIndex = Settings.Default.ThemeIndex;
-            var themeMode = ApplicationThemeModeResolver.Normalize(themeIndex);
-            if (themeIndex != (int)themeMode)
+            if (themeIndex == -1)
             {
-                themeIndex = (int)themeMode;
+                themeIndex = (int)_resourceService.GetSystemThemeMode();
                 Settings.Default.ThemeIndex = themeIndex;
                 Settings.Default.Save();
+            }
+            else
+            {
+                var themeMode = ApplicationThemeModeResolver.Normalize(themeIndex);
+                if (themeIndex != (int)themeMode)
+                {
+                    themeIndex = (int)themeMode;
+                    Settings.Default.ThemeIndex = themeIndex;
+                    Settings.Default.Save();
+                }
             }
 
             _resourceService.SwitchTheme(themeIndex);

@@ -1,3 +1,4 @@
+using Prometheus.Core.Models;
 
 namespace Prometheus.Services.Interfaces.Client
 {
@@ -6,6 +7,8 @@ namespace Prometheus.Services.Interfaces.Client
         T FindResource<T>(string resourceKey);
 
         string GetLanguageResourceUri(string language);
+
+        ApplicationThemeMode GetSystemThemeMode();
 
         void SwitchTheme(int themeIndex);
 

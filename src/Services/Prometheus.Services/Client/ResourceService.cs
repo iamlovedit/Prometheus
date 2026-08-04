@@ -43,6 +43,11 @@ namespace Prometheus.Services.Client
             return string.Format(_themeUriFormat, theme);
         }
 
+        public ApplicationThemeMode GetSystemThemeMode()
+        {
+            return ApplicationPreferenceDefaults.ResolveThemeMode(SystemUsesLightTheme());
+        }
+
         public void SwitchTheme(int themeIndex)
         {
             var themeMode = ApplicationThemeModeResolver.Normalize(themeIndex);
