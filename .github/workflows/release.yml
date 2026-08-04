@@ -72,8 +72,15 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Building MSI version $env:RELEASE_VERSION"
+
+          dotnet clean src/Prometheus.Installer/Prometheus.Installer.wixproj -c Release `
+            -p:BuildProjectReferences=false
+
+          dotnet restore src/Prometheus.Installer/Prometheus.Installer.wixproj `
+            -p:RELEASE_VERSION=$env:RELEASE_VERSION
+
           dotnet build src/Prometheus.Installer/Prometheus.Installer.wixproj -c Release `
-            --no-restore -t:Rebuild `
+            --no-restore `
             -p:RELEASE_VERSION=$env:RELEASE_VERSION `
             -p:UseExistingPrometheusPublish=true `
             -p:BuildProjectReferences=false `
