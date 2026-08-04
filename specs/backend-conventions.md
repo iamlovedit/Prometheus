@@ -157,7 +157,11 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 
 - 通用 HTTP 层**不做**隐式重试；重试是业务决策，集中在 `MatchService`：
   - 自动接受对局（Accept）：`0ms → 500ms → 1500ms`
-  - 自动重连对局（Reconnect）：`0s → 2s → 5s`
+  - 自动重连对局（Reconnect）：仅当当前阶段和 gameflow 会话阶段均为 `Reconnect`，且
+    `GameflowSession.GameClient.Running == true` 时执行 `0s → 2s → 5s`；游戏进程未运行时
+    不得发起请求，并取消当前阶段尚未执行的后续重试。每次调用重连 POST 前必须重新通过
+    `GET lol-gameflow/v1/gameflow-phase` 和 `GET lol-gameflow/v1/session` 确认上述条件；
+    HTTP 状态无法确认、已进入结算阶段或游戏进程已停止时不得发送重连请求。
   - 自动选用 / 禁用英雄：只处理本人的 `isInProgress && !completed` 动作，按配置优先级最多尝试 3 个当前可用候选；禁用时必须排除队友预选英雄；通过 `/complete` 显式锁定。
 - 新增自动化动作应沿用"少量、递增延迟、可取消"的模式，禁止无限重试。
 

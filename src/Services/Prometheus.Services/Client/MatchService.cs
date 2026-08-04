@@ -2091,7 +2091,18 @@ namespace Prometheus.Services.Client
 
             if (context.Phase == GameflowPhase.Reconnect && AutomationSettings.AutoReconnect)
             {
-                StartAutoReconnect(context);
+                if (CanAutoReconnect(context))
+                {
+                    StartAutoReconnect(context);
+                }
+                else
+                {
+                    CancelAutoReconnect();
+                }
+            }
+            else
+            {
+                CancelAutoReconnect();
             }
 
             if (context.Phase == GameflowPhase.ChampSelect &&
@@ -2894,10 +2905,17 @@ namespace Prometheus.Services.Client
 
         private void StartAutoReconnect(PhaseContext context)
         {
+            if (!CanAutoReconnect(context))
+            {
+                return;
+            }
+
             CancellationToken token;
             lock (_stateSync)
             {
-                if (!_started || _lastAutoReconnectInstance == context.Instance ||
+                if (!_started || context.Version != _phaseVersion ||
+                    context.Token.IsCancellationRequested ||
+                    _lastAutoReconnectInstance == context.Instance ||
                     !AutomationSettings.AutoReconnect)
                 {
                     return;
@@ -2910,13 +2928,69 @@ namespace Prometheus.Services.Client
                 token = _reconnectAutomationCts.Token;
                 _reconnectAutomationTask = RunAutomationAsync(
                     "Automatic game reconnect", context,
-                    ReconnectRetryDelays, _gameService.ReconnectGameAsync, token);
+                    ReconnectRetryDelays,
+                    cancellationToken => ReconnectGameIfConfirmedAsync(
+                        context, cancellationToken),
+                    token,
+                    () => CanAutoReconnect(context));
             }
+        }
+
+        private async Task ReconnectGameIfConfirmedAsync(
+            PhaseContext context,
+            CancellationToken cancellationToken)
+        {
+            if (!CanAutoReconnect(context) || !_leagueClient.Connected ||
+                !_httpService.IsInitialized)
+            {
+                return;
+            }
+
+            var phaseTask = _gameService.GetGameflowPhaseAsync(cancellationToken);
+            var sessionTask = _gameService.GetGameflowSessionSnapshotAsync(cancellationToken);
+            await Task.WhenAll(phaseTask, sessionTask).ConfigureAwait(false);
+
+            var rawPhase = await phaseTask.ConfigureAwait(false);
+            var session = await sessionTask.ConfigureAwait(false);
+            if (ParsePhase(rawPhase) != GameflowPhase.Reconnect ||
+                ParsePhase(session?.Phase) != GameflowPhase.Reconnect ||
+                session?.GameClient?.Running != true)
+            {
+                return;
+            }
+
+            if (!CanAutoReconnect(context) || !_leagueClient.Connected ||
+                !_httpService.IsInitialized)
+            {
+                return;
+            }
+
+            await _gameService.ReconnectGameAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        private bool CanAutoReconnect(PhaseContext context)
+        {
+            var snapshot = GetCurrentSnapshot();
+            return context.Phase == GameflowPhase.Reconnect &&
+                   snapshot.GameflowPhase == GameflowPhase.Reconnect &&
+                   ParsePhase(snapshot.GameflowSession?.Phase) == GameflowPhase.Reconnect &&
+                   snapshot.GameflowSession?.GameClient?.Running == true;
+        }
+
+        private void CancelAutoReconnect()
+        {
+            CancellationTokenSource cancellationTokenSource;
+            lock (_stateSync)
+            {
+                cancellationTokenSource = _reconnectAutomationCts;
+            }
+
+            cancellationTokenSource?.Cancel();
         }
 
         private async Task RunAutomationAsync(string operationName, PhaseContext context,
             IReadOnlyList<TimeSpan> retryDelays, Func<CancellationToken, Task> operation,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, Func<bool> canExecute = null)
         {
             Exception lastError = null;
             for (var attempt = 0; attempt < retryDelays.Count; attempt++)
@@ -2926,7 +3000,7 @@ namespace Prometheus.Services.Client
                     await Task.Delay(retryDelays[attempt], cancellationToken).ConfigureAwait(false);
                 }
 
-                if (!IsCurrentPhase(context))
+                if (!IsCurrentPhase(context) || canExecute?.Invoke() == false)
                 {
                     return;
                 }
