@@ -34,8 +34,10 @@ jobs:
 
       - name: Restore, build, and test
         run: |
-          dotnet restore src/Prometheus.slnx
-          dotnet build src/Prometheus.slnx -c Release --no-restore
+          dotnet restore src/Prometheus.slnx `
+            -p:RELEASE_VERSION=$env:RELEASE_VERSION
+          dotnet build src/Prometheus.slnx -c Release --no-restore `
+            -p:RELEASE_VERSION=$env:RELEASE_VERSION
           dotnet test src/Prometheus.slnx -c Release --no-build
 
       - name: Publish desktop
@@ -43,7 +45,9 @@ jobs:
         run: |
           dotnet publish src/Prometheus/Prometheus.csproj -c Release -r win-x64 --self-contained true `
             -p:PublishSingleFile=false -p:PublishReadyToRun=false -p:DebugType=None -p:DebugSymbols=false `
-            -p:EnableAutomaticUpdatePublishing=false -o artifacts/desktop
+            -p:EnableAutomaticUpdatePublishing=false `
+            -p:RELEASE_VERSION=$env:RELEASE_VERSION `
+            -o artifacts/desktop
 
       - name: Create release package
         shell: pwsh
@@ -67,17 +71,35 @@ jobs:
       - name: Build MSI installer
         shell: pwsh
         run: |
-          dotnet build src/Prometheus.Installer/Prometheus.Installer.wixproj -c Release --no-restore `
+          Write-Host "Building MSI version $env:RELEASE_VERSION"
+          dotnet build src/Prometheus.Installer/Prometheus.Installer.wixproj -c Release `
+            --no-restore -t:Rebuild `
+            -p:RELEASE_VERSION=$env:RELEASE_VERSION `
             -p:UseExistingPrometheusPublish=true `
             -p:BuildProjectReferences=false `
             -p:PrometheusPublishDir="$env:GITHUB_WORKSPACE\artifacts\desktop"
 
           $installerName = "Prometheus-$env:RELEASE_VERSION-win-x64.msi"
-          $builtInstaller = Join-Path $env:GITHUB_WORKSPACE `
-            "src\Prometheus.Installer\bin\Release\zh-CN\$installerName"
-          if (-not (Test-Path -LiteralPath $builtInstaller)) {
-            throw "MSI installer was not created: $builtInstaller"
+          $installerOutputRoot = Join-Path $env:GITHUB_WORKSPACE `
+            'src\Prometheus.Installer\bin\Release'
+          $builtInstallers = @(
+            Get-ChildItem -LiteralPath $installerOutputRoot -Recurse -File `
+              -Filter $installerName -ErrorAction SilentlyContinue)
+          if ($builtInstallers.Count -ne 1) {
+            $availableInstallers = @(
+              Get-ChildItem -LiteralPath $installerOutputRoot -Recurse -File `
+                -Filter '*.msi' -ErrorAction SilentlyContinue |
+                ForEach-Object FullName)
+            $availableInstallerText = if ($availableInstallers.Count -eq 0) {
+              '<none>'
+            }
+            else {
+              $availableInstallers -join ', '
+            }
+            throw "Expected one $installerName under $installerOutputRoot, found $($builtInstallers.Count). Available MSI files: $availableInstallerText"
           }
+          $builtInstaller = $builtInstallers[0].FullName
+          Write-Host "Using built MSI: $builtInstaller"
 
           $installerPath = Join-Path $env:GITHUB_WORKSPACE "release-output\$installerName"
           Copy-Item -LiteralPath $builtInstaller -Destination $installerPath
