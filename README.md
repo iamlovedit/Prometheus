@@ -17,12 +17,17 @@ Prometheus 是一款面向 Windows 的英雄联盟第三方桌面助手，通过
 **League Client Update（LCU）API** 与英雄联盟客户端联动，将召唤师生涯、历史战绩、
 实时对局、英雄选择辅助、游戏资源和常用自动化能力集中在一个现代化桌面应用中。
 
-核心 LCU 通信直接连接本机回环地址，不依赖 Prometheus 自建的业务后端。英雄数据补充和
-软件更新可能访问公共 HTTPS 服务，但不会向外部站点附加 LCU 凭据。
+核心 LCU 通信直接连接本机回环地址，不依赖 Prometheus 自建的业务后端。英雄数据补充可能
+访问公共 HTTPS 服务，但不会向外部站点附加 LCU 凭据。
 
 > [!IMPORTANT]
 > Prometheus 是非官方开源项目，与 Riot Games 不存在隶属、赞助或认可关系。
 > 使用前请了解并遵守所在地区的游戏规则及相关服务条款。
+
+> [!WARNING]
+> **应用内在线更新尚未完成。** 当前版本不能直接在应用中下载和安装新版本。
+> 需要升级时，请前往 [GitHub Releases](https://github.com/iamlovedit/Prometheus/releases)
+> 手动下载最新的 MSI 安装包或便携 ZIP。
 
 ## 📖 导航
 
@@ -46,7 +51,7 @@ Prometheus 是一款面向 Windows 的英雄联盟第三方桌面助手，通过
 | ⚡ **实时状态联动** | 跟随大厅、匹配、就绪检查、英雄选择和游戏阶段实时刷新 |
 | 🤖 **可控自动化** | 自动接受、自动重连、自动 Pick/Ban 和大乱斗自动交换均可独立启停 |
 | 🌍 **个性化体验** | 支持简体中文与英文、明亮与暗黑主题，并可跟随 Windows 系统主题 |
-| 📦 **便携与更新保护** | 面向 Windows x64 的便携部署，更新包经过签名和哈希校验，并支持启动失败回滚 |
+| 📦 **安装方式灵活** | GitHub Release 同时提供 Windows x64 MSI 安装包和 self-contained 便携 ZIP |
 
 <a id="features"></a>
 
@@ -61,7 +66,7 @@ Prometheus 是一款面向 Windows 的英雄联盟第三方桌面助手，通过
 | 🪟 选人助手 | 吸附在英雄联盟客户端侧边，展示队友战绩与英雄自动化状态 |
 | 🎨 游戏资源 | 浏览和导出英雄皮肤原画、浏览并下载召唤师头像 |
 | 🤖 实用工具 | 练习房间、在线状态、个性签名、展示段位、自动 Pick/Ban 与大乱斗自动交换 |
-| ⚙️ 设置 | 语言、主题、自动化开关、诊断日志与软件更新 |
+| ⚙️ 设置 | 语言、主题、自动化开关、诊断日志与版本信息 |
 
 ### 🏠 主页与快速开始
 
@@ -175,7 +180,7 @@ Prometheus 是一款面向 Windows 的英雄联盟第三方桌面助手，通过
 
 ![实用工具](./doc/images/Tools.png)
 
-### ⚙️ 个性化、诊断与软件更新
+### ⚙️ 个性化、诊断与版本信息
 
 设置页面集中管理应用体验和安全辅助能力：
 
@@ -183,8 +188,8 @@ Prometheus 是一款面向 Windows 的英雄联盟第三方桌面助手，通过
 - 明亮、暗黑和跟随 Windows 系统主题；
 - 自动接受对局和断线自动重连；
 - 可选的运行日志与诊断面板；
-- 自动检查稳定版更新，也可手动触发检查；
-- 普通更新允许稍后处理，必要更新会给出明确提示。
+- 查看当前应用版本和版本检查入口；
+- 在线下载、自动安装与回滚链路尚未完成，更新需要手动下载安装包。
 
 ![软件设置](./doc/images/Setting.png)
 
@@ -198,20 +203,25 @@ Prometheus 将“本地连接、凭据隔离、可控自动化”作为重要设
 |------|----------|
 | LCU 凭据 | Token 只附加到协议、端口和主机均匹配的本机回环地址，不写入仓库或日志 |
 | TLS | 只对本机 LCU 自签名证书放宽校验，公共 HTTPS 服务仍执行正常证书验证 |
-| 外部请求 | 公共英雄数据和更新服务不会收到 LCU Authorization 信息 |
+| 外部请求 | 公共英雄数据服务不会收到 LCU Authorization 信息 |
 | 伴随窗口 | 使用独立桌面窗口，不注入、不读取屏幕、不修改客户端窗口内容 |
 | 诊断日志 | 默认关闭，可在运行时启停；敏感字段在进入日志前进行脱敏 |
 | 隐私数据 | 不记录房间密码、完整命令行、完整 Riot ID、PUUID、聊天或个性签名正文 |
 | 日志保留 | 诊断文件按天滚动并执行 7 天保留策略，关闭日志不会删除未过期的历史文件 |
-| 软件更新 | 校验签名、文件大小和 SHA-256；安装或健康检查失败时保留或恢复旧版本 |
+| 当前发布 | GitHub Actions 构建 self-contained ZIP 与 MSI；应用内签名更新和自动回滚属于后续计划 |
 
 > [!NOTE]
-> 核心 LCU 功能在本机完成，但英雄梯度、推荐数据和软件更新等能力需要访问公共 HTTPS 服务。
+> 核心 LCU 功能在本机完成，但英雄梯度和推荐数据等能力需要访问公共 HTTPS 服务。
 > 这些外部请求与 LCU 认证信息相互隔离。
 
 <a id="download"></a>
 
 ## 📦 下载与使用
+
+> [!WARNING]
+> 应用内在线更新目前不可用。发现新版本后，需要关闭 Prometheus，
+> 前往 [GitHub Releases](https://github.com/iamlovedit/Prometheus/releases)
+> 下载新的 MSI 安装包或便携 ZIP，并手动完成升级。
 
 ### 系统要求
 
@@ -230,6 +240,15 @@ Prometheus 将“本地连接、凭据隔离、可控自动化”作为重要设
 发布包采用 self-contained 方式构建，普通用户不需要单独安装 .NET SDK。
 MSI 默认安装到当前用户目录，不需要管理员权限；卸载不会删除用户配置和日志。
 应用关闭主窗口后可以继续驻留系统托盘。
+
+### 更新现有版本
+
+- **MSI 安装用户**：关闭 Prometheus，下载最新的 <code>Prometheus-&lt;version&gt;-win-x64.msi</code>
+  并运行安装程序完成升级；
+- **便携 ZIP 用户**：关闭 Prometheus，下载最新的
+  <code>Prometheus-&lt;version&gt;-win-x64.zip</code>，解压到新的目录或替换原程序文件；
+- 用户配置、日志和资源缓存保存在 <code>%LocalAppData%\Prometheus</code>，
+  MSI 升级或卸载不会主动删除这些数据。
 
 如果暂时没有可用的 Release，可以按照下方步骤从源码构建。
 
@@ -279,8 +298,16 @@ Prometheus 尊重客户端当前阶段的身份隐藏规则。选人阶段不会
 <details>
 <summary><strong>Prometheus 是否需要联网？</strong></summary>
 
-核心 LCU 通信直接连接本机客户端。英雄梯度、推荐数据和软件更新可能访问公共 HTTPS 服务，
-但这些请求不会携带 LCU Token。
+核心 LCU 通信直接连接本机客户端。英雄梯度和推荐数据可能访问公共 HTTPS 服务，
+但这些请求不会携带 LCU Token。应用内在线更新当前尚未启用。
+
+</details>
+
+<details>
+<summary><strong>如何更新 Prometheus？</strong></summary>
+
+当前需要前往 [GitHub Releases](https://github.com/iamlovedit/Prometheus/releases)
+手动下载最新 MSI 安装包或便携 ZIP。应用中的在线下载、自动安装和失败回滚功能尚未完成。
 
 </details>
 
