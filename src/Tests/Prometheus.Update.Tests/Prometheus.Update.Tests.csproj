@@ -19,7 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Prometheus.Update\Prometheus.Update.csproj" />
-    <ProjectReference Include="..\..\Prometheus.ReleaseTool\Prometheus.ReleaseTool.csproj" />
     <ProjectReference Include="..\..\Prometheus.Updater\Prometheus.Updater.csproj" />
     <ProjectReference Include="..\..\Services\Prometheus.Services.Interfaces\Prometheus.Services.Interfaces.csproj" />
     <ProjectReference Include="..\..\Services\Prometheus.Services\Prometheus.Services.csproj" />

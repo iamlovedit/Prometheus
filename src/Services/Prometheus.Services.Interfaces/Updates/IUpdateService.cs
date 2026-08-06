@@ -11,6 +11,7 @@ public enum UpdateState
     UpToDate,
     Available,
     Downloading,
+    Verifying,
     ReadyToInstall,
     Installing,
     Failed
@@ -18,8 +19,7 @@ public enum UpdateState
 
 public sealed class AvailableUpdate
 {
-    public ReleaseDescriptor Descriptor { get; init; } = new();
-    public UpdateApiResponse ApiResponse { get; init; } = new();
+    public string Version { get; init; } = string.Empty;
     public bool IsMandatory { get; init; }
     public string ReleaseNotes { get; init; } = string.Empty;
     public long DownloadSize { get; init; }
@@ -41,11 +41,13 @@ public sealed class UpdateStateChangedEventArgs : EventArgs
 
 public sealed class UpdateServiceOptions
 {
-    public string ApiBaseUrl { get; init; } = string.Empty;
+    public string GitHubOwner { get; init; } = string.Empty;
+    public string GitHubRepository { get; init; } = string.Empty;
+    public string GitHubApiBaseUrl { get; init; } = "https://api.github.com";
     public string InstallRoot { get; init; } = string.Empty;
     public string CurrentVersion { get; init; } = string.Empty;
-    public string BootstrapperVersion { get; init; } = "1.0.0";
     public string LocalDataRoot { get; init; } = string.Empty;
+    public string UpdaterPath { get; init; } = string.Empty;
 }
 
 public interface IUpdateService

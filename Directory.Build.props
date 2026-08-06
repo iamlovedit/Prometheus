@@ -11,12 +11,8 @@
     <FileVersion>$(EffectiveVersion).0</FileVersion>
     <InformationalVersion>$(EffectiveVersion)</InformationalVersion>
 
-    <!-- Release automation overrides these values. The default public key is
-         intentionally unusable for production signing and keeps local builds working. -->
-    <UpdateApiBaseUrl Condition="'$(UpdateApiBaseUrl)' == ''"></UpdateApiBaseUrl>
-    <UpdateSigningPublicKeyBase64 Condition="'$(UpdateSigningPublicKeyBase64)' == ''">MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEAeM6Ch8AThCSZ1hyICH5bYOR1+70NaDS+4ZzSYqDIugTHrhLlD8ANTaSaHQKp/flLFpIwmWAek7Bw6BZV7CXwg==</UpdateSigningPublicKeyBase64>
-    <UsingDefaultUpdateSigningKey Condition="'$(UsingDefaultUpdateSigningKey)' == ''">true</UsingDefaultUpdateSigningKey>
-    <EnableAutomaticUpdatePublishing Condition="'$(EnableAutomaticUpdatePublishing)' == ''">true</EnableAutomaticUpdatePublishing>
+    <GitHubRepositoryOwner Condition="'$(GitHubRepositoryOwner)' == ''">iamlovedit</GitHubRepositoryOwner>
+    <GitHubRepositoryName Condition="'$(GitHubRepositoryName)' == ''">Prometheus</GitHubRepositoryName>
   </PropertyGroup>
 
 </Project>

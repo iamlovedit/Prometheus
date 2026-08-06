@@ -1,8 +1,8 @@
+#nullable enable
+
 using Prometheus.Services.Interfaces.Updates;
 using Prometheus.Update;
-using System.Diagnostics;
 using System.Reflection;
-using System.Text.Json;
 
 namespace Prometheus;
 
@@ -11,24 +11,23 @@ internal static class UpdateRuntime
     public static UpdateServiceOptions CreateOptions()
     {
         var entryAssembly = Assembly.GetEntryAssembly();
-        var apiBaseUrl = entryAssembly?
-            .GetCustomAttributes<AssemblyMetadataAttribute>()
-            .FirstOrDefault(attribute => attribute.Key == "UpdateApiBaseUrl")?.Value;
-        apiBaseUrl = Environment.GetEnvironmentVariable("PROMETHEUS_UPDATE_API_URL")
-            ?? apiBaseUrl
-            ?? string.Empty;
-
+        var metadata = entryAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>()
+            .ToDictionary(attribute => attribute.Key, attribute => attribute.Value,
+                StringComparer.OrdinalIgnoreCase)
+            ?? new Dictionary<string, string?>();
         var version = entryAssembly?
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion.Split('+')[0]
             ?? "1.0.0";
-        var installRoot = ResolveInstallRoot();
+        var installRoot = Path.GetFullPath(AppContext.BaseDirectory);
         return new UpdateServiceOptions
         {
-            ApiBaseUrl = apiBaseUrl,
+            GitHubOwner = GetMetadata(metadata, "GitHubRepositoryOwner"),
+            GitHubRepository = GetMetadata(metadata, "GitHubRepositoryName"),
+            GitHubApiBaseUrl = "https://api.github.com",
             InstallRoot = installRoot,
             CurrentVersion = version,
-            BootstrapperVersion = ReadBootstrapperVersion(installRoot)
+            UpdaterPath = Path.Combine(installRoot, UpdateProtocol.UpdaterExecutableName)
         };
     }
 
@@ -49,48 +48,8 @@ internal static class UpdateRuntime
         }
     }
 
-    private static string ResolveInstallRoot()
+    private static string GetMetadata(IReadOnlyDictionary<string, string?> metadata, string key)
     {
-        var current = new DirectoryInfo(Path.GetFullPath(AppContext.BaseDirectory));
-        if (UpdateVersion.TryParse(current.Name, out _)
-            && string.Equals(current.Parent?.Name, "versions", StringComparison.OrdinalIgnoreCase)
-            && current.Parent.Parent is not null)
-        {
-            return current.Parent.Parent.FullName;
-        }
-
-        return current.FullName;
-    }
-
-    private static string ReadBootstrapperVersion(string installRoot)
-    {
-        try
-        {
-            var executable = Path.Combine(installRoot,
-                UpdateProtocol.BootstrapperExecutableName);
-            if (File.Exists(executable))
-            {
-                var productVersion = FileVersionInfo.GetVersionInfo(executable).ProductVersion?
-                    .Split('+')[0];
-                if (UpdateVersion.TryParse(productVersion, out var parsed))
-                {
-                    return parsed.ToString();
-                }
-            }
-
-            var path = Path.Combine(installRoot, "current.json");
-            if (!File.Exists(path))
-            {
-                return "1.0.0";
-            }
-
-            return JsonSerializer.Deserialize(File.ReadAllBytes(path),
-                       UpdateJsonContext.Default.BootstrapperState)?.BootstrapperVersion
-                   ?? "1.0.0";
-        }
-        catch
-        {
-            return "1.0.0";
-        }
+        return metadata.TryGetValue(key, out var value) ? value ?? string.Empty : string.Empty;
     }
 }

@@ -8,18 +8,9 @@ internal static class Bootstrapper
 {
     private static readonly TimeSpan HealthTimeout = TimeSpan.FromSeconds(60);
 
-    public static int LaunchCurrent()
+    public static Task<int> ApplyAsync(string planPath)
     {
-        var installRoot = Path.GetFullPath(AppContext.BaseDirectory);
-        var state = BootstrapperStateStore.Load(installRoot);
-        RecoverPendingState(installRoot, state);
-        StartDesktop(installRoot, state.CurrentVersion, null);
-        return 0;
-    }
-
-    public static async Task<int> ApplyAsync(string planPath)
-    {
-        return await ApplyAsync(planPath, null).ConfigureAwait(false);
+        return ApplyAsync(planPath, null);
     }
 
     internal static async Task<int> ApplyAsync(string planPath, BootstrapperTestHooks? hooks)
@@ -27,63 +18,30 @@ internal static class Bootstrapper
         var plan = JsonSerializer.Deserialize(await File.ReadAllBytesAsync(planPath),
             UpdateJsonContext.Default.UpdateApplyPlan)
             ?? throw new InvalidDataException("The update plan is empty.");
-        ValidatePlan(plan);
+        UpdateValidation.ValidateApplyPlan(plan);
         await WaitForParentExitAsync(plan.ParentProcessId).ConfigureAwait(false);
 
-        var descriptor = hooks?.VerifyRelease is null
-            ? UpdateSecurity.VerifyAndDeserialize(plan.Release,
-                UpdateJsonContext.Default.ReleaseDescriptor)
-            : hooks.VerifyRelease(plan.Release);
-        ValidateDescriptor(plan, descriptor);
-        await UpdateInstaller.VerifyArtifactAsync(plan.TargetManifestPath,
-            descriptor.TargetManifest).ConfigureAwait(false);
-        var manifestEnvelope = JsonSerializer.Deserialize(
-            await File.ReadAllBytesAsync(plan.TargetManifestPath).ConfigureAwait(false),
-            UpdateJsonContext.Default.SignedEnvelope)
-            ?? throw new InvalidDataException("The target manifest envelope is empty.");
-        var targetManifest = hooks?.VerifyManifest is null
-            ? UpdateSecurity.VerifyAndDeserialize(manifestEnvelope,
-                UpdateJsonContext.Default.ReleaseManifest)
-            : hooks.VerifyManifest(manifestEnvelope);
-        UpdateInstaller.ValidateTargetManifest(plan, targetManifest);
-
-        var packageArtifact = UpdateInstaller.ResolveSelectedArtifact(descriptor,
-            plan.SelectedArtifactId);
-        ValidateSelectedPackage(plan, descriptor, packageArtifact);
-        await UpdateInstaller.VerifyArtifactAsync(plan.PackagePath, packageArtifact)
-            .ConfigureAwait(false);
-
-        var installRoot = Path.GetFullPath(plan.InstallRoot);
-        var state = BootstrapperStateStore.Load(installRoot);
-        if (!string.Equals(state.CurrentVersion, plan.CurrentVersion, StringComparison.Ordinal))
+        var installRoot = Path.GetFullPath(plan.InstallRoot).TrimEnd(
+            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var backupRoot = UpdateInstaller.GetBackupRoot(installRoot);
+        RecoverInterruptedSwap(installRoot, backupRoot);
+        if (!Directory.Exists(installRoot))
         {
-            throw new InvalidOperationException(
-                "The installed version changed while the update was downloading.");
-        }
-        if (UpdateVersion.Parse(state.BootstrapperVersion).CompareTo(
-                UpdateVersion.Parse(descriptor.MinimumBootstrapperVersion)) < 0)
-        {
-            throw new InvalidOperationException(
-                "This update requires a newer bootstrapper and must be installed from a portable package.");
+            throw new DirectoryNotFoundException(
+                $"The Prometheus installation directory was not found: {installRoot}");
         }
 
-        var targetRoot = await UpdateInstaller.BuildTargetVersionAsync(plan, targetManifest)
-            .ConfigureAwait(false);
-        var installedBootstrapperVersion = await ReplaceBootstrapperIfNeededAsync(plan,
-            descriptor, installRoot, state.BootstrapperVersion).ConfigureAwait(false);
-
+        string? stagingRoot = null;
         Process? process = null;
         var switched = false;
         try
         {
-            BootstrapperStateStore.Save(installRoot, new BootstrapperState
-            {
-                CurrentVersion = plan.TargetVersion,
-                RollbackVersion = plan.CurrentVersion,
-                PendingHealthToken = plan.HealthToken,
-                BootstrapperVersion = installedBootstrapperVersion
-            });
+            stagingRoot = await UpdateInstaller.PrepareStagingAsync(plan,
+                hooks?.ValidateDesktopVersion).ConfigureAwait(false);
+            UpdateInstaller.TryDeleteDirectory(backupRoot);
+            Directory.Move(installRoot, backupRoot);
             switched = true;
+            Directory.Move(stagingRoot, installRoot);
 
             var markerPath = UpdatePaths.GetHealthMarkerPath(plan.HealthToken);
             Directory.CreateDirectory(Path.GetDirectoryName(markerPath)!);
@@ -98,15 +56,9 @@ internal static class Bootstrapper
                     "The updated desktop application failed its health check.");
             }
 
-            BootstrapperStateStore.Save(installRoot, new BootstrapperState
-            {
-                CurrentVersion = plan.TargetVersion,
-                RollbackVersion = plan.CurrentVersion,
-                BootstrapperVersion = installedBootstrapperVersion
-            });
             TryDelete(markerPath);
-            UpdateInstaller.CleanupOldVersions(Path.GetDirectoryName(targetRoot)!,
-                plan.TargetVersion, plan.CurrentVersion);
+            TryDelete(plan.PackagePath);
+            TryDelete(planPath);
             BootstrapperLog.Write(
                 $"Updated Prometheus from {plan.CurrentVersion} to {plan.TargetVersion}.");
             return 0;
@@ -117,81 +69,59 @@ internal static class Bootstrapper
             {
                 TryTerminate(process);
             }
-            BootstrapperStateStore.Save(installRoot, new BootstrapperState
-            {
-                CurrentVersion = plan.CurrentVersion,
-                RollbackVersion = plan.TargetVersion,
-                BootstrapperVersion = installedBootstrapperVersion
-            });
+            RollBackInstallation(installRoot, backupRoot);
             using var rollbackProcess = StartDesktop(installRoot, plan.CurrentVersion, null,
                 hooks);
             BootstrapperLog.Write(
                 $"Update to {plan.TargetVersion} was rolled back: {exception}");
             return 2;
         }
+        catch (Exception exception)
+        {
+            if (Directory.Exists(installRoot))
+            {
+                using var currentProcess = StartDesktop(installRoot, plan.CurrentVersion,
+                    null, hooks);
+            }
+            BootstrapperLog.Write(
+                $"Update to {plan.TargetVersion} failed before switching versions: {exception}");
+            return 1;
+        }
         finally
         {
             process?.Dispose();
-        }
-    }
-
-    private static void RecoverPendingState(string installRoot, BootstrapperState state)
-    {
-        if (string.IsNullOrWhiteSpace(state.PendingHealthToken))
-        {
-            return;
-        }
-
-        var markerPath = UpdatePaths.GetHealthMarkerPath(state.PendingHealthToken);
-        if (File.Exists(markerPath))
-        {
-            state.PendingHealthToken = null;
-            BootstrapperStateStore.Save(installRoot, state);
-            TryDelete(markerPath);
-            return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(state.RollbackVersion))
-        {
-            (state.CurrentVersion, state.RollbackVersion) =
-                (state.RollbackVersion, state.CurrentVersion);
-            state.PendingHealthToken = null;
-            BootstrapperStateStore.Save(installRoot, state);
-            BootstrapperLog.Write(
-                "Recovered an interrupted update by restoring the rollback version.");
-        }
-    }
-
-    private static async Task<string> ReplaceBootstrapperIfNeededAsync(UpdateApplyPlan plan,
-        ReleaseDescriptor descriptor, string installRoot, string currentBootstrapperVersion)
-    {
-        if (descriptor.Bootstrapper is null)
-        {
-            if (!string.IsNullOrWhiteSpace(plan.BootstrapperPath))
+            if (stagingRoot is not null)
             {
-                throw new InvalidDataException(
-                    "The update plan contains an unauthorized bootstrapper artifact.");
+                UpdateInstaller.TryDeleteDirectory(stagingRoot);
             }
-            return currentBootstrapperVersion;
         }
-        if (string.IsNullOrWhiteSpace(plan.BootstrapperPath))
-        {
-            throw new InvalidDataException(
-                "The update plan is missing the required bootstrapper artifact.");
-        }
-
-        await UpdateInstaller.VerifyArtifactAsync(plan.BootstrapperPath,
-            descriptor.Bootstrapper).ConfigureAwait(false);
-        var destination = Path.Combine(installRoot, UpdateProtocol.BootstrapperExecutableName);
-        var temporaryPath = destination + ".new";
-        File.Copy(plan.BootstrapperPath, temporaryPath, true);
-        File.Move(temporaryPath, destination, true);
-        return descriptor.BootstrapperVersion;
     }
 
-    private static Process StartDesktop(string installRoot, string version, string? healthToken)
+    private static void RecoverInterruptedSwap(string installRoot, string backupRoot)
     {
-        return StartDesktop(installRoot, version, healthToken, null);
+        if (!Directory.Exists(installRoot) && Directory.Exists(backupRoot))
+        {
+            Directory.Move(backupRoot, installRoot);
+            BootstrapperLog.Write(
+                "Recovered an interrupted update by restoring the rollback directory.");
+        }
+    }
+
+    private static void RollBackInstallation(string installRoot, string backupRoot)
+    {
+        var failedRoot = installRoot + ".failed";
+        UpdateInstaller.TryDeleteDirectory(failedRoot);
+        if (Directory.Exists(installRoot))
+        {
+            Directory.Move(installRoot, failedRoot);
+        }
+        if (!Directory.Exists(backupRoot))
+        {
+            throw new DirectoryNotFoundException(
+                "The rollback directory is missing after an update failure.");
+        }
+        Directory.Move(backupRoot, installRoot);
+        UpdateInstaller.TryDeleteDirectory(failedRoot);
     }
 
     private static Process StartDesktop(string installRoot, string version, string? healthToken,
@@ -202,9 +132,7 @@ internal static class Bootstrapper
             return hooks.StartDesktop(installRoot, version, healthToken);
         }
 
-        UpdateVersion.Parse(version);
-        var versionRoot = Path.Combine(installRoot, "versions", version);
-        var executable = Path.Combine(versionRoot, UpdateProtocol.DesktopExecutableName);
+        var executable = Path.Combine(installRoot, UpdateProtocol.DesktopExecutableName);
         if (!File.Exists(executable))
         {
             throw new FileNotFoundException(
@@ -213,7 +141,7 @@ internal static class Bootstrapper
 
         var startInfo = new ProcessStartInfo(executable)
         {
-            WorkingDirectory = versionRoot,
+            WorkingDirectory = installRoot,
             UseShellExecute = false
         };
         if (!string.IsNullOrWhiteSpace(healthToken))
@@ -262,53 +190,6 @@ internal static class Bootstrapper
         }
     }
 
-    private static void ValidatePlan(UpdateApplyPlan plan)
-    {
-        if (plan.SchemaVersion != UpdateProtocol.SchemaVersion
-            || !UpdateVersion.TryParse(plan.CurrentVersion, out _)
-            || !UpdateVersion.TryParse(plan.TargetVersion, out _)
-            || !Guid.TryParse(plan.HealthToken, out _)
-            || string.IsNullOrWhiteSpace(plan.InstallRoot)
-            || string.IsNullOrWhiteSpace(plan.PackagePath)
-            || string.IsNullOrWhiteSpace(plan.TargetManifestPath))
-        {
-            throw new InvalidDataException("The update plan is invalid.");
-        }
-    }
-
-    private static void ValidateDescriptor(UpdateApplyPlan plan, ReleaseDescriptor descriptor)
-    {
-        UpdateValidation.ValidateReleaseDescriptor(descriptor, plan.CurrentVersion);
-        if (!string.Equals(descriptor.Version, plan.TargetVersion, StringComparison.Ordinal))
-        {
-            throw new InvalidDataException(
-                "The release descriptor does not match the update plan.");
-        }
-    }
-
-    private static void ValidateSelectedPackage(UpdateApplyPlan plan,
-        ReleaseDescriptor descriptor, UpdateArtifact artifact)
-    {
-        if (plan.PackageKind == UpdatePackageKind.Full)
-        {
-            if (!string.Equals(artifact.Id, descriptor.FullPackage.Id,
-                    StringComparison.Ordinal))
-            {
-                throw new InvalidDataException("The update plan has an invalid full package.");
-            }
-            return;
-        }
-
-        var delta = descriptor.Deltas.FirstOrDefault(value =>
-            string.Equals(value.Id, artifact.Id, StringComparison.Ordinal));
-        if (delta is null
-            || !string.Equals(delta.BaseVersion, plan.CurrentVersion, StringComparison.Ordinal))
-        {
-            throw new InvalidDataException(
-                "The update plan does not contain a direct delta for the installed version.");
-        }
-    }
-
     private static void TryTerminate(Process process)
     {
         try
@@ -334,7 +215,7 @@ internal static class Bootstrapper
         }
         catch (Exception exception)
         {
-            BootstrapperLog.Write($"Unable to delete update marker {path}: {exception.Message}");
+            BootstrapperLog.Write($"Unable to delete update file {path}: {exception.Message}");
         }
     }
 }

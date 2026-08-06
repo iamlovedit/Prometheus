@@ -1,175 +1,75 @@
+using System.Diagnostics;
 using System.IO.Compression;
-using System.Text.Json;
 using Prometheus.Update;
 
 namespace Prometheus.Updater;
 
 internal static class UpdateInstaller
 {
-    public static Task VerifyArtifactAsync(string path, UpdateArtifact artifact)
+    public static async Task<string> PrepareStagingAsync(UpdateApplyPlan plan,
+        Func<string, string, bool>? validateDesktopVersion = null)
     {
-        return UpdateSecurity.VerifyFileAsync(path, artifact.Size, artifact.Sha256);
-    }
+        UpdateValidation.ValidateApplyPlan(plan);
+        await UpdateSecurity.VerifyFileAsync(plan.PackagePath, plan.PackageSize,
+            plan.PackageSha256).ConfigureAwait(false);
 
-    public static async Task<string> BuildTargetVersionAsync(UpdateApplyPlan plan,
-        ReleaseManifest targetManifest,
-        Func<SignedEnvelope, ReleaseManifest>? verifyManifest = null)
-    {
-        ValidateTargetManifest(plan, targetManifest);
-        var installRoot = Path.GetFullPath(plan.InstallRoot);
-        var stagingRoot = Path.Combine(installRoot, ".staging", plan.TargetVersion);
-        var versionsRoot = Path.Combine(installRoot, "versions");
-        var targetRoot = Path.Combine(versionsRoot, plan.TargetVersion);
+        var installRoot = NormalizeInstallRoot(plan.InstallRoot);
+        var stagingRoot = installRoot + ".update-staging";
         RecreateDirectory(stagingRoot);
-
-        if (plan.PackageKind == UpdatePackageKind.Delta)
+        try
         {
-            await BuildDeltaStagingAsync(plan, targetManifest, stagingRoot, verifyManifest)
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            await ExtractFullPackageAsync(plan.PackagePath, targetManifest, stagingRoot)
-                .ConfigureAwait(false);
-        }
-
-        await VerifyDirectoryAsync(stagingRoot, targetManifest).ConfigureAwait(false);
-        File.Copy(plan.TargetManifestPath,
-            Path.Combine(stagingRoot, UpdateProtocol.InstalledManifestFileName), true);
-
-        Directory.CreateDirectory(versionsRoot);
-        if (Directory.Exists(targetRoot))
-        {
-            Directory.Delete(targetRoot, true);
-        }
-        Directory.Move(stagingRoot, targetRoot);
-        return targetRoot;
-    }
-
-    public static void ValidateTargetManifest(UpdateApplyPlan plan, ReleaseManifest manifest)
-    {
-        UpdateValidation.ValidateManifest(manifest, plan.TargetVersion);
-    }
-
-    public static UpdateArtifact ResolveSelectedArtifact(ReleaseDescriptor descriptor, string id)
-    {
-        if (string.Equals(descriptor.FullPackage.Id, id, StringComparison.Ordinal))
-        {
-            return descriptor.FullPackage;
-        }
-
-        var delta = descriptor.Deltas.FirstOrDefault(value =>
-            string.Equals(value.Id, id, StringComparison.Ordinal));
-        if (delta is null)
-        {
-            throw new InvalidDataException(
-                "The selected package is not authorized by the release descriptor.");
-        }
-
-        return new UpdateArtifact
-        {
-            Id = delta.Id,
-            ObjectKey = delta.ObjectKey,
-            Size = delta.Size,
-            Sha256 = delta.Sha256
-        };
-    }
-
-    public static void CleanupOldVersions(string versionsRoot, string current, string rollback)
-    {
-        foreach (var directory in Directory.EnumerateDirectories(versionsRoot))
-        {
-            var name = Path.GetFileName(directory);
-            if (!string.Equals(name, current, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(name, rollback, StringComparison.OrdinalIgnoreCase))
+            using var archive = ZipFile.OpenRead(plan.PackagePath);
+            var entries = GetSafeEntries(archive);
+            foreach (var (relativePath, entry) in entries)
             {
-                try
-                {
-                    Directory.Delete(directory, true);
-                }
-                catch (Exception exception)
-                {
-                    BootstrapperLog.Write(
-                        $"Unable to remove old version {name}: {exception.Message}");
-                }
-            }
-        }
-    }
-
-    private static async Task BuildDeltaStagingAsync(UpdateApplyPlan plan,
-        ReleaseManifest targetManifest, string stagingRoot,
-        Func<SignedEnvelope, ReleaseManifest>? verifyManifest)
-    {
-        var baseRoot = Path.Combine(plan.InstallRoot, "versions", plan.CurrentVersion);
-        var baseManifestPath = Path.Combine(baseRoot, UpdateProtocol.InstalledManifestFileName);
-        var baseEnvelope = JsonSerializer.Deserialize(await File.ReadAllBytesAsync(baseManifestPath),
-            UpdateJsonContext.Default.SignedEnvelope)
-            ?? throw new InvalidDataException("The installed base manifest is empty.");
-        var baseManifest = verifyManifest is null
-            ? UpdateSecurity.VerifyAndDeserialize(baseEnvelope,
-                UpdateJsonContext.Default.ReleaseManifest)
-            : verifyManifest(baseEnvelope);
-        UpdateValidation.ValidateManifest(baseManifest, plan.CurrentVersion);
-
-        var baseFiles = baseManifest.Files.ToDictionary(
-            file => UpdatePaths.NormalizeRelativePath(file.Path), StringComparer.OrdinalIgnoreCase);
-        using var archive = ZipFile.OpenRead(plan.PackagePath);
-        var entries = GetSafeEntries(archive);
-        var usedEntries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var targetFile in targetManifest.Files)
-        {
-            var relative = UpdatePaths.NormalizeRelativePath(targetFile.Path);
-            var destination = UpdatePaths.ResolveUnderRoot(stagingRoot, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            if (entries.TryGetValue(relative, out var entry))
-            {
+                var destination = UpdatePaths.ResolveUnderRoot(stagingRoot, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                 await ExtractEntryAsync(entry, destination).ConfigureAwait(false);
-                usedEntries.Add(relative);
-                continue;
             }
 
-            if (!baseFiles.TryGetValue(relative, out var baseFile)
-                || !string.Equals(baseFile.Sha256, targetFile.Sha256,
-                    StringComparison.OrdinalIgnoreCase))
+            var desktopPath = Path.Combine(stagingRoot,
+                UpdateProtocol.DesktopExecutableName);
+            if (!File.Exists(desktopPath))
             {
-                throw new InvalidDataException($"Delta package is missing {relative}.");
+                throw new InvalidDataException(
+                    $"The update package does not contain {UpdateProtocol.DesktopExecutableName} at its root.");
             }
 
-            var source = UpdatePaths.ResolveUnderRoot(baseRoot, relative);
-            await UpdateSecurity.VerifyFileAsync(source, baseFile.Size, baseFile.Sha256)
-                .ConfigureAwait(false);
-            if (!NativeMethods.CreateHardLink(destination, source, IntPtr.Zero))
+            var isExpectedVersion = validateDesktopVersion is null
+                ? HasExpectedDesktopVersion(desktopPath, plan.TargetVersion)
+                : validateDesktopVersion(desktopPath, plan.TargetVersion);
+            if (!isExpectedVersion)
             {
-                File.Copy(source, destination, true);
+                throw new InvalidDataException(
+                    "The desktop executable version does not match the GitHub Release tag.");
             }
+            return stagingRoot;
         }
-
-        if (entries.Keys.Any(path => !usedEntries.Contains(path)))
+        catch
         {
-            throw new InvalidDataException(
-                "The delta package contains files not present in the target manifest.");
+            TryDeleteDirectory(stagingRoot);
+            throw;
         }
     }
 
-    private static async Task ExtractFullPackageAsync(string packagePath,
-        ReleaseManifest manifest, string stagingRoot)
+    public static string GetBackupRoot(string installRoot)
     {
-        var expected = manifest.Files.Select(file => UpdatePaths.NormalizeRelativePath(file.Path))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        using var archive = ZipFile.OpenRead(packagePath);
-        var entries = GetSafeEntries(archive);
-        if (!expected.SetEquals(entries.Keys))
-        {
-            throw new InvalidDataException(
-                "The full package contents do not match the target manifest.");
-        }
+        return NormalizeInstallRoot(installRoot) + ".rollback";
+    }
 
-        foreach (var (relative, entry) in entries)
+    public static void TryDeleteDirectory(string path)
+    {
+        try
         {
-            var destination = UpdatePaths.ResolveUnderRoot(stagingRoot, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-            await ExtractEntryAsync(entry, destination).ConfigureAwait(false);
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+        }
+        catch (Exception exception)
+        {
+            BootstrapperLog.Write(
+                $"Unable to remove update directory {path}: {exception.Message}");
         }
     }
 
@@ -183,8 +83,10 @@ internal static class UpdateInstaller
                 continue;
             }
 
-            var unixMode = (entry.ExternalAttributes >> 16) & 0xF000;
-            if (unixMode == 0xA000)
+            var unixFileType = (entry.ExternalAttributes >> 16) & 0xF000;
+            var windowsAttributes = (FileAttributes)(entry.ExternalAttributes & 0xFFFF);
+            if (unixFileType == 0xA000
+                || windowsAttributes.HasFlag(FileAttributes.ReparsePoint))
             {
                 throw new InvalidDataException(
                     "Symbolic links are not allowed in update packages.");
@@ -208,14 +110,24 @@ internal static class UpdateInstaller
         await source.CopyToAsync(target).ConfigureAwait(false);
     }
 
-    private static async Task VerifyDirectoryAsync(string root, ReleaseManifest manifest)
+    private static bool HasExpectedDesktopVersion(string desktopPath, string targetVersion)
     {
-        foreach (var file in manifest.Files)
+        var productVersion = FileVersionInfo.GetVersionInfo(desktopPath).ProductVersion?
+            .Split('+')[0];
+        return string.Equals(productVersion, targetVersion, StringComparison.Ordinal);
+    }
+
+    private static string NormalizeInstallRoot(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        var installRoot = Path.GetFullPath(value).TrimEnd(Path.DirectorySeparatorChar,
+            Path.AltDirectorySeparatorChar);
+        if (string.IsNullOrWhiteSpace(Path.GetFileName(installRoot))
+            || Directory.GetParent(installRoot) is null)
         {
-            var path = UpdatePaths.ResolveUnderRoot(root, file.Path);
-            await UpdateSecurity.VerifyFileAsync(path, file.Size, file.Sha256)
-                .ConfigureAwait(false);
+            throw new InvalidDataException("The Prometheus installation directory is invalid.");
         }
+        return installRoot;
     }
 
     private static void RecreateDirectory(string path)

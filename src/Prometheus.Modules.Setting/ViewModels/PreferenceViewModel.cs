@@ -280,9 +280,9 @@ namespace Prometheus.Modules.Setting.ViewModels
         {
             var state = _updateService.State;
             IsUpdateBusy = state is UpdateState.Checking
-                or UpdateState.Downloading or UpdateState.Installing;
+                or UpdateState.Downloading or UpdateState.Verifying or UpdateState.Installing;
             IsUpdateProgressVisible = state is UpdateState.Downloading
-                or UpdateState.ReadyToInstall or UpdateState.Installing;
+                or UpdateState.Verifying or UpdateState.ReadyToInstall or UpdateState.Installing;
             UpdateProgress = _updateService.Progress * 100;
             UpdateErrorMessage = _updateService.ErrorMessage;
             var key = state switch
@@ -291,6 +291,7 @@ namespace Prometheus.Modules.Setting.ViewModels
                 UpdateState.UpToDate => "Update.Status.UpToDate",
                 UpdateState.Available => "Update.Status.Available",
                 UpdateState.Downloading => "Update.Status.Downloading",
+                UpdateState.Verifying => "Update.Status.Verifying",
                 UpdateState.ReadyToInstall => "Update.Status.Ready",
                 UpdateState.Installing => "Update.Status.Installing",
                 UpdateState.Failed => "Update.Status.Failed",

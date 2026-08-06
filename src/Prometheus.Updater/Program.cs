@@ -9,9 +9,12 @@ internal static class Program
     {
         try
         {
-            return args.Length > 0 && string.Equals(args[0], "apply", StringComparison.OrdinalIgnoreCase)
-                ? Bootstrapper.ApplyAsync(GetOption(args, "--plan")).GetAwaiter().GetResult()
-                : Bootstrapper.LaunchCurrent();
+            if (args.Length == 0
+                || !string.Equals(args[0], "apply", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Prometheus.Updater.exe requires the apply command.");
+            }
+            return Bootstrapper.ApplyAsync(GetOption(args, "--plan")).GetAwaiter().GetResult();
         }
         catch (Exception exception)
         {
@@ -43,9 +46,4 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", EntryPoint = "MessageBoxW", StringMarshalling = StringMarshalling.Utf16)]
     internal static partial int MessageBox(IntPtr window, string text, string caption, uint type);
 
-    [LibraryImport("kernel32.dll", EntryPoint = "CreateHardLinkW",
-        StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool CreateHardLink(string fileName, string existingFileName,
-        IntPtr securityAttributes);
 }

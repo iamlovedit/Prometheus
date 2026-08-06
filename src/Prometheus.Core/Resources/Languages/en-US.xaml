@@ -56,12 +56,14 @@
     <sys:String x:Key="Update.Dialog.Version">Version</sys:String>
     <sys:String x:Key="Update.Dialog.Install">Download and install</sys:String>
     <sys:String x:Key="Update.Dialog.Later">Later</sys:String>
+    <sys:String x:Key="Update.Dialog.Cancel">Cancel download</sys:String>
     <sys:String x:Key="Update.Dialog.Exit">Exit</sys:String>
     <sys:String x:Key="Update.Status.Idle">Updates have not been checked</sys:String>
     <sys:String x:Key="Update.Status.Checking">Checking for updates</sys:String>
     <sys:String x:Key="Update.Status.UpToDate">Prometheus is up to date</sys:String>
     <sys:String x:Key="Update.Status.Available">A new version is available</sys:String>
     <sys:String x:Key="Update.Status.Downloading">Downloading update</sys:String>
+    <sys:String x:Key="Update.Status.Verifying">Verifying update</sys:String>
     <sys:String x:Key="Update.Status.Ready">Update is ready to install</sys:String>
     <sys:String x:Key="Update.Status.Installing">Starting the updater</sys:String>
     <sys:String x:Key="Update.Status.Failed">Update failed</sys:String>

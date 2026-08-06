@@ -45,9 +45,24 @@ jobs:
         run: |
           dotnet publish src/Prometheus/Prometheus.csproj -c Release -r win-x64 --self-contained true `
             -p:PublishSingleFile=false -p:PublishReadyToRun=false -p:DebugType=None -p:DebugSymbols=false `
-            -p:EnableAutomaticUpdatePublishing=false `
             -p:RELEASE_VERSION=$env:RELEASE_VERSION `
             -o artifacts/desktop
+
+      - name: Publish updater
+        shell: pwsh
+        run: |
+          dotnet publish src/Prometheus.Updater/Prometheus.Updater.csproj -c Release -r win-x64 `
+            -p:DebugType=None -p:DebugSymbols=false `
+            -p:RELEASE_VERSION=$env:RELEASE_VERSION `
+            -o artifacts/updater
+
+          $updaterPath = Join-Path $env:GITHUB_WORKSPACE `
+            'artifacts\updater\Prometheus.Updater.exe'
+          if (-not (Test-Path -LiteralPath $updaterPath)) {
+            throw "Prometheus.Updater.exe was not produced by the updater publish."
+          }
+          Copy-Item -LiteralPath $updaterPath `
+            -Destination (Join-Path $env:GITHUB_WORKSPACE 'artifacts\desktop')
 
       - name: Create release package
         shell: pwsh
@@ -64,9 +79,14 @@ jobs:
             $false)
 
           $hash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash
+          $checksumPath = "$packagePath.sha256"
+          $checksumContent = "$($hash.ToLowerInvariant())  $packageName"
+          Set-Content -LiteralPath $checksumPath -Value $checksumContent `
+            -Encoding ascii -NoNewline
           Write-Host "Created $packageName"
           Write-Host "SHA256: $hash"
           "ZIP_PATH=$packagePath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP_CHECKSUM_PATH=$checksumPath" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Build MSI installer
         shell: pwsh
@@ -136,11 +156,11 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $nativeErrorPreference
 
           if ($releaseExists) {
-            gh release upload $env:VERSION $env:ZIP_PATH $env:MSI_PATH `
+            gh release upload $env:VERSION $env:ZIP_PATH $env:ZIP_CHECKSUM_PATH $env:MSI_PATH `
               --repo $env:GITHUB_REPOSITORY --clobber
           }
           else {
-            gh release create $env:VERSION $env:ZIP_PATH $env:MSI_PATH `
+            gh release create $env:VERSION $env:ZIP_PATH $env:ZIP_CHECKSUM_PATH $env:MSI_PATH `
               --repo $env:GITHUB_REPOSITORY `
               --verify-tag `
               --title "Prometheus $env:RELEASE_VERSION" `

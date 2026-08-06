@@ -32,7 +32,8 @@
     <ProjectReference Include="..\Services\Prometheus.Services\Prometheus.Services.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <AssemblyMetadata Include="UpdateApiBaseUrl" Value="$(UpdateApiBaseUrl)" />
+    <AssemblyMetadata Include="GitHubRepositoryOwner" Value="$(GitHubRepositoryOwner)" />
+    <AssemblyMetadata Include="GitHubRepositoryName" Value="$(GitHubRepositoryName)" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
@@ -58,11 +59,4 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <Target Name="ValidateDesktopUpdateReleaseConfiguration" BeforeTargets="Publish"
-          Condition="'$(Configuration)' == 'Release' and '$(EnableAutomaticUpdatePublishing)' == 'true'">
-    <Error Condition="'$(UpdateApiBaseUrl)' == ''"
-           Text="UpdateApiBaseUrl is required for Release publishing." />
-    <Error Condition="'$(UsingDefaultUpdateSigningKey)' == 'true'"
-           Text="A production UpdateSigningPublicKeyBase64 is required for Release publishing." />
-  </Target>
 </Project>

@@ -56,12 +56,14 @@
     <sys:String x:Key="Update.Dialog.Version">版本</sys:String>
     <sys:String x:Key="Update.Dialog.Install">下载并安装</sys:String>
     <sys:String x:Key="Update.Dialog.Later">稍后</sys:String>
+    <sys:String x:Key="Update.Dialog.Cancel">取消下载</sys:String>
     <sys:String x:Key="Update.Dialog.Exit">退出</sys:String>
     <sys:String x:Key="Update.Status.Idle">尚未检查更新</sys:String>
     <sys:String x:Key="Update.Status.Checking">正在检查更新</sys:String>
     <sys:String x:Key="Update.Status.UpToDate">已是最新版本</sys:String>
     <sys:String x:Key="Update.Status.Available">新版本可以下载</sys:String>
     <sys:String x:Key="Update.Status.Downloading">正在下载更新</sys:String>
+    <sys:String x:Key="Update.Status.Verifying">正在校验更新</sys:String>
     <sys:String x:Key="Update.Status.Ready">更新已准备完成</sys:String>
     <sys:String x:Key="Update.Status.Installing">正在启动更新程序</sys:String>
     <sys:String x:Key="Update.Status.Failed">更新失败</sys:String>

@@ -6,58 +6,20 @@ namespace Prometheus.Update.Tests;
 public sealed class UpdateSecurityTests
 {
     [Fact]
-    public void VerifyAndDeserialize_WithValidEnvelope_ReturnsPayload()
+    public async Task VerifyFileAsync_WhenFileMatches_Completes()
     {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var manifest = new ReleaseManifest
+        var path = Path.GetTempFileName();
+        try
         {
-            Version = "1.2.3",
-            Files = [new ReleaseFileEntry { Path = "Prometheus.Desktop.exe", Size = 1,
-                Sha256 = new string('a', 64) }]
-        };
-        var envelope = UpdateSecurity.Sign(manifest, key,
-            UpdateJsonContext.Default.ReleaseManifest);
-        using var publicKey = ECDsa.Create();
-        publicKey.ImportSubjectPublicKeyInfo(key.ExportSubjectPublicKeyInfo(), out _);
+            await File.WriteAllBytesAsync(path, [1, 2, 3]);
+            var hash = Convert.ToHexStringLower(SHA256.HashData([1, 2, 3]));
 
-        var result = UpdateSecurity.VerifyAndDeserialize(envelope, publicKey,
-            UpdateJsonContext.Default.ReleaseManifest);
-
-        Assert.Equal("1.2.3", result.Version);
-    }
-
-    [Fact]
-    public void VerifyAndDeserialize_WhenPayloadIsChanged_Throws()
-    {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var envelope = UpdateSecurity.Sign(new ReleaseManifest { Version = "1.0.0" }, key,
-            UpdateJsonContext.Default.ReleaseManifest);
-        envelope.Payload = UpdateSecurity.Base64UrlEncode("tampered"u8);
-        using var publicKey = ECDsa.Create();
-        publicKey.ImportSubjectPublicKeyInfo(key.ExportSubjectPublicKeyInfo(), out _);
-
-        Assert.Throws<CryptographicException>(() => UpdateSecurity.VerifyAndDeserialize(
-            envelope, publicKey, UpdateJsonContext.Default.ReleaseManifest));
-    }
-
-    [Fact]
-    public void VerifyAndDeserialize_WithNonP256Key_Throws()
-    {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP384);
-        var envelope = UpdateSecurity.Sign(new ReleaseManifest { Version = "1.0.0" }, key,
-            UpdateJsonContext.Default.ReleaseManifest);
-
-        Assert.Throws<CryptographicException>(() => UpdateSecurity.VerifyAndDeserialize(
-            envelope, key, UpdateJsonContext.Default.ReleaseManifest));
-    }
-
-    [Theory]
-    [InlineData("abc=")]
-    [InlineData("abc+")]
-    [InlineData("a")]
-    public void Base64UrlDecode_WhenInputIsNotCanonical_Throws(string value)
-    {
-        Assert.Throws<FormatException>(() => UpdateSecurity.Base64UrlDecode(value));
+            await UpdateSecurity.VerifyFileAsync(path, 3, hash);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

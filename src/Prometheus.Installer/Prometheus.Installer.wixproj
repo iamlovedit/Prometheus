@@ -8,12 +8,17 @@
     <DefineConstants>$(DefineConstants);ProductVersion=$(Version)</DefineConstants>
     <PrometheusPublishDir Condition="'$(PrometheusPublishDir)' == ''">$(MSBuildProjectDirectory)\obj\$(Configuration)\prometheus-publish\</PrometheusPublishDir>
     <ResolvedPrometheusPublishDir>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(PrometheusPublishDir)'))))</ResolvedPrometheusPublishDir>
+    <PrometheusUpdaterPublishDir>$(MSBuildProjectDirectory)\obj\$(Configuration)\prometheus-updater-publish\</PrometheusUpdaterPublishDir>
+    <ResolvedPrometheusUpdaterPublishDir>$([MSBuild]::EnsureTrailingSlash($([System.IO.Path]::GetFullPath('$(PrometheusUpdaterPublishDir)'))))</ResolvedPrometheusUpdaterPublishDir>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="WixToolset.UI.wixext" />
     <PackageReference Include="WixToolset.Util.wixext" />
     <ProjectReference Include="..\Prometheus\Prometheus.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false" />
+    <ProjectReference Include="..\Prometheus.Updater\Prometheus.Updater.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false" />
   </ItemGroup>
@@ -30,13 +35,26 @@
     <MSBuild Projects="$(MSBuildProjectDirectory)\..\Prometheus\Prometheus.csproj"
              Targets="Publish"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=false;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;EnableAutomaticUpdatePublishing=false;PublishDir=$(ResolvedPrometheusPublishDir)" />
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;PublishSingleFile=false;PublishReadyToRun=false;DebugType=None;DebugSymbols=false;PublishDir=$(ResolvedPrometheusPublishDir)" />
+  </Target>
+
+  <Target Name="PublishPrometheusUpdaterForInstaller"
+          BeforeTargets="CoreCompile"
+          Condition="'$(UseExistingPrometheusPublish)' != 'true'">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\..\Prometheus.Updater\Prometheus.Updater.csproj"
+             Targets="Publish"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=win-x64;SelfContained=true;DebugType=None;DebugSymbols=false;PublishDir=$(ResolvedPrometheusUpdaterPublishDir)" />
+    <Copy SourceFiles="$(ResolvedPrometheusUpdaterPublishDir)Prometheus.Updater.exe"
+          DestinationFolder="$(ResolvedPrometheusPublishDir)" />
   </Target>
 
   <Target Name="ValidatePrometheusPublishDirectory"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="PublishPrometheusForInstaller">
+          DependsOnTargets="PublishPrometheusForInstaller;PublishPrometheusUpdaterForInstaller">
     <Error Condition="!Exists('$(ResolvedPrometheusPublishDir)Prometheus.Desktop.exe')"
            Text="Prometheus.Desktop.exe was not found in $(ResolvedPrometheusPublishDir). Publish the desktop application first or omit UseExistingPrometheusPublish." />
+    <Error Condition="!Exists('$(ResolvedPrometheusPublishDir)Prometheus.Updater.exe')"
+           Text="Prometheus.Updater.exe was not found in $(ResolvedPrometheusPublishDir). Publish the updater first or omit UseExistingPrometheusPublish." />
   </Target>
 </Project>

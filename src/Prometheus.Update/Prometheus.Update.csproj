@@ -5,14 +5,4 @@
     <IsTrimmable>true</IsTrimmable>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
-  <Target Name="GenerateUpdateTrust" BeforeTargets="BeforeCompile">
-    <WriteLinesToFile
-      File="$(IntermediateOutputPath)GeneratedUpdateTrust.g.cs"
-      Overwrite="true"
-      Lines="namespace Prometheus.Update%3B internal static class GeneratedUpdateTrust { internal const string PublicKeyBase64 = &quot;$(UpdateSigningPublicKeyBase64)&quot;%3B }" />
-    <ItemGroup>
-      <Compile Include="$(IntermediateOutputPath)GeneratedUpdateTrust.g.cs" />
-    </ItemGroup>
-  </Target>
 </Project>

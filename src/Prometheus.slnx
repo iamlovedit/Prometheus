@@ -16,7 +16,6 @@
     <Project Path="Tests/Prometheus.Update.Tests/Prometheus.Update.Tests.csproj" />
     <Project Path="Tests/Prometheus.Modules.ModuleName.Tests/Prometheus.Modules.ModuleName.Tests.csproj" />
   </Folder>
-  <Project Path="Prometheus.ReleaseTool/Prometheus.ReleaseTool.csproj" />
   <Project Path="Prometheus.Update/Prometheus.Update.csproj" />
   <Project Path="Prometheus.Core/Prometheus.Core.csproj" />
   <Project Path="Prometheus.Installer/Prometheus.Installer.wixproj" />

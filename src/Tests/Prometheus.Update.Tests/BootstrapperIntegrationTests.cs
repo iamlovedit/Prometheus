@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Text.Json;
 using Prometheus.Update;
 using Prometheus.Updater;
 
@@ -13,22 +12,22 @@ public sealed class BootstrapperIntegrationTests : IDisposable
         "prometheus-bootstrapper-tests", Guid.NewGuid().ToString("N"));
 
     [Fact]
-    public async Task ApplyAsync_WhenHealthSucceeds_CommitsTargetVersion()
+    public async Task ApplyAsync_WhenHealthSucceeds_CommitsTargetAndKeepsRollback()
     {
         var fixture = await CreateFixtureAsync();
         var launchedVersions = new List<string>();
 
         var result = await Bootstrapper.ApplyAsync(fixture.PlanPath,
-            CreateHooks(fixture, launchedVersions, true));
+            CreateHooks(launchedVersions, true));
 
-        var state = BootstrapperStateStore.Load(_root);
         Assert.Equal(0, result);
-        Assert.Equal("1.1.0", state.CurrentVersion);
-        Assert.Equal("1.0.0", state.RollbackVersion);
-        Assert.Null(state.PendingHealthToken);
-        Assert.Equal(new[] { "1.1.0" }, launchedVersions);
-        Assert.True(File.Exists(Path.Combine(_root, "versions", "1.1.0",
-            UpdateProtocol.DesktopExecutableName)));
+        Assert.Equal(fixture.NewDesktop, await File.ReadAllBytesAsync(Path.Combine(
+            fixture.InstallRoot, UpdateProtocol.DesktopExecutableName)));
+        Assert.Equal(fixture.OldDesktop, await File.ReadAllBytesAsync(Path.Combine(
+            fixture.InstallRoot + ".rollback", UpdateProtocol.DesktopExecutableName)));
+        Assert.Equal(new[] { "2.0.0" }, launchedVersions);
+        Assert.False(File.Exists(fixture.PackagePath));
+        Assert.False(File.Exists(fixture.PlanPath));
     }
 
     [Fact]
@@ -38,113 +37,79 @@ public sealed class BootstrapperIntegrationTests : IDisposable
         var launchedVersions = new List<string>();
 
         var result = await Bootstrapper.ApplyAsync(fixture.PlanPath,
-            CreateHooks(fixture, launchedVersions, false));
+            CreateHooks(launchedVersions, false));
 
-        var state = BootstrapperStateStore.Load(_root);
         Assert.Equal(2, result);
-        Assert.Equal("1.0.0", state.CurrentVersion);
-        Assert.Equal("1.1.0", state.RollbackVersion);
-        Assert.Null(state.PendingHealthToken);
-        Assert.Equal(new[] { "1.1.0", "1.0.0" }, launchedVersions);
+        Assert.Equal(fixture.OldDesktop, await File.ReadAllBytesAsync(Path.Combine(
+            fixture.InstallRoot, UpdateProtocol.DesktopExecutableName)));
+        Assert.Equal(new[] { "2.0.0", "1.0.0" }, launchedVersions);
+        Assert.False(Directory.Exists(fixture.InstallRoot + ".rollback"));
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenPackageValidationFails_RestartsCurrentVersion()
+    {
+        var fixture = await CreateFixtureAsync();
+        var launchedVersions = new List<string>();
+        var hooks = CreateHooks(launchedVersions, true);
+        hooks = new BootstrapperTestHooks
+        {
+            ValidateDesktopVersion = (_, _) => false,
+            StartDesktop = hooks.StartDesktop,
+            WaitForHealth = hooks.WaitForHealth
+        };
+
+        var result = await Bootstrapper.ApplyAsync(fixture.PlanPath, hooks);
+
+        Assert.Equal(1, result);
+        Assert.Equal(new[] { "1.0.0" }, launchedVersions);
+        Assert.Equal(fixture.OldDesktop, await File.ReadAllBytesAsync(Path.Combine(
+            fixture.InstallRoot, UpdateProtocol.DesktopExecutableName)));
     }
 
     private async Task<Fixture> CreateFixtureAsync()
     {
-        Directory.CreateDirectory(Path.Combine(_root, "versions", "1.0.0"));
-        BootstrapperStateStore.Save(_root, new BootstrapperState
-        {
-            CurrentVersion = "1.0.0",
-            BootstrapperVersion = "1.0.0"
-        });
-        var desktopBytes = new byte[] { 1, 2, 3 };
-        var packagePath = Path.Combine(_root, "full.zip");
+        var installRoot = Path.Combine(_root, "Prometheus");
+        Directory.CreateDirectory(installRoot);
+        var oldDesktop = new byte[] { 1, 2, 3 };
+        var newDesktop = new byte[] { 4, 5, 6, 7 };
+        await File.WriteAllBytesAsync(Path.Combine(installRoot,
+            UpdateProtocol.DesktopExecutableName), oldDesktop);
+        await File.WriteAllBytesAsync(Path.Combine(installRoot, "old-only.dll"), [8]);
+
+        Directory.CreateDirectory(_root);
+        var packagePath = Path.Combine(_root, "update.zip");
         using (var archive = ZipFile.Open(packagePath, ZipArchiveMode.Create))
         {
-            var entry = archive.CreateEntry(UpdateProtocol.DesktopExecutableName);
-            await using var stream = entry.Open();
-            await stream.WriteAsync(desktopBytes);
+            WriteEntry(archive, UpdateProtocol.DesktopExecutableName, newDesktop);
+            WriteEntry(archive, "new-only.dll", [9]);
         }
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var manifest = new ReleaseManifest
-        {
-            Version = "1.1.0",
-            Files =
-            [
-                new ReleaseFileEntry
-                {
-                    Path = UpdateProtocol.DesktopExecutableName,
-                    Size = desktopBytes.Length,
-                    Sha256 = Hash(desktopBytes)
-                }
-            ]
-        };
-        var manifestEnvelope = UpdateSecurity.Sign(manifest, key,
-            UpdateJsonContext.Default.ReleaseManifest);
-        var manifestBytes = JsonSerializer.SerializeToUtf8Bytes(manifestEnvelope,
-            UpdateJsonContext.Default.SignedEnvelope);
-        var manifestPath = Path.Combine(_root, "manifest.json");
-        await File.WriteAllBytesAsync(manifestPath, manifestBytes);
         var packageBytes = await File.ReadAllBytesAsync(packagePath);
-        var descriptor = new ReleaseDescriptor
-        {
-            Version = "1.1.0",
-            MinimumSupportedVersion = "1.0.0",
-            MinimumBootstrapperVersion = "1.0.0",
-            BootstrapperVersion = "1.0.0",
-            PublishedAt = DateTimeOffset.UtcNow,
-            TargetManifest = Artifact("manifest", "manifest.json", manifestBytes),
-            FullPackage = Artifact("full", "full.zip", packageBytes),
-            PortablePackage = new UpdateArtifact
-            {
-                Id = "portable",
-                ObjectKey = "releases/1.1.0/win-x64/portable.zip",
-                Size = 1,
-                Sha256 = new string('a', 64)
-            }
-        };
-        var releaseEnvelope = UpdateSecurity.Sign(descriptor, key,
-            UpdateJsonContext.Default.ReleaseDescriptor);
         var plan = new UpdateApplyPlan
         {
-            InstallRoot = _root,
+            InstallRoot = installRoot,
             CurrentVersion = "1.0.0",
-            TargetVersion = "1.1.0",
+            TargetVersion = "2.0.0",
             ParentProcessId = 0,
             HealthToken = Guid.NewGuid().ToString("D"),
-            PackageKind = UpdatePackageKind.Full,
-            SelectedArtifactId = "full",
             PackagePath = packagePath,
-            TargetManifestPath = manifestPath,
-            Release = releaseEnvelope
+            PackageSize = packageBytes.Length,
+            PackageSha256 = Convert.ToHexStringLower(SHA256.HashData(packageBytes))
         };
         var planPath = Path.Combine(_root, "plan.json");
         UpdatePaths.WriteJsonAtomic(planPath, plan, UpdateJsonContext.Default.UpdateApplyPlan);
-        return new Fixture(planPath, key.ExportSubjectPublicKeyInfo());
+        return new Fixture(installRoot, planPath, packagePath, oldDesktop, newDesktop);
     }
 
-    private static BootstrapperTestHooks CreateHooks(Fixture fixture,
-        List<string> launchedVersions, bool healthResult)
+    private static BootstrapperTestHooks CreateHooks(List<string> launchedVersions,
+        bool healthResult)
     {
-        ReleaseDescriptor VerifyRelease(SignedEnvelope envelope)
-        {
-            using var key = ECDsa.Create();
-            key.ImportSubjectPublicKeyInfo(fixture.PublicKey, out _);
-            return UpdateSecurity.VerifyAndDeserialize(envelope, key,
-                UpdateJsonContext.Default.ReleaseDescriptor);
-        }
-        ReleaseManifest VerifyManifest(SignedEnvelope envelope)
-        {
-            using var key = ECDsa.Create();
-            key.ImportSubjectPublicKeyInfo(fixture.PublicKey, out _);
-            return UpdateSecurity.VerifyAndDeserialize(envelope, key,
-                UpdateJsonContext.Default.ReleaseManifest);
-        }
         Process StartDesktop(string _, string version, string? __)
         {
             launchedVersions.Add(version);
             var command = Environment.GetEnvironmentVariable("ComSpec")
                 ?? throw new InvalidOperationException("ComSpec is not available.");
-            return Process.Start(new ProcessStartInfo(command, "/c exit 0")
+            return Process.Start(new ProcessStartInfo(command, "/c ping 127.0.0.1 -n 3 > nul")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true
@@ -152,27 +117,17 @@ public sealed class BootstrapperIntegrationTests : IDisposable
         }
         return new BootstrapperTestHooks
         {
-            VerifyRelease = VerifyRelease,
-            VerifyManifest = VerifyManifest,
+            ValidateDesktopVersion = (_, _) => true,
             StartDesktop = StartDesktop,
             WaitForHealth = (_, _) => Task.FromResult(healthResult)
         };
     }
 
-    private static UpdateArtifact Artifact(string id, string name, byte[] bytes)
+    private static void WriteEntry(ZipArchive archive, string path, byte[] bytes)
     {
-        return new UpdateArtifact
-        {
-            Id = id,
-            ObjectKey = $"releases/1.1.0/win-x64/{name}",
-            Size = bytes.Length,
-            Sha256 = Hash(bytes)
-        };
-    }
-
-    private static string Hash(byte[] bytes)
-    {
-        return Convert.ToHexStringLower(SHA256.HashData(bytes));
+        var entry = archive.CreateEntry(path);
+        using var stream = entry.Open();
+        stream.Write(bytes);
     }
 
     public void Dispose()
@@ -183,5 +138,6 @@ public sealed class BootstrapperIntegrationTests : IDisposable
         }
     }
 
-    private sealed record Fixture(string PlanPath, byte[] PublicKey);
+    private sealed record Fixture(string InstallRoot, string PlanPath, string PackagePath,
+        byte[] OldDesktop, byte[] NewDesktop);
 }

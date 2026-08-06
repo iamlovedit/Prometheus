@@ -5,7 +5,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>Prometheus</AssemblyName>
+    <AssemblyName>Prometheus.Updater</AssemblyName>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishAot>true</PublishAot>
@@ -17,11 +17,5 @@
   <ItemGroup>
     <ProjectReference Include="..\Prometheus.Update\Prometheus.Update.csproj" />
   </ItemGroup>
-
-  <Target Name="ValidateUpdateReleaseConfiguration" BeforeTargets="Publish"
-          Condition="'$(Configuration)' == 'Release'">
-    <Error Condition="'$(UsingDefaultUpdateSigningKey)' == 'true'"
-           Text="A production UpdateSigningPublicKeyBase64 is required for Release publishing." />
-  </Target>
 
 </Project>

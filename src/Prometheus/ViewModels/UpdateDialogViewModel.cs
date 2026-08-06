@@ -16,6 +16,7 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
     private readonly IUpdateService _updateService;
     private readonly IEventAggregator _eventAggregator;
     private readonly IResourceService _resourceService;
+    private CancellationTokenSource? _downloadCancellation;
     private bool _allowClose;
 
     public UpdateDialogViewModel(IUpdateService updateService, IEventAggregator eventAggregator,
@@ -26,6 +27,7 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
         _resourceService = resourceService;
         InstallCommand = new DelegateCommand(Install, () => !IsBusy);
         LaterCommand = new DelegateCommand(CloseLater, () => !IsMandatory && !IsBusy);
+        CancelCommand = new DelegateCommand(CancelDownload, () => CanCancelDownload);
         ExitCommand = new DelegateCommand(ExitApplication, () => IsMandatory && !IsBusy);
         _updateService.StateChanged += HandleStateChanged;
         RefreshState();
@@ -34,6 +36,7 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
     public string Title => Text("Update.Dialog.Title");
     public DelegateCommand InstallCommand { get; }
     public DelegateCommand LaterCommand { get; }
+    public DelegateCommand CancelCommand { get; }
     public DelegateCommand ExitCommand { get; }
 
     private string _version = string.Empty;
@@ -104,6 +107,19 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
         }
     }
 
+    private bool _canCancelDownload;
+    public bool CanCancelDownload
+    {
+        get => _canCancelDownload;
+        private set
+        {
+            if (SetProperty(ref _canCancelDownload, value))
+            {
+                RaiseCommandStates();
+            }
+        }
+    }
+
     public event Action<IDialogResult>? RequestClose;
 
     public bool CanCloseDialog() => _allowClose || (!IsMandatory && !IsBusy);
@@ -124,7 +140,16 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
         {
             if (_updateService.State is UpdateState.Available or UpdateState.Failed)
             {
-                await _updateService.DownloadAsync();
+                using var cancellation = new CancellationTokenSource();
+                _downloadCancellation = cancellation;
+                try
+                {
+                    await _updateService.DownloadAsync(cancellation.Token);
+                }
+                finally
+                {
+                    _downloadCancellation = null;
+                }
             }
             if (_updateService.State == UpdateState.ReadyToInstall)
             {
@@ -134,10 +159,19 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
                 _eventAggregator.GetEvent<ApplicationExitRequestedEvent>().Publish();
             }
         }
+        catch (OperationCanceledException)
+        {
+            RefreshState();
+        }
         catch
         {
             RefreshState();
         }
+    }
+
+    private void CancelDownload()
+    {
+        _downloadCancellation?.Cancel();
     }
 
     private void CloseLater()
@@ -169,17 +203,21 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
     private void RefreshState()
     {
         var update = _updateService.AvailableUpdate;
-        Version = update?.Descriptor.Version ?? string.Empty;
+        Version = update?.Version ?? string.Empty;
         ReleaseNotes = update?.ReleaseNotes ?? string.Empty;
         IsMandatory = update?.IsMandatory == true;
         Progress = _updateService.Progress * 100;
         ErrorMessage = _updateService.ErrorMessage;
-        IsBusy = _updateService.State is UpdateState.Downloading or UpdateState.Installing;
+        IsBusy = _updateService.State is UpdateState.Downloading
+            or UpdateState.Verifying or UpdateState.Installing;
+        CanCancelDownload = _updateService.State is UpdateState.Downloading
+            or UpdateState.Verifying;
         IsProgressVisible = _updateService.State is UpdateState.Downloading
-            or UpdateState.ReadyToInstall or UpdateState.Installing;
+            or UpdateState.Verifying or UpdateState.ReadyToInstall or UpdateState.Installing;
         StatusText = Text(_updateService.State switch
         {
             UpdateState.Downloading => "Update.Status.Downloading",
+            UpdateState.Verifying => "Update.Status.Verifying",
             UpdateState.ReadyToInstall => "Update.Status.Ready",
             UpdateState.Installing => "Update.Status.Installing",
             UpdateState.Failed => "Update.Status.Failed",
@@ -191,6 +229,7 @@ public sealed class UpdateDialogViewModel : BindableBase, IDialogAware
     {
         InstallCommand.RaiseCanExecuteChanged();
         LaterCommand.RaiseCanExecuteChanged();
+        CancelCommand.RaiseCanExecuteChanged();
         ExitCommand.RaiseCanExecuteChanged();
     }
 

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Prometheus.Services.Interfaces.Updates;
 using Prometheus.Update;
@@ -16,18 +17,14 @@ public sealed class UpdateService : IUpdateService, IDisposable
     private readonly UpdateServiceOptions _options;
     private readonly HttpClient _httpClient;
     private readonly SemaphoreSlim _operationGate = new(1, 1);
-    private readonly string _installationId;
     private readonly string _localDataRoot;
-    private readonly Func<SignedEnvelope, ReleaseDescriptor> _verifyRelease;
-    private readonly Func<SignedEnvelope, ReleaseManifest> _verifyManifest;
+    private readonly Action<ProcessStartInfo> _startProcess;
 
-    private UpdateApiResponse? _apiResponse;
-    private ReleaseDescriptor? _descriptor;
+    private GitHubRelease? _cachedRelease;
+    private EntityTagHeaderValue? _releaseEtag;
+    private GitHubReleaseSelection? _selection;
     private string? _packagePath;
-    private string? _manifestPath;
-    private string? _bootstrapperPath;
-    private string? _selectedArtifactId;
-    private UpdatePackageKind _packageKind;
+    private string? _packageSha256;
 
     public UpdateService(UpdateServiceOptions options)
         : this(options, new HttpClient
@@ -38,8 +35,7 @@ public sealed class UpdateService : IUpdateService, IDisposable
     }
 
     internal UpdateService(UpdateServiceOptions options, HttpClient httpClient,
-        Func<SignedEnvelope, ReleaseDescriptor>? verifyRelease = null,
-        Func<SignedEnvelope, ReleaseManifest>? verifyManifest = null)
+        Action<ProcessStartInfo>? startProcess = null)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
@@ -47,13 +43,12 @@ public sealed class UpdateService : IUpdateService, IDisposable
         _localDataRoot = string.IsNullOrWhiteSpace(options.LocalDataRoot)
             ? UpdatePaths.GetLocalDataRoot()
             : Path.GetFullPath(options.LocalDataRoot);
-        _verifyRelease = verifyRelease ?? (envelope => UpdateSecurity.VerifyAndDeserialize(
-            envelope, UpdateJsonContext.Default.ReleaseDescriptor));
-        _verifyManifest = verifyManifest ?? (envelope => UpdateSecurity.VerifyAndDeserialize(
-            envelope, UpdateJsonContext.Default.ReleaseManifest));
+        _startProcess = startProcess ?? (startInfo =>
+        {
+            _ = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("Unable to start the Prometheus updater.");
+        });
         UpdateVersion.Parse(options.CurrentVersion);
-        UpdateVersion.Parse(options.BootstrapperVersion);
-        _installationId = LoadOrCreateInstallationId();
     }
 
     public UpdateState State { get; private set; } = UpdateState.Idle;
@@ -74,45 +69,42 @@ public sealed class UpdateService : IUpdateService, IDisposable
         try
         {
             SetState(UpdateState.Checking, 0, null);
-            if (string.IsNullOrWhiteSpace(_options.ApiBaseUrl))
+            if (string.IsNullOrWhiteSpace(_options.GitHubOwner)
+                || string.IsNullOrWhiteSpace(_options.GitHubRepository))
             {
                 if (manual)
                 {
                     throw new InvalidOperationException(
-                        "The update API is not configured for this build.");
+                        "The GitHub update repository is not configured for this build.");
                 }
                 SetState(UpdateState.Idle, 0, null);
                 return null;
             }
 
-            _apiResponse = await RequestUpdateAsync(cancellationToken).ConfigureAwait(false);
-            if (_apiResponse is null)
+            var release = await RequestLatestReleaseAsync(cancellationToken)
+                .ConfigureAwait(false);
+            var selection = UpdateValidation.ValidateGitHubRelease(release,
+                _options.GitHubOwner, _options.GitHubRepository);
+            if (UpdateVersion.Parse(selection.Version)
+                .CompareTo(UpdateVersion.Parse(_options.CurrentVersion)) <= 0)
             {
+                _selection = null;
+                _packagePath = null;
+                _packageSha256 = null;
                 AvailableUpdate = null;
                 SetState(UpdateState.UpToDate, 0, null);
                 return null;
             }
 
-            _descriptor = _verifyRelease(_apiResponse.Release);
-            ValidateDescriptor(_descriptor);
-            if (UpdateVersion.Parse(_descriptor.MinimumBootstrapperVersion)
-                .CompareTo(UpdateVersion.Parse(_options.BootstrapperVersion)) > 0)
-            {
-                throw new InvalidOperationException(
-                    "This update requires a newer Prometheus bootstrapper. Download the latest portable package.");
-            }
-
-            var selected = ResolveSelectedArtifact(_descriptor, _apiResponse.SelectedArtifactId,
-                _options.CurrentVersion);
-            var mandatory = UpdateVersion.Parse(_options.CurrentVersion)
-                .CompareTo(UpdateVersion.Parse(_descriptor.MinimumSupportedVersion)) < 0;
+            _selection = selection;
+            _packagePath = null;
+            _packageSha256 = null;
             AvailableUpdate = new AvailableUpdate
             {
-                Descriptor = _descriptor,
-                ApiResponse = _apiResponse,
-                IsMandatory = mandatory,
-                ReleaseNotes = ResolveReleaseNotes(_descriptor),
-                DownloadSize = selected.Size
+                Version = selection.Version,
+                IsMandatory = false,
+                ReleaseNotes = selection.Release.Body ?? string.Empty,
+                DownloadSize = selection.Package.Size
             };
             SetState(UpdateState.Available, 0, null);
             return AvailableUpdate;
@@ -123,16 +115,17 @@ public sealed class UpdateService : IUpdateService, IDisposable
                 0, null);
             throw;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception)
         {
-            Log.Warning(exception, "Unable to check for Prometheus updates");
+            Log.Warning(exception, "Unable to check GitHub for Prometheus updates");
             if (manual)
             {
-                SetState(UpdateState.Failed, 0, exception.Message);
+                SetState(UpdateState.Failed, 0, DescribeFailure(exception));
             }
             else
             {
-                SetState(UpdateState.Idle, 0, null);
+                SetState(AvailableUpdate is null ? UpdateState.Idle : UpdateState.Available,
+                    0, null);
             }
             return null;
         }
@@ -147,63 +140,56 @@ public sealed class UpdateService : IUpdateService, IDisposable
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (_descriptor is null || _apiResponse is null || AvailableUpdate is null)
+            if (_selection is null || AvailableUpdate is null)
             {
                 throw new InvalidOperationException("No update is available to download.");
             }
 
             SetState(UpdateState.Downloading, 0, null);
-            var updateRoot = Path.Combine(_localDataRoot, "Updates",
-                _descriptor.Version);
+            var updateRoot = Path.Combine(_localDataRoot, "Updates", _selection.Version);
             Directory.CreateDirectory(updateRoot);
+            var checksumContent = await DownloadChecksumAsync(_selection.Checksum,
+                cancellationToken).ConfigureAwait(false);
+            _packageSha256 = UpdateValidation.ParseSha256File(checksumContent,
+                _selection.Package.Name);
 
-            _manifestPath = Path.Combine(updateRoot, "manifest.json");
-            await DownloadFileWithRefreshAsync(DownloadObject.Manifest, _manifestPath,
-                _descriptor.TargetManifest, cancellationToken).ConfigureAwait(false);
-            var manifestEnvelope = JsonSerializer.Deserialize(
-                await File.ReadAllBytesAsync(_manifestPath, cancellationToken).ConfigureAwait(false),
-                UpdateJsonContext.Default.SignedEnvelope)
-                ?? throw new InvalidDataException("The downloaded manifest is empty.");
-            var targetManifest = _verifyManifest(manifestEnvelope);
-            UpdateValidation.ValidateManifest(targetManifest, _descriptor.Version);
-
-            var selectedArtifact = ResolveSelectedArtifact(_descriptor,
-                _apiResponse.SelectedArtifactId, _options.CurrentVersion);
-            _selectedArtifactId = selectedArtifact.Id;
-            _packageKind = selectedArtifact.Id.StartsWith("delta:",
-                StringComparison.OrdinalIgnoreCase)
-                ? UpdatePackageKind.Delta
-                : UpdatePackageKind.Full;
-            var packageUrlKind = DownloadObject.SelectedPackage;
-
-            if (_packageKind == UpdatePackageKind.Delta
-                && !await IsInstalledBaseValidAsync(cancellationToken).ConfigureAwait(false))
+            _packagePath = Path.Combine(updateRoot, _selection.Package.Name);
+            var metadataPath = Path.Combine(updateRoot, "download.json");
+            PreparePartialDownload(metadataPath, _packagePath, _selection);
+            if (File.Exists(_packagePath))
             {
-                selectedArtifact = _descriptor.FullPackage;
-                _selectedArtifactId = selectedArtifact.Id;
-                _packageKind = UpdatePackageKind.Full;
-                packageUrlKind = DownloadObject.FullPackage;
-            }
-
-            _packagePath = Path.Combine(updateRoot,
-                _packageKind == UpdatePackageKind.Delta ? "delta.zip" : "full.zip");
-            await DownloadFileWithRefreshAsync(packageUrlKind, _packagePath, selectedArtifact,
-                cancellationToken, reportProgress: true).ConfigureAwait(false);
-
-            _bootstrapperPath = null;
-            if (_descriptor.Bootstrapper is not null)
-            {
-                if (_apiResponse.BootstrapperUrl is null)
+                try
                 {
-                    throw new InvalidDataException(
-                        "The update API did not provide the required bootstrapper download URL.");
+                    SetState(UpdateState.Verifying, 1, null);
+                    await UpdateSecurity.VerifyFileAsync(_packagePath,
+                        _selection.Package.Size, _packageSha256, cancellationToken)
+                        .ConfigureAwait(false);
+                    File.Delete(metadataPath);
+                    SetState(UpdateState.ReadyToInstall, 1, null);
+                    return;
                 }
-                _bootstrapperPath = Path.Combine(updateRoot, "Prometheus.exe");
-                await DownloadFileWithRefreshAsync(DownloadObject.Bootstrapper,
-                    _bootstrapperPath, _descriptor.Bootstrapper, cancellationToken)
-                    .ConfigureAwait(false);
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    Log.Warning(exception, "Discarding an invalid cached GitHub update package");
+                    File.Delete(_packagePath);
+                }
             }
 
+            SetState(UpdateState.Downloading, 0, null);
+            await DownloadPackageAsync(_selection.Package.BrowserDownloadUrl, _packagePath,
+                _selection.Package.Size, cancellationToken).ConfigureAwait(false);
+            SetState(UpdateState.Verifying, 1, null);
+            try
+            {
+                await UpdateSecurity.VerifyFileAsync(_packagePath, _selection.Package.Size,
+                    _packageSha256, cancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                File.Delete(_packagePath);
+                throw;
+            }
+            File.Delete(metadataPath);
             SetState(UpdateState.ReadyToInstall, 1, null);
         }
         catch (OperationCanceledException)
@@ -213,8 +199,8 @@ public sealed class UpdateService : IUpdateService, IDisposable
         }
         catch (Exception exception)
         {
-            Log.Warning(exception, "Unable to download Prometheus update");
-            SetState(UpdateState.Failed, Progress, exception.Message);
+            Log.Warning(exception, "Unable to download Prometheus update from GitHub");
+            SetState(UpdateState.Failed, Progress, DescribeFailure(exception));
             throw;
         }
         finally
@@ -228,60 +214,59 @@ public sealed class UpdateService : IUpdateService, IDisposable
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (State != UpdateState.ReadyToInstall || _descriptor is null
-                || _apiResponse is null || _packagePath is null || _manifestPath is null
-                || _selectedArtifactId is null)
+            if (State != UpdateState.ReadyToInstall || _selection is null
+                || _packagePath is null || _packageSha256 is null)
             {
                 throw new InvalidOperationException("The update is not ready to install.");
             }
 
-            var rootBootstrapper = Path.Combine(_options.InstallRoot,
-                UpdateProtocol.BootstrapperExecutableName);
-            if (!File.Exists(rootBootstrapper))
+            cancellationToken.ThrowIfCancellationRequested();
+            var updaterPath = string.IsNullOrWhiteSpace(_options.UpdaterPath)
+                ? Path.Combine(_options.InstallRoot, UpdateProtocol.UpdaterExecutableName)
+                : Path.GetFullPath(_options.UpdaterPath);
+            if (!File.Exists(updaterPath))
             {
                 throw new FileNotFoundException(
-                    "The Prometheus bootstrapper was not found. Install the portable bootstrap package first.",
-                    rootBootstrapper);
+                    "Prometheus.Updater.exe was not found in the application directory.",
+                    updaterPath);
             }
 
-            var updatesRoot = Path.Combine(_localDataRoot, "Updates");
-            Directory.CreateDirectory(updatesRoot);
-            var hostPath = Path.Combine(updatesRoot,
-                $"Prometheus.UpdateHost-{Guid.NewGuid():N}.exe");
-            File.Copy(rootBootstrapper, hostPath, true);
+            var hostRoot = Path.Combine(_localDataRoot, "Updates", "host");
+            Directory.CreateDirectory(hostRoot);
+            CleanupStaleHosts(hostRoot);
+            var hostPath = Path.Combine(hostRoot,
+                $"Prometheus.Updater-{Guid.NewGuid():N}.exe");
+            File.Copy(updaterPath, hostPath, true);
             var plan = new UpdateApplyPlan
             {
-                InstallRoot = _options.InstallRoot,
+                InstallRoot = Path.GetFullPath(_options.InstallRoot),
                 CurrentVersion = _options.CurrentVersion,
-                TargetVersion = _descriptor.Version,
+                TargetVersion = _selection.Version,
                 ParentProcessId = Environment.ProcessId,
                 HealthToken = Guid.NewGuid().ToString("D"),
-                PackageKind = _packageKind,
-                SelectedArtifactId = _selectedArtifactId,
                 PackagePath = _packagePath,
-                TargetManifestPath = _manifestPath,
-                BootstrapperPath = _bootstrapperPath,
-                Release = _apiResponse.Release
+                PackageSize = _selection.Package.Size,
+                PackageSha256 = _packageSha256
             };
-            var planPath = Path.Combine(updatesRoot, $"apply-{Guid.NewGuid():N}.json");
+            UpdateValidation.ValidateApplyPlan(plan);
+            var planPath = Path.Combine(hostRoot, $"apply-{Guid.NewGuid():N}.json");
             UpdatePaths.WriteJsonAtomic(planPath, plan, UpdateJsonContext.Default.UpdateApplyPlan);
 
             var startInfo = new ProcessStartInfo(hostPath)
             {
                 UseShellExecute = false,
-                WorkingDirectory = updatesRoot
+                WorkingDirectory = hostRoot
             };
             startInfo.ArgumentList.Add("apply");
             startInfo.ArgumentList.Add("--plan");
             startInfo.ArgumentList.Add(planPath);
-            _ = Process.Start(startInfo)
-                ?? throw new InvalidOperationException("Unable to start the Prometheus updater.");
+            _startProcess(startInfo);
             SetState(UpdateState.Installing, 1, null);
         }
         catch (Exception exception)
         {
             Log.Warning(exception, "Unable to start Prometheus update installation");
-            SetState(UpdateState.Failed, Progress, exception.Message);
+            SetState(UpdateState.Failed, Progress, DescribeFailure(exception));
             throw;
         }
         finally
@@ -296,90 +281,156 @@ public sealed class UpdateService : IUpdateService, IDisposable
         _httpClient.Dispose();
     }
 
-    private async Task<UpdateApiResponse?> RequestUpdateAsync(
+    private async Task<GitHubRelease> RequestLatestReleaseAsync(
         CancellationToken cancellationToken)
     {
-        var baseUri = new Uri(_options.ApiBaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
-        var requestUri = new Uri(baseUri,
-            "api/v1/updates/windows"
-            + $"?currentVersion={Uri.EscapeDataString(_options.CurrentVersion)}"
-            + $"&channel={UpdateProtocol.StableChannel}"
-            + $"&rid={UpdateProtocol.WindowsX64Rid}"
-            + $"&installationId={Uri.EscapeDataString(_installationId)}");
-        using var response = await _httpClient.GetAsync(requestUri,
-            HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        if (response.StatusCode == HttpStatusCode.NoContent)
+        var baseUri = new Uri(_options.GitHubApiBaseUrl.TrimEnd('/') + "/",
+            UriKind.Absolute);
+        if (!string.Equals(baseUri.Scheme, Uri.UriSchemeHttps,
+                StringComparison.OrdinalIgnoreCase))
         {
-            return null;
+            throw new InvalidOperationException("The GitHub API URL must use HTTPS.");
+        }
+
+        var requestUri = new Uri(baseUri,
+            $"repos/{Uri.EscapeDataString(_options.GitHubOwner)}/"
+            + $"{Uri.EscapeDataString(_options.GitHubRepository)}/releases/latest");
+        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        request.Headers.Accept.ParseAdd(UpdateProtocol.GitHubApiAccept);
+        request.Headers.TryAddWithoutValidation("X-GitHub-Api-Version",
+            UpdateProtocol.GitHubApiVersion);
+        if (_releaseEtag is not null)
+        {
+            request.Headers.IfNoneMatch.Add(_releaseEtag);
+        }
+
+        using var response = await _httpClient.SendAsync(request,
+            HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotModified)
+        {
+            return _cachedRelease
+                ?? throw new InvalidDataException(
+                    "GitHub returned 304 without a cached Release response.");
+        }
+        if (response.StatusCode is HttpStatusCode.Forbidden
+            or HttpStatusCode.TooManyRequests)
+        {
+            throw new HttpRequestException(
+                "GitHub API rate limit was reached. Please try again later.", null,
+                response.StatusCode);
         }
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken)
             .ConfigureAwait(false);
-        return await JsonSerializer.DeserializeAsync(stream,
-            UpdateJsonContext.Default.UpdateApiResponse, cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidDataException("The update API returned an empty response.");
+        var release = await JsonSerializer.DeserializeAsync(stream,
+            UpdateJsonContext.Default.GitHubRelease, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidDataException("GitHub returned an empty Release response.");
+        _cachedRelease = release;
+        _releaseEtag = response.Headers.ETag;
+        return release;
     }
 
-    private async Task DownloadFileWithRefreshAsync(DownloadObject downloadObject,
-        string destination, UpdateArtifact artifact, CancellationToken cancellationToken,
-        bool reportProgress = false)
+    private async Task<string> DownloadChecksumAsync(GitHubReleaseAsset asset,
+        CancellationToken cancellationToken)
     {
-        if (File.Exists(destination))
+        using var response = await _httpClient.GetAsync(asset.BrowserDownloadUrl,
+            HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength is long contentLength
+            && contentLength != asset.Size)
         {
-            try
-            {
-                await UpdateSecurity.VerifyFileAsync(destination, artifact.Size, artifact.Sha256,
-                    cancellationToken).ConfigureAwait(false);
-                return;
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                Log.Warning(exception, "Discarding an invalid cached update artifact");
-                File.Delete(destination);
-            }
+            throw new InvalidDataException("The GitHub checksum asset size does not match.");
         }
-
-        for (var attempt = 0; attempt < 2; attempt++)
+        var bytes = new byte[checked((int)asset.Size)];
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var total = 0;
+        while (total < bytes.Length)
         {
-            var url = ResolveUrl(downloadObject);
-            try
+            var read = await stream.ReadAsync(bytes.AsMemory(total), cancellationToken)
+                .ConfigureAwait(false);
+            if (read == 0)
             {
-                await DownloadFileAsync(url, destination, artifact.Size, cancellationToken,
-                    reportProgress).ConfigureAwait(false);
-                await UpdateSecurity.VerifyFileAsync(destination, artifact.Size, artifact.Sha256,
-                    cancellationToken).ConfigureAwait(false);
-                return;
+                throw new EndOfStreamException(
+                    "The GitHub checksum download ended before the advertised asset size.");
             }
-            catch (ExpiredDownloadException) when (attempt == 0)
-            {
-                var previousResponse = _apiResponse
-                    ?? throw new InvalidOperationException(
-                        "No update API response is available.");
-                var refreshed = await RequestUpdateAsync(cancellationToken).ConfigureAwait(false)
-                    ?? throw new InvalidOperationException("The update is no longer available.");
-                var refreshedDescriptor = _verifyRelease(refreshed.Release);
-                ValidateDescriptor(refreshedDescriptor);
-                var refreshedArtifact = ResolveArtifactForDownload(downloadObject,
-                    refreshedDescriptor, refreshed.SelectedArtifactId);
-                if (_descriptor is null
-                    || !string.Equals(refreshed.Release.Payload,
-                        previousResponse.Release.Payload, StringComparison.Ordinal)
-                    || !string.Equals(refreshed.SelectedArtifactId,
-                        previousResponse.SelectedArtifactId, StringComparison.Ordinal)
-                    || !UpdateValidation.ArtifactsMatch(artifact, refreshedArtifact))
-                {
-                    throw new InvalidDataException(
-                        "The update object changed while refreshing its download URL.");
-                }
-                _apiResponse = refreshed;
-            }
+            total += read;
         }
-
-        throw new InvalidOperationException("Unable to download the update file.");
+        var extra = new byte[1];
+        if (await stream.ReadAsync(extra, cancellationToken).ConfigureAwait(false) != 0)
+        {
+            throw new InvalidDataException("The GitHub checksum asset size does not match.");
+        }
+        return new UTF8Encoding(false, true).GetString(bytes);
     }
 
-    private async Task DownloadFileAsync(Uri url, string destination, long expectedSize,
-        CancellationToken cancellationToken, bool reportProgress)
+    private static void CleanupStaleHosts(string hostRoot)
+    {
+        var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(1);
+        foreach (var pattern in new[] { "Prometheus.Updater-*.exe", "apply-*.json" })
+        {
+            foreach (var path in Directory.EnumerateFiles(hostRoot, pattern,
+                         SearchOption.TopDirectoryOnly))
+            {
+                if (File.GetLastWriteTimeUtc(path) >= staleBefore)
+                {
+                    continue;
+                }
+                try
+                {
+                    File.Delete(path);
+                }
+                catch (IOException)
+                {
+                    // A previous updater may still be finishing; it will be retried next time.
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // A locked or protected stale host must not block the current update.
+                }
+            }
+        }
+    }
+
+    private static void PreparePartialDownload(string metadataPath, string packagePath,
+        GitHubReleaseSelection selection)
+    {
+        var partialPath = packagePath + ".part";
+        var matches = false;
+        if (File.Exists(metadataPath))
+        {
+            try
+            {
+                var metadata = JsonSerializer.Deserialize(File.ReadAllBytes(metadataPath),
+                    UpdateJsonContext.Default.UpdateDownloadMetadata);
+                matches = metadata is not null
+                    && metadata.SchemaVersion == UpdateProtocol.SchemaVersion
+                    && string.Equals(metadata.Version, selection.Version,
+                        StringComparison.Ordinal)
+                    && string.Equals(metadata.AssetName, selection.Package.Name,
+                        StringComparison.Ordinal)
+                    && metadata.AssetSize == selection.Package.Size;
+            }
+            catch (JsonException)
+            {
+                matches = false;
+            }
+        }
+
+        if (!matches)
+        {
+            File.Delete(partialPath);
+        }
+        UpdatePaths.WriteJsonAtomic(metadataPath, new UpdateDownloadMetadata
+        {
+            Version = selection.Version,
+            AssetName = selection.Package.Name,
+            AssetSize = selection.Package.Size
+        }, UpdateJsonContext.Default.UpdateDownloadMetadata);
+    }
+
+    private async Task DownloadPackageAsync(Uri url, string destination, long expectedSize,
+        CancellationToken cancellationToken)
     {
         var partialPath = destination + ".part";
         var existingLength = File.Exists(partialPath) ? new FileInfo(partialPath).Length : 0;
@@ -394,201 +445,103 @@ public sealed class UpdateService : IUpdateService, IDisposable
             return;
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        if (existingLength > 0)
+        for (var attempt = 0; attempt < 2; attempt++)
         {
-            request.Headers.Range = new RangeHeaderValue(existingLength, null);
-        }
-        using var response = await _httpClient.SendAsync(request,
-            HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-        if (response.StatusCode == HttpStatusCode.Forbidden)
-        {
-            throw new ExpiredDownloadException();
-        }
-        response.EnsureSuccessStatusCode();
-
-        var append = existingLength > 0 && response.StatusCode == HttpStatusCode.PartialContent;
-        if (append && (response.Content.Headers.ContentRange?.From != existingLength
-                       || response.Content.Headers.ContentRange.To is long rangeEnd
-                       && rangeEnd >= expectedSize))
-        {
-            throw new InvalidDataException("The update server returned an invalid byte range.");
-        }
-        if (!append)
-        {
-            existingLength = 0;
-        }
-        var total = existingLength;
-        await using (var target = new FileStream(partialPath,
-                         append ? FileMode.Append : FileMode.Create, FileAccess.Write,
-                         FileShare.None, 128 * 1024,
-                         FileOptions.Asynchronous | FileOptions.SequentialScan))
-        await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken)
-                         .ConfigureAwait(false))
-        {
-            var buffer = new byte[128 * 1024];
-            int read;
-            while ((read = await source.ReadAsync(buffer, cancellationToken)
-                       .ConfigureAwait(false)) > 0)
+            using var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (existingLength > 0)
             {
-                await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken)
-                    .ConfigureAwait(false);
-                total += read;
-                if (total > expectedSize)
+                request.Headers.Range = new RangeHeaderValue(existingLength, null);
+            }
+            using var response = await _httpClient.SendAsync(request,
+                HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                .ConfigureAwait(false);
+            if (existingLength > 0
+                && response.StatusCode == HttpStatusCode.RequestedRangeNotSatisfiable)
+            {
+                File.Delete(partialPath);
+                existingLength = 0;
+                continue;
+            }
+            response.EnsureSuccessStatusCode();
+
+            var append = existingLength > 0
+                && response.StatusCode == HttpStatusCode.PartialContent;
+            if (append)
+            {
+                var range = response.Content.Headers.ContentRange;
+                if (range?.From != existingLength
+                    || range.To is not long rangeEnd || rangeEnd >= expectedSize
+                    || range.Length is long rangeLength && rangeLength != expectedSize)
                 {
                     throw new InvalidDataException(
-                        "The update server returned more data than the signed artifact size.");
+                        "GitHub returned an invalid update byte range.");
                 }
-                if (reportProgress && expectedSize > 0)
+            }
+            else
+            {
+                existingLength = 0;
+            }
+
+            var total = existingLength;
+            await using (var target = new FileStream(partialPath,
+                             append ? FileMode.Append : FileMode.Create, FileAccess.Write,
+                             FileShare.None, 128 * 1024,
+                             FileOptions.Asynchronous | FileOptions.SequentialScan))
+            await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken)
+                             .ConfigureAwait(false))
+            {
+                var buffer = new byte[128 * 1024];
+                int read;
+                while ((read = await source.ReadAsync(buffer, cancellationToken)
+                           .ConfigureAwait(false)) > 0)
                 {
+                    await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken)
+                        .ConfigureAwait(false);
+                    total += read;
+                    if (total > expectedSize)
+                    {
+                        throw new InvalidDataException(
+                            "GitHub returned more data than the Release Asset size.");
+                    }
                     SetState(UpdateState.Downloading,
                         Math.Clamp((double)total / expectedSize, 0, 1), null);
                 }
+                await target.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            await target.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-        if (total != expectedSize)
-        {
-            throw new EndOfStreamException(
-                "The update download ended before the signed artifact size was reached.");
-        }
-        File.Move(partialPath, destination, true);
-    }
-
-    private async Task<bool> IsInstalledBaseValidAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var versionRoot = Path.Combine(_options.InstallRoot, "versions",
-                _options.CurrentVersion);
-            var manifestPath = Path.Combine(versionRoot,
-                UpdateProtocol.InstalledManifestFileName);
-            var envelope = JsonSerializer.Deserialize(await File.ReadAllBytesAsync(manifestPath,
-                    cancellationToken).ConfigureAwait(false),
-                UpdateJsonContext.Default.SignedEnvelope)
-                ?? throw new InvalidDataException("The installed manifest is empty.");
-            var manifest = _verifyManifest(envelope);
-            UpdateValidation.ValidateManifest(manifest, _options.CurrentVersion);
-
-            foreach (var file in manifest.Files)
+            if (total != expectedSize)
             {
-                var path = UpdatePaths.ResolveUnderRoot(versionRoot, file.Path);
-                await UpdateSecurity.VerifyFileAsync(path, file.Size, file.Sha256,
-                    cancellationToken).ConfigureAwait(false);
+                throw new EndOfStreamException(
+                    $"The update download ended at {total} of {expectedSize} bytes.");
             }
-            return true;
+            File.Move(partialPath, destination, true);
+            return;
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            Log.Warning(exception,
-                "Installed version failed update-manifest verification; using full package");
-            return false;
-        }
+
+        throw new InvalidOperationException("Unable to resume the GitHub update download.");
     }
 
-    private Uri ResolveUrl(DownloadObject value)
+    private static string DescribeFailure(Exception exception)
     {
-        var response = _apiResponse
-            ?? throw new InvalidOperationException("No update API response is available.");
-        return value switch
+        var isChinese = string.Equals(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            "zh", StringComparison.OrdinalIgnoreCase);
+        return exception switch
         {
-            DownloadObject.Manifest => response.ManifestUrl,
-            DownloadObject.SelectedPackage => response.PackageUrl,
-            DownloadObject.FullPackage => response.FullPackageUrl,
-            DownloadObject.Bootstrapper => response.BootstrapperUrl
-                ?? throw new InvalidOperationException("No bootstrapper URL was supplied."),
-            _ => throw new ArgumentOutOfRangeException(nameof(value))
+            HttpRequestException { StatusCode: HttpStatusCode.Forbidden
+                or HttpStatusCode.TooManyRequests } =>
+                isChinese ? "GitHub 请求已达到频率限制，请稍后重试。"
+                    : "The GitHub API rate limit was reached. Please try again later.",
+            HttpRequestException => isChinese
+                ? "无法连接 GitHub，请检查网络连接后重试。"
+                : "Unable to connect to GitHub. Check the network connection and try again.",
+            JsonException or InvalidDataException =>
+                isChinese ? "GitHub Release 数据或更新文件无效，无法继续更新。"
+                    : "The GitHub Release data or update file is invalid.",
+            FileNotFoundException => isChinese
+                ? "未找到更新程序，请重新安装最新版本后再试。"
+                : "The updater was not found. Reinstall the latest version and try again.",
+            _ => exception.Message
         };
-    }
-
-    private void ValidateDescriptor(ReleaseDescriptor descriptor)
-    {
-        UpdateValidation.ValidateReleaseDescriptor(descriptor, _options.CurrentVersion);
-    }
-
-    private static UpdateArtifact ResolveSelectedArtifact(ReleaseDescriptor descriptor, string id,
-        string currentVersion)
-    {
-        if (string.Equals(id, descriptor.FullPackage.Id, StringComparison.Ordinal))
-        {
-            return descriptor.FullPackage;
-        }
-        var delta = descriptor.Deltas.FirstOrDefault(value =>
-            string.Equals(value.Id, id, StringComparison.Ordinal));
-        if (delta is null)
-        {
-            throw new InvalidDataException("The API selected an unauthorized update package.");
-        }
-        if (!string.Equals(delta.BaseVersion, currentVersion, StringComparison.Ordinal))
-        {
-            throw new InvalidDataException(
-                "The API selected a delta for a different installed version.");
-        }
-        return new UpdateArtifact
-        {
-            Id = delta.Id,
-            ObjectKey = delta.ObjectKey,
-            Size = delta.Size,
-            Sha256 = delta.Sha256
-        };
-    }
-
-    private UpdateArtifact ResolveArtifactForDownload(DownloadObject downloadObject,
-        ReleaseDescriptor descriptor, string selectedArtifactId)
-    {
-        return downloadObject switch
-        {
-            DownloadObject.Manifest => descriptor.TargetManifest,
-            DownloadObject.SelectedPackage => ResolveSelectedArtifact(descriptor,
-                selectedArtifactId, _options.CurrentVersion),
-            DownloadObject.FullPackage => descriptor.FullPackage,
-            DownloadObject.Bootstrapper => descriptor.Bootstrapper
-                ?? throw new InvalidDataException(
-                    "The refreshed release does not contain a bootstrapper artifact."),
-            _ => throw new ArgumentOutOfRangeException(nameof(downloadObject))
-        };
-    }
-
-    private static string ResolveReleaseNotes(ReleaseDescriptor descriptor)
-    {
-        var culture = CultureInfo.CurrentUICulture.Name;
-        if (descriptor.ReleaseNotes.TryGetValue(culture, out var value))
-        {
-            return value;
-        }
-        if (descriptor.ReleaseNotes.TryGetValue("en-US", out value))
-        {
-            return value;
-        }
-        return descriptor.ReleaseNotes.Values.FirstOrDefault() ?? string.Empty;
-    }
-
-    private string LoadOrCreateInstallationId()
-    {
-        var path = Path.Combine(_localDataRoot, "installation-id");
-        try
-        {
-            if (File.Exists(path))
-            {
-                var value = File.ReadAllText(path).Trim();
-                if (Guid.TryParse(value, out var existing))
-                {
-                    return existing.ToString("D");
-                }
-            }
-
-            var id = Guid.NewGuid().ToString("D");
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path + ".tmp", id);
-            File.Move(path + ".tmp", path, true);
-            return id;
-        }
-        catch (Exception exception)
-        {
-            Log.Warning(exception, "Unable to persist Prometheus update installation ID");
-            return Guid.NewGuid().ToString("D");
-        }
     }
 
     private void SetState(UpdateState state, double progress, string? error)
@@ -597,17 +550,5 @@ public sealed class UpdateService : IUpdateService, IDisposable
         Progress = progress;
         ErrorMessage = error;
         StateChanged?.Invoke(this, new UpdateStateChangedEventArgs(state, progress, error));
-    }
-
-    private enum DownloadObject
-    {
-        Manifest,
-        SelectedPackage,
-        FullPackage,
-        Bootstrapper
-    }
-
-    private sealed class ExpiredDownloadException : Exception
-    {
     }
 }

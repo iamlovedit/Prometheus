@@ -2,196 +2,118 @@ namespace Prometheus.Update;
 
 public static class UpdateValidation
 {
-    public static void ValidateChannelIndex(ChannelIndex channel, bool allowEmpty = false)
+    private const int MaximumChecksumFileSize = 16 * 1024;
+
+    public static GitHubReleaseSelection ValidateGitHubRelease(GitHubRelease release,
+        string owner, string repository)
     {
-        ArgumentNullException.ThrowIfNull(channel);
-        if (channel.SchemaVersion != UpdateProtocol.SchemaVersion
-            || channel.Channel != UpdateProtocol.StableChannel
-            || channel.Rid != UpdateProtocol.WindowsX64Rid
-            || channel.Releases is null
-            || !allowEmpty && channel.Releases.Count == 0)
+        ArgumentNullException.ThrowIfNull(release);
+        ValidateRepositoryCoordinate(owner, nameof(owner));
+        ValidateRepositoryCoordinate(repository, nameof(repository));
+
+        if (release.Draft || release.Prerelease
+            || !TryParseTag(release.TagName, out var version)
+            || release.Assets is null)
         {
-            throw new InvalidDataException("The stable channel pointer is invalid.");
+            throw new InvalidDataException("The latest GitHub Release is not a stable Prometheus release.");
         }
 
-        var versions = new HashSet<string>(StringComparer.Ordinal);
-        UpdateVersion? previousVersion = null;
-        foreach (var release in channel.Releases)
+        var packageName = $"Prometheus-{version}-{UpdateProtocol.WindowsX64Rid}.zip";
+        var checksumName = packageName + ".sha256";
+        var package = ResolveSingleAsset(release.Assets, packageName);
+        var checksum = ResolveSingleAsset(release.Assets, checksumName);
+        if (package.Size <= 0 || checksum.Size <= 0 || checksum.Size > MaximumChecksumFileSize)
         {
-            ArgumentNullException.ThrowIfNull(release);
-            var version = UpdateVersion.Parse(release.Version);
-            var prefix = $"releases/{release.Version}/{UpdateProtocol.WindowsX64Rid}/";
-            if (!versions.Add(release.Version)
-                || previousVersion is not null
-                && previousVersion.Value.CompareTo(version) <= 0
-                || release.ReleaseObjectKey != $"{prefix}release.json"
-                || release.ManifestObjectKey != $"{prefix}manifest.json"
-                || release.PublishedAt == default)
-            {
-                throw new InvalidDataException("The stable channel contains an invalid release.");
-            }
-            previousVersion = version;
+            throw new InvalidDataException("The GitHub Release contains invalid update asset sizes.");
         }
+
+        ValidateReleaseAssetUrl(package.BrowserDownloadUrl, owner, repository,
+            release.TagName, packageName);
+        ValidateReleaseAssetUrl(checksum.BrowserDownloadUrl, owner, repository,
+            release.TagName, checksumName);
+        return new GitHubReleaseSelection
+        {
+            Version = version.ToString(),
+            Release = release,
+            Package = package,
+            Checksum = checksum
+        };
     }
 
-    public static void ValidateReleaseDescriptor(ReleaseDescriptor descriptor,
-        string? currentVersion = null)
+    public static string ParseSha256File(string content, string expectedFileName)
     {
-        ArgumentNullException.ThrowIfNull(descriptor);
-        var version = UpdateVersion.Parse(descriptor.Version);
-        var minimumSupported = UpdateVersion.Parse(descriptor.MinimumSupportedVersion);
-        var minimumBootstrapper = UpdateVersion.Parse(descriptor.MinimumBootstrapperVersion);
-        var bootstrapperVersion = UpdateVersion.Parse(descriptor.BootstrapperVersion);
-        if (descriptor.SchemaVersion != UpdateProtocol.SchemaVersion
-            || descriptor.Channel != UpdateProtocol.StableChannel
-            || descriptor.Rid != UpdateProtocol.WindowsX64Rid
-            || descriptor.RolloutPercentage is < 0 or > 100
-            || descriptor.PublishedAt == default
-            || descriptor.ReleaseNotes is null
-            || descriptor.Deltas is null
-            || minimumSupported.CompareTo(version) > 0
-            || minimumBootstrapper.CompareTo(bootstrapperVersion) > 0)
+        ArgumentNullException.ThrowIfNull(content);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedFileName);
+        if (content.Length == 0 || content.Length > MaximumChecksumFileSize
+            || content.IndexOf('\0') >= 0)
         {
-            throw new InvalidDataException("The update release descriptor is invalid.");
+            throw new InvalidDataException("The update checksum file is invalid.");
         }
 
-        if (currentVersion is not null
-            && version.CompareTo(UpdateVersion.Parse(currentVersion)) <= 0)
+        var value = content.EndsWith("\r\n", StringComparison.Ordinal)
+            ? content[..^2]
+            : content.EndsWith('\n') ? content[..^1] : content;
+        if (value.Length < 64 || value.Contains('\r') || value.Contains('\n'))
         {
-            throw new InvalidDataException("The update is not newer than the installed version.");
+            throw new InvalidDataException("The update checksum file is invalid.");
         }
 
-        ValidateArtifact(descriptor.TargetManifest, descriptor.Version, "manifest");
-        ValidateArtifact(descriptor.FullPackage, descriptor.Version, "full");
-        ValidateArtifact(descriptor.PortablePackage, descriptor.Version, "portable");
-        if (descriptor.Bootstrapper is not null)
+        var hash = value[..64];
+        if (!IsSha256(hash))
         {
-            ValidateArtifact(descriptor.Bootstrapper, descriptor.Version, "bootstrapper");
+            throw new InvalidDataException("The update checksum file does not contain SHA-256.");
         }
 
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        ids.Add(descriptor.TargetManifest.Id);
-        ids.Add(descriptor.FullPackage.Id);
-        ids.Add(descriptor.PortablePackage.Id);
-        if (descriptor.Bootstrapper is not null && !ids.Add(descriptor.Bootstrapper.Id))
+        if (value.Length > 64)
         {
-            throw new InvalidDataException("The release contains duplicate artifact IDs.");
-        }
-
-        foreach (var delta in descriptor.Deltas)
-        {
-            ArgumentNullException.ThrowIfNull(delta);
-            var baseVersion = UpdateVersion.Parse(delta.BaseVersion);
-            if (baseVersion.CompareTo(version) >= 0
-                || delta.Id != $"delta:{delta.BaseVersion}"
-                || !ids.Add(delta.Id))
+            var separatorLength = 0;
+            while (64 + separatorLength < value.Length
+                   && value[64 + separatorLength] is ' ' or '\t')
             {
-                throw new InvalidDataException("The release contains an invalid delta artifact.");
+                separatorLength++;
             }
-            ValidateArtifact(delta, descriptor.Version, delta.Id);
-        }
-    }
-
-    public static void ValidateManifest(ReleaseManifest manifest, string expectedVersion)
-    {
-        ArgumentNullException.ThrowIfNull(manifest);
-        UpdateVersion.Parse(expectedVersion);
-        if (manifest.SchemaVersion != UpdateProtocol.SchemaVersion
-            || !string.Equals(manifest.Version, expectedVersion, StringComparison.Ordinal)
-            || manifest.Files is null || manifest.Files.Count == 0)
-        {
-            throw new InvalidDataException("The target release manifest is invalid.");
-        }
-
-        var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var hasDesktopExecutable = false;
-        foreach (var file in manifest.Files)
-        {
-            ArgumentNullException.ThrowIfNull(file);
-            var path = UpdatePaths.NormalizeRelativePath(file.Path);
-            if (!string.Equals(path, file.Path, StringComparison.Ordinal)
-                || !unique.Add(path)
-                || file.Size < 0
-                || !IsSha256(file.Sha256)
-                || string.Equals(path, UpdateProtocol.InstalledManifestFileName,
-                    StringComparison.OrdinalIgnoreCase))
+            if (separatorLength == 0 || 64 + separatorLength >= value.Length)
             {
-                throw new InvalidDataException($"Invalid target manifest entry: {file.Path}");
+                throw new InvalidDataException("The update checksum file is invalid.");
             }
 
-            hasDesktopExecutable |= string.Equals(path,
-                UpdateProtocol.DesktopExecutableName, StringComparison.OrdinalIgnoreCase);
+            var fileName = value[(64 + separatorLength)..];
+            if (fileName.StartsWith('*'))
+            {
+                fileName = fileName[1..];
+            }
+            if (!string.Equals(fileName, expectedFileName, StringComparison.Ordinal))
+            {
+                throw new InvalidDataException("The update checksum references a different asset.");
+            }
         }
 
-        if (!hasDesktopExecutable)
+        return hash.ToLowerInvariant();
+    }
+
+    public static void ValidateApplyPlan(UpdateApplyPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        if (plan.SchemaVersion != UpdateProtocol.SchemaVersion
+            || string.IsNullOrWhiteSpace(plan.InstallRoot)
+            || string.IsNullOrWhiteSpace(plan.PackagePath)
+            || plan.ParentProcessId < 0
+            || plan.PackageSize <= 0
+            || !IsSha256(plan.PackageSha256)
+            || !Guid.TryParse(plan.HealthToken, out _)
+            || !UpdateVersion.TryParse(plan.CurrentVersion, out var current)
+            || !UpdateVersion.TryParse(plan.TargetVersion, out var target)
+            || target.CompareTo(current) <= 0)
         {
-            throw new InvalidDataException(
-                $"The target manifest does not contain {UpdateProtocol.DesktopExecutableName}.");
+            throw new InvalidDataException("The update apply plan is invalid.");
         }
     }
 
-    public static void ValidateBootstrapperState(BootstrapperState state)
+    public static bool TryParseTag(string? tag, out UpdateVersion version)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        if (state.SchemaVersion != UpdateProtocol.SchemaVersion
-            || !UpdateVersion.TryParse(state.CurrentVersion, out _)
-            || state.RollbackVersion is not null
-            && !UpdateVersion.TryParse(state.RollbackVersion, out _)
-            || state.PendingHealthToken is not null
-            && !Guid.TryParse(state.PendingHealthToken, out _)
-            || !UpdateVersion.TryParse(state.BootstrapperVersion, out _))
-        {
-            throw new InvalidDataException("Prometheus current.json is invalid.");
-        }
-    }
-
-    public static void ValidateArtifact(UpdateArtifact artifact, string version,
-        string expectedId)
-    {
-        ArgumentNullException.ThrowIfNull(artifact);
-        ValidateArtifactCore(artifact.Id, artifact.ObjectKey, artifact.Size, artifact.Sha256,
-            version, expectedId);
-    }
-
-    public static void ValidateArtifact(DeltaArtifact artifact, string version,
-        string expectedId)
-    {
-        ArgumentNullException.ThrowIfNull(artifact);
-        ValidateArtifactCore(artifact.Id, artifact.ObjectKey, artifact.Size, artifact.Sha256,
-            version, expectedId);
-    }
-
-    private static void ValidateArtifactCore(string id, string objectKey, long size,
-        string sha256, string version, string expectedId)
-    {
-        var prefix = $"releases/{version}/{UpdateProtocol.WindowsX64Rid}/";
-        string normalizedObjectKey;
-        try
-        {
-            normalizedObjectKey = UpdatePaths.NormalizeRelativePath(objectKey);
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidDataException)
-        {
-            throw new InvalidDataException("The release contains an invalid artifact key.",
-                exception);
-        }
-
-        if (!string.Equals(id, expectedId, StringComparison.Ordinal)
-            || size <= 0
-            || !IsSha256(sha256)
-            || !string.Equals(normalizedObjectKey, objectKey, StringComparison.Ordinal)
-            || !objectKey.StartsWith(prefix, StringComparison.Ordinal))
-        {
-            throw new InvalidDataException("The release contains an invalid artifact.");
-        }
-    }
-
-    public static bool ArtifactsMatch(UpdateArtifact left, UpdateArtifact right)
-    {
-        return string.Equals(left.Id, right.Id, StringComparison.Ordinal)
-               && string.Equals(left.ObjectKey, right.ObjectKey, StringComparison.Ordinal)
-               && left.Size == right.Size
-               && string.Equals(left.Sha256, right.Sha256, StringComparison.OrdinalIgnoreCase);
+        version = default;
+        return tag is { Length: > 1 } && tag[0] == 'v'
+            && UpdateVersion.TryParse(tag[1..], out version);
     }
 
     public static bool IsSha256(string? value)
@@ -199,5 +121,43 @@ public static class UpdateValidation
         return value is { Length: 64 }
                && value.All(character => character is >= '0' and <= '9'
                    or >= 'a' and <= 'f' or >= 'A' and <= 'F');
+    }
+
+    private static GitHubReleaseAsset ResolveSingleAsset(
+        IEnumerable<GitHubReleaseAsset> assets, string expectedName)
+    {
+        var matches = assets.Where(asset => asset is not null
+            && string.Equals(asset.Name, expectedName, StringComparison.Ordinal)).ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidDataException(
+                $"The GitHub Release must contain exactly one {expectedName} asset.");
+        }
+        return matches[0];
+    }
+
+    private static void ValidateReleaseAssetUrl(Uri? uri, string owner, string repository,
+        string tag, string assetName)
+    {
+        var expectedPath = $"/{owner}/{repository}/releases/download/{tag}/{assetName}";
+        if (uri is null || !uri.IsAbsoluteUri
+            || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
+            || !string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)
+            || !string.Equals(Uri.UnescapeDataString(uri.AbsolutePath), expectedPath,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException("The GitHub Release contains an invalid asset URL.");
+        }
+    }
+
+    private static void ValidateRepositoryCoordinate(string value, string parameterName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, parameterName);
+        if (value.Any(character => !char.IsAsciiLetterOrDigit(character)
+                && character is not '-' and not '_' and not '.'))
+        {
+            throw new ArgumentException("Invalid GitHub repository coordinate.", parameterName);
+        }
     }
 }

@@ -1,9 +1,9 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.IO.Compression;
 using Prometheus.Services.Interfaces.Updates;
 using Prometheus.Services.Updates;
 using Prometheus.Update;
@@ -12,55 +12,72 @@ namespace Prometheus.Update.Tests;
 
 public sealed class UpdateServiceTests : IDisposable
 {
+    private const string Owner = "iamlovedit";
+    private const string Repository = "Prometheus";
     private readonly string _root = Path.Combine(Path.GetTempPath(),
         "prometheus-update-service-tests", Guid.NewGuid().ToString("N"));
 
     [Fact]
-    public async Task CheckAsync_WhenApiReturnsNoContent_SetsUpToDate()
+    public async Task CheckAsync_WithNewStableRelease_ReturnsAvailableUpdateAndGitHubHeaders()
     {
-        using var service = CreateService(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
-
-        var update = await service.CheckAsync(true);
-
-        Assert.Null(update);
-        Assert.Equal(UpdateState.UpToDate, service.State);
-    }
-
-    [Fact]
-    public async Task CheckAsync_WhenCurrentVersionIsBelowMinimum_ReturnsMandatoryUpdate()
-    {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var descriptor = CreateDescriptor();
-        var envelope = UpdateSecurity.Sign(descriptor, key,
-            UpdateJsonContext.Default.ReleaseDescriptor);
-        var responseBody = new UpdateApiResponse
+        var fixture = CreateFixture("2.0.0");
+        string? requestedUri = null;
+        string? accept = null;
+        string? apiVersion = null;
+        using var service = CreateService(request =>
         {
-            Release = envelope,
-            SelectedArtifactId = "full",
-            ManifestUrl = new Uri("https://r2.example/manifest"),
-            PackageUrl = new Uri("https://r2.example/full"),
-            FullPackageUrl = new Uri("https://r2.example/full"),
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(6)
-        };
-        using var publicKey = ECDsa.Create();
-        publicKey.ImportSubjectPublicKeyInfo(key.ExportSubjectPublicKeyInfo(), out _);
-        using var service = CreateService(_ => JsonResponse(responseBody), envelopeValue =>
-            UpdateSecurity.VerifyAndDeserialize(envelopeValue, publicKey,
-                UpdateJsonContext.Default.ReleaseDescriptor));
+            requestedUri = request.RequestUri?.ToString();
+            accept = string.Join(',', request.Headers.Accept.Select(value => value.MediaType));
+            apiVersion = request.Headers.GetValues("X-GitHub-Api-Version").Single();
+            return JsonResponse(fixture.Release);
+        });
 
         var update = await service.CheckAsync(true);
 
         Assert.NotNull(update);
-        Assert.True(update.IsMandatory);
-        Assert.Equal("2.0.0", update.Descriptor.Version);
+        Assert.Equal("2.0.0", update.Version);
+        Assert.Equal("Release notes", update.ReleaseNotes);
+        Assert.False(update.IsMandatory);
         Assert.Equal(UpdateState.Available, service.State);
+        Assert.Equal("https://api.github.com/repos/iamlovedit/Prometheus/releases/latest",
+            requestedUri);
+        Assert.Contains(UpdateProtocol.GitHubApiAccept, accept);
+        Assert.Equal(UpdateProtocol.GitHubApiVersion, apiVersion);
+    }
+
+    [Theory]
+    [InlineData("1.0.0")]
+    [InlineData("0.9.9")]
+    public async Task CheckAsync_WhenReleaseIsNotNewer_ReturnsUpToDate(string version)
+    {
+        var fixture = CreateFixture(version);
+        using var service = CreateService(_ => JsonResponse(fixture.Release));
+
+        var update = await service.CheckAsync(true);
+
+        Assert.Null(update);
+        Assert.Null(service.AvailableUpdate);
+        Assert.Equal(UpdateState.UpToDate, service.State);
     }
 
     [Fact]
-    public async Task CheckAsync_WhenAutomaticRequestFails_ReturnsToIdleWithoutUserError()
+    public async Task CheckAsync_WithDraftRelease_ReportsFailureInsteadOfUpToDate()
     {
-        using var service = CreateService(_ => new HttpResponseMessage(
-            HttpStatusCode.ServiceUnavailable));
+        var fixture = CreateFixture("2.0.0");
+        fixture.Release.Draft = true;
+        using var service = CreateService(_ => JsonResponse(fixture.Release));
+
+        var update = await service.CheckAsync(true);
+
+        Assert.Null(update);
+        Assert.Equal(UpdateState.Failed, service.State);
+        Assert.NotNull(service.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task CheckAsync_WhenAutomaticCheckIsRateLimited_RemainsNonBlocking()
+    {
+        using var service = CreateService(_ => new HttpResponseMessage(HttpStatusCode.Forbidden));
 
         var update = await service.CheckAsync(false);
 
@@ -70,360 +87,253 @@ public sealed class UpdateServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CheckAsync_WhenManualRequestFails_ExposesError()
+    public async Task CheckAsync_WithEtag_ReusesCachedReleaseOnNotModified()
     {
-        using var service = CreateService(_ => new HttpResponseMessage(
-            HttpStatusCode.ServiceUnavailable));
-
-        var update = await service.CheckAsync(true);
-
-        Assert.Null(update);
-        Assert.Equal(UpdateState.Failed, service.State);
-        Assert.False(string.IsNullOrWhiteSpace(service.ErrorMessage));
-    }
-
-    [Fact]
-    public async Task CheckAsync_WhenCancelled_ReturnsToIdle()
-    {
-        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var service = CreateService(new AsyncStubHandler(async (_, cancellationToken) =>
-        {
-            started.SetResult();
-            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-            return new HttpResponseMessage(HttpStatusCode.NoContent);
-        }));
-        using var cancellation = new CancellationTokenSource();
-
-        var check = service.CheckAsync(true, cancellation.Token);
-        await started.Task;
-        cancellation.Cancel();
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => check);
-        Assert.Equal(UpdateState.Idle, service.State);
-    }
-
-    [Fact]
-    public async Task CheckAsync_WhenAnotherCheckIsRunning_DoesNotStartASecondRequest()
-    {
-        var requestCount = 0;
-        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var service = CreateService(new AsyncStubHandler(async (_, cancellationToken) =>
-        {
-            Interlocked.Increment(ref requestCount);
-            started.SetResult();
-            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-            return new HttpResponseMessage(HttpStatusCode.NoContent);
-        }));
-        using var cancellation = new CancellationTokenSource();
-
-        var first = service.CheckAsync(true, cancellation.Token);
-        await started.Task;
-        var second = await service.CheckAsync(true);
-        cancellation.Cancel();
-
-        Assert.Null(second);
-        Assert.Equal(1, requestCount);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => first);
-    }
-
-    [Fact]
-    public async Task DownloadAsync_WhenInstalledBaseIsMissing_UsesFullPackageFallback()
-    {
-        var fixture = CreateDownloadFixture(includeDelta: true);
-        var fullRequested = false;
+        var fixture = CreateFixture("2.0.0");
+        var calls = 0;
         using var service = CreateService(request =>
         {
-            if (request.RequestUri!.AbsolutePath.EndsWith("/api/v1/updates/windows"))
+            calls++;
+            if (calls == 1)
             {
-                return JsonResponse(fixture.Response);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/manifest"))
-            {
-                return BytesResponse(fixture.ManifestBytes);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/full"))
-            {
-                fullRequested = true;
-                return BytesResponse(fixture.FullPackageBytes);
-            }
-            throw new InvalidOperationException($"Unexpected request {request.RequestUri}");
-        }, fixture.Verify, fixture.VerifyManifest);
-
-        await service.CheckAsync(true);
-        await service.DownloadAsync();
-
-        Assert.True(fullRequested);
-        Assert.Equal(UpdateState.ReadyToInstall, service.State);
-    }
-
-    [Fact]
-    public async Task DownloadAsync_WhenUrlExpires_RefreshesAndResumesWithRange()
-    {
-        var fixture = CreateDownloadFixture(includeDelta: false);
-        var refreshedResponse = CloneResponse(fixture.Response,
-            new Uri("https://r2.example/fresh-full"));
-        var apiRequests = 0;
-        var rangeStart = fixture.FullPackageBytes.Length / 2;
-        var partialPath = Path.Combine(_root, "data", "Updates", "2.0.0",
-            "full.zip.part");
-        Directory.CreateDirectory(Path.GetDirectoryName(partialPath)!);
-        await File.WriteAllBytesAsync(partialPath,
-            fixture.FullPackageBytes.AsMemory(0, rangeStart).ToArray());
-        using var service = CreateService(request =>
-        {
-            if (request.RequestUri!.AbsolutePath.EndsWith("/api/v1/updates/windows"))
-            {
-                apiRequests++;
-                return JsonResponse(apiRequests == 1 ? fixture.Response : refreshedResponse);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/manifest"))
-            {
-                return BytesResponse(fixture.ManifestBytes);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/full"))
-            {
-                return new HttpResponseMessage(HttpStatusCode.Forbidden);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/fresh-full"))
-            {
-                Assert.Equal(rangeStart, request.Headers.Range?.Ranges.Single().From);
-                var response = BytesResponse(fixture.FullPackageBytes[rangeStart..],
-                    HttpStatusCode.PartialContent);
-                response.Content.Headers.ContentRange = new ContentRangeHeaderValue(rangeStart,
-                    fixture.FullPackageBytes.Length - 1, fixture.FullPackageBytes.Length);
+                var response = JsonResponse(fixture.Release);
+                response.Headers.ETag = new EntityTagHeaderValue("\"release-2\"");
                 return response;
             }
-            throw new InvalidOperationException($"Unexpected request {request.RequestUri}");
-        }, fixture.Verify, fixture.VerifyManifest);
 
+            Assert.Contains(request.Headers.IfNoneMatch,
+                value => value.Tag == "\"release-2\"");
+            return new HttpResponseMessage(HttpStatusCode.NotModified);
+        });
+
+        var first = await service.CheckAsync(true);
+        var second = await service.CheckAsync(true);
+
+        Assert.Equal("2.0.0", first?.Version);
+        Assert.Equal("2.0.0", second?.Version);
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WithValidAssets_VerifiesAndPreparesPackage()
+    {
+        var fixture = CreateFixture("2.0.0", [1, 2, 3, 4, 5]);
+        using var service = CreateService(request => RouteFixture(request, fixture));
         await service.CheckAsync(true);
+
         await service.DownloadAsync();
 
-        Assert.Equal(2, apiRequests);
+        var packagePath = Path.Combine(_root, "local", "Updates", "2.0.0",
+            fixture.PackageName);
+        Assert.Equal(UpdateState.ReadyToInstall, service.State);
+        Assert.Equal(fixture.PackageBytes, await File.ReadAllBytesAsync(packagePath));
+        Assert.False(File.Exists(packagePath + ".part"));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WithMatchingPartialFile_UsesHttpRange()
+    {
+        var fixture = CreateFixture("2.0.0", [1, 2, 3, 4, 5, 6, 7, 8]);
+        using var service = CreateService(request =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/releases/latest",
+                    StringComparison.Ordinal))
+            {
+                return JsonResponse(fixture.Release);
+            }
+            if (request.RequestUri.AbsolutePath.EndsWith(".sha256",
+                    StringComparison.Ordinal))
+            {
+                return BytesResponse(fixture.ChecksumBytes);
+            }
+
+            Assert.Equal(3, request.Headers.Range?.Ranges.Single().From);
+            var remaining = fixture.PackageBytes[3..];
+            var response = BytesResponse(remaining, HttpStatusCode.PartialContent);
+            response.Content.Headers.ContentRange = new ContentRangeHeaderValue(3,
+                fixture.PackageBytes.Length - 1, fixture.PackageBytes.Length);
+            return response;
+        });
+        await service.CheckAsync(true);
+        var updateRoot = Path.Combine(_root, "local", "Updates", "2.0.0");
+        Directory.CreateDirectory(updateRoot);
+        var packagePath = Path.Combine(updateRoot, fixture.PackageName);
+        await File.WriteAllBytesAsync(packagePath + ".part", fixture.PackageBytes[..3]);
+        UpdatePaths.WriteJsonAtomic(Path.Combine(updateRoot, "download.json"),
+            new UpdateDownloadMetadata
+            {
+                Version = "2.0.0",
+                AssetName = fixture.PackageName,
+                AssetSize = fixture.PackageBytes.Length
+            }, UpdateJsonContext.Default.UpdateDownloadMetadata);
+
+        await service.DownloadAsync();
+
+        Assert.Equal(fixture.PackageBytes, await File.ReadAllBytesAsync(packagePath));
         Assert.Equal(UpdateState.ReadyToInstall, service.State);
     }
 
     [Fact]
-    public async Task DownloadAsync_WhenRefreshedObjectChanges_RejectsReplacement()
+    public async Task DownloadAsync_WhenSha256DoesNotMatch_DeletesUntrustedPackage()
     {
-        var fixture = CreateDownloadFixture(includeDelta: false);
-        using var replacementKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var replacementDescriptor = CreateDescriptor();
-        replacementDescriptor.TargetManifest = fixture.Descriptor.TargetManifest;
-        replacementDescriptor.FullPackage = Artifact("full", "full.zip",
-            fixture.FullPackageBytes.Length, 'e');
-        var replacementEnvelope = UpdateSecurity.Sign(replacementDescriptor, replacementKey,
-            UpdateJsonContext.Default.ReleaseDescriptor);
-        var replacementResponse = CloneResponse(fixture.Response,
-            new Uri("https://r2.example/replacement"));
-        replacementResponse.Release = replacementEnvelope;
-        using var replacementPublicKey = ECDsa.Create();
-        replacementPublicKey.ImportSubjectPublicKeyInfo(
-            replacementKey.ExportSubjectPublicKeyInfo(), out _);
-        var apiRequests = 0;
-        using var service = CreateService(request =>
-        {
-            if (request.RequestUri!.AbsolutePath.EndsWith("/api/v1/updates/windows"))
-            {
-                apiRequests++;
-                return JsonResponse(apiRequests == 1 ? fixture.Response : replacementResponse);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/manifest"))
-            {
-                return BytesResponse(fixture.ManifestBytes);
-            }
-            if (request.RequestUri.AbsolutePath.EndsWith("/full"))
-            {
-                return new HttpResponseMessage(HttpStatusCode.Forbidden);
-            }
-            throw new InvalidOperationException($"Unexpected request {request.RequestUri}");
-        }, envelope => string.Equals(envelope.Payload, fixture.Response.Release.Payload,
-            StringComparison.Ordinal)
-            ? fixture.Verify(envelope)
-            : UpdateSecurity.VerifyAndDeserialize(envelope, replacementPublicKey,
-                UpdateJsonContext.Default.ReleaseDescriptor), fixture.VerifyManifest);
-
+        var fixture = CreateFixture("2.0.0", [1, 2, 3]);
+        fixture.ChecksumBytes = Encoding.ASCII.GetBytes(
+            $"{new string('0', 64)}  {fixture.PackageName}");
+        fixture.Release.Assets.Single(asset => asset.Name.EndsWith(".sha256",
+            StringComparison.Ordinal)).Size = fixture.ChecksumBytes.Length;
+        using var service = CreateService(request => RouteFixture(request, fixture));
         await service.CheckAsync(true);
-        await Assert.ThrowsAsync<InvalidDataException>(() => service.DownloadAsync());
 
+        await Assert.ThrowsAsync<CryptographicException>(() => service.DownloadAsync());
+
+        var packagePath = Path.Combine(_root, "local", "Updates", "2.0.0",
+            fixture.PackageName);
         Assert.Equal(UpdateState.Failed, service.State);
+        Assert.False(File.Exists(packagePath));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WhenCancelled_ReturnsToAvailableState()
+    {
+        var fixture = CreateFixture("2.0.0", new byte[1024]);
+        using var service = CreateService(new AsyncStubHandler(async (request, cancellationToken) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/releases/latest", StringComparison.Ordinal))
+            {
+                return JsonResponse(fixture.Release);
+            }
+            if (path.EndsWith(".sha256", StringComparison.Ordinal))
+            {
+                return BytesResponse(fixture.ChecksumBytes);
+            }
+
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            throw new InvalidOperationException("Unreachable");
+        }));
+        await service.CheckAsync(true);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            service.DownloadAsync(cancellation.Token));
+
+        Assert.Equal(UpdateState.Available, service.State);
+        Assert.Null(service.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task InstallAsync_WhenPackageIsReady_WritesPlanAndStartsCopiedUpdater()
+    {
+        var fixture = CreateFixture("2.0.0", [1, 2, 3, 4]);
+        ProcessStartInfo? capturedStartInfo = null;
+        using var service = CreateService(request => RouteFixture(request, fixture),
+            startProcess: startInfo => capturedStartInfo = startInfo);
+        var updaterPath = Path.Combine(_root, "install", UpdateProtocol.UpdaterExecutableName);
+        await File.WriteAllBytesAsync(updaterPath, [9, 8, 7]);
+        await service.CheckAsync(true);
+        await service.DownloadAsync();
+
+        await service.InstallAsync();
+
+        Assert.Equal(UpdateState.Installing, service.State);
+        Assert.NotNull(capturedStartInfo);
+        Assert.Equal("apply", capturedStartInfo.ArgumentList[0]);
+        var planPath = capturedStartInfo.ArgumentList[2];
+        var plan = JsonSerializer.Deserialize(await File.ReadAllBytesAsync(planPath),
+            UpdateJsonContext.Default.UpdateApplyPlan);
+        Assert.NotNull(plan);
+        Assert.Equal("2.0.0", plan.TargetVersion);
+        Assert.Equal(fixture.PackageBytes.Length, plan.PackageSize);
+        Assert.True(File.Exists(capturedStartInfo.FileName));
     }
 
     private UpdateService CreateService(Func<HttpRequestMessage, HttpResponseMessage> response,
-        Func<SignedEnvelope, ReleaseDescriptor>? verifier = null,
-        Func<SignedEnvelope, ReleaseManifest>? manifestVerifier = null)
+        string currentVersion = "1.0.0", Action<ProcessStartInfo>? startProcess = null)
     {
-        return CreateService(new StubHandler(response), verifier, manifestVerifier);
+        return CreateService(new StubHandler(response), currentVersion, startProcess);
     }
 
     private UpdateService CreateService(HttpMessageHandler handler,
-        Func<SignedEnvelope, ReleaseDescriptor>? verifier = null,
-        Func<SignedEnvelope, ReleaseManifest>? manifestVerifier = null)
+        string currentVersion = "1.0.0", Action<ProcessStartInfo>? startProcess = null)
     {
-        Directory.CreateDirectory(_root);
-        var client = new HttpClient(handler);
+        var installRoot = Path.Combine(_root, "install");
+        Directory.CreateDirectory(installRoot);
+        var client = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(10)
+        };
         return new UpdateService(new UpdateServiceOptions
         {
-            ApiBaseUrl = "https://updates.example/",
-            CurrentVersion = "1.0.0",
-            BootstrapperVersion = "1.0.0",
-            InstallRoot = _root,
-            LocalDataRoot = Path.Combine(_root, "data")
-        }, client, verifier ?? (_ => CreateDescriptor()), manifestVerifier);
+            GitHubOwner = Owner,
+            GitHubRepository = Repository,
+            GitHubApiBaseUrl = "https://api.github.com",
+            InstallRoot = installRoot,
+            CurrentVersion = currentVersion,
+            LocalDataRoot = Path.Combine(_root, "local"),
+            UpdaterPath = Path.Combine(installRoot, UpdateProtocol.UpdaterExecutableName)
+        }, client, startProcess);
     }
 
-    private static ReleaseDescriptor CreateDescriptor()
+    private static Fixture CreateFixture(string version, byte[]? packageBytes = null)
     {
-        return new ReleaseDescriptor
+        packageBytes ??= [1, 2, 3];
+        var packageName = $"Prometheus-{version}-win-x64.zip";
+        var hash = Convert.ToHexStringLower(SHA256.HashData(packageBytes));
+        var checksumBytes = Encoding.ASCII.GetBytes($"{hash}  {packageName}");
+        var tag = "v" + version;
+        var baseUrl = $"https://github.com/{Owner}/{Repository}/releases/download/{tag}/";
+        var release = new GitHubRelease
         {
-            Version = "2.0.0",
-            MinimumSupportedVersion = "1.1.0",
-            MinimumBootstrapperVersion = "1.0.0",
-            BootstrapperVersion = "2.0.0",
-            PublishedAt = DateTimeOffset.UtcNow,
-            TargetManifest = Artifact("manifest", "manifest.json", 10, 'a'),
-            FullPackage = Artifact("full", "full.zip", 100, 'b'),
-            PortablePackage = Artifact("portable", "portable.zip", 120, 'c')
-        };
-    }
-
-    private DownloadFixture CreateDownloadFixture(bool includeDelta)
-    {
-        var desktopBytes = new byte[] { 42 };
-        var fullPackageBytes = CreateZip(UpdateProtocol.DesktopExecutableName, desktopBytes);
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var manifest = new ReleaseManifest
-        {
-            Version = "2.0.0",
-            Files =
+            TagName = tag,
+            Body = "Release notes",
+            Assets =
             [
-                new ReleaseFileEntry
+                new GitHubReleaseAsset
                 {
-                    Path = UpdateProtocol.DesktopExecutableName,
-                    Size = desktopBytes.Length,
-                    Sha256 = Hash(desktopBytes)
+                    Name = packageName,
+                    Size = packageBytes.Length,
+                    BrowserDownloadUrl = new Uri(baseUrl + packageName)
+                },
+                new GitHubReleaseAsset
+                {
+                    Name = packageName + ".sha256",
+                    Size = checksumBytes.Length,
+                    BrowserDownloadUrl = new Uri(baseUrl + packageName + ".sha256")
                 }
             ]
         };
-        var manifestEnvelope = UpdateSecurity.Sign(manifest, key,
-            UpdateJsonContext.Default.ReleaseManifest);
-        var manifestBytes = JsonSerializer.SerializeToUtf8Bytes(manifestEnvelope,
-            UpdateJsonContext.Default.SignedEnvelope);
-        var descriptor = CreateDescriptor();
-        descriptor.TargetManifest = Artifact("manifest", "manifest.json",
-            manifestBytes.Length, Hash(manifestBytes));
-        descriptor.FullPackage = Artifact("full", "full.zip", fullPackageBytes.Length,
-            Hash(fullPackageBytes));
-        if (includeDelta)
+        return new Fixture(release, packageName, packageBytes, checksumBytes);
+    }
+
+    private static HttpResponseMessage RouteFixture(HttpRequestMessage request, Fixture fixture)
+    {
+        var path = request.RequestUri!.AbsolutePath;
+        if (path.EndsWith("/releases/latest", StringComparison.Ordinal))
         {
-            descriptor.Deltas.Add(new DeltaArtifact
-            {
-                Id = "delta:1.0.0",
-                BaseVersion = "1.0.0",
-                ObjectKey = "releases/2.0.0/win-x64/deltas/from-1.0.0.zip",
-                Size = 10,
-                Sha256 = new string('d', 64)
-            });
+            return JsonResponse(fixture.Release);
         }
-        var releaseEnvelope = UpdateSecurity.Sign(descriptor, key,
-            UpdateJsonContext.Default.ReleaseDescriptor);
-        using var publicKey = ECDsa.Create();
-        publicKey.ImportSubjectPublicKeyInfo(key.ExportSubjectPublicKeyInfo(), out _);
-        var publicKeyBytes = publicKey.ExportSubjectPublicKeyInfo();
-        ReleaseDescriptor Verify(SignedEnvelope envelope)
+        if (path.EndsWith(".sha256", StringComparison.Ordinal))
         {
-            using var verifier = ECDsa.Create();
-            verifier.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-            return UpdateSecurity.VerifyAndDeserialize(envelope, verifier,
-                UpdateJsonContext.Default.ReleaseDescriptor);
+            return BytesResponse(fixture.ChecksumBytes);
         }
-        ReleaseManifest VerifyManifest(SignedEnvelope envelope)
-        {
-            using var verifier = ECDsa.Create();
-            verifier.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
-            return UpdateSecurity.VerifyAndDeserialize(envelope, verifier,
-                UpdateJsonContext.Default.ReleaseManifest);
-        }
-        return new DownloadFixture(descriptor, new UpdateApiResponse
-        {
-            Release = releaseEnvelope,
-            SelectedArtifactId = includeDelta ? "delta:1.0.0" : "full",
-            ManifestUrl = new Uri("https://r2.example/manifest"),
-            PackageUrl = new Uri(includeDelta
-                ? "https://r2.example/delta" : "https://r2.example/full"),
-            FullPackageUrl = new Uri("https://r2.example/full"),
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(6)
-        }, manifestBytes, fullPackageBytes, Verify, VerifyManifest);
+        return BytesResponse(fixture.PackageBytes);
     }
 
-    private static UpdateApiResponse CloneResponse(UpdateApiResponse source, Uri packageUrl)
-    {
-        return new UpdateApiResponse
-        {
-            Release = source.Release,
-            SelectedArtifactId = source.SelectedArtifactId,
-            ManifestUrl = source.ManifestUrl,
-            PackageUrl = packageUrl,
-            FullPackageUrl = packageUrl,
-            BootstrapperUrl = source.BootstrapperUrl,
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(6)
-        };
-    }
-
-    private static byte[] CreateZip(string path, byte[] bytes)
-    {
-        using var memory = new MemoryStream();
-        using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, true))
-        {
-            var entry = archive.CreateEntry(path);
-            using var stream = entry.Open();
-            stream.Write(bytes);
-        }
-        return memory.ToArray();
-    }
-
-    private static string Hash(byte[] bytes)
-    {
-        return Convert.ToHexStringLower(SHA256.HashData(bytes));
-    }
-
-    private static UpdateArtifact Artifact(string id, string key, long size, char hash)
-    {
-        return new UpdateArtifact
-        {
-            Id = id,
-            ObjectKey = $"releases/2.0.0/win-x64/{key}",
-            Size = size,
-            Sha256 = new string(hash, 64)
-        };
-    }
-
-    private static UpdateArtifact Artifact(string id, string key, long size, string hash)
-    {
-        return new UpdateArtifact
-        {
-            Id = id,
-            ObjectKey = $"releases/2.0.0/win-x64/{key}",
-            Size = size,
-            Sha256 = hash
-        };
-    }
-
-    private static HttpResponseMessage JsonResponse(UpdateApiResponse value)
+    private static HttpResponseMessage JsonResponse(GitHubRelease release)
     {
         return new HttpResponseMessage(HttpStatusCode.OK)
         {
-            Content = new StringContent(JsonSerializer.Serialize(value,
-                UpdateJsonContext.Default.UpdateApiResponse), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(release,
+                UpdateJsonContext.Default.GitHubRelease), Encoding.UTF8, "application/json")
         };
     }
 
-    private static HttpResponseMessage BytesResponse(byte[] value,
+    private static HttpResponseMessage BytesResponse(byte[] bytes,
         HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         return new HttpResponseMessage(statusCode)
         {
-            Content = new ByteArrayContent(value)
+            Content = new ByteArrayContent(bytes)
         };
     }
 
@@ -456,8 +366,12 @@ public sealed class UpdateServiceTests : IDisposable
         }
     }
 
-    private sealed record DownloadFixture(ReleaseDescriptor Descriptor,
-        UpdateApiResponse Response, byte[] ManifestBytes, byte[] FullPackageBytes,
-        Func<SignedEnvelope, ReleaseDescriptor> Verify,
-        Func<SignedEnvelope, ReleaseManifest> VerifyManifest);
+    private sealed class Fixture(GitHubRelease release, string packageName,
+        byte[] packageBytes, byte[] checksumBytes)
+    {
+        public GitHubRelease Release { get; } = release;
+        public string PackageName { get; } = packageName;
+        public byte[] PackageBytes { get; } = packageBytes;
+        public byte[] ChecksumBytes { get; set; } = checksumBytes;
+    }
 }

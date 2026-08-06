@@ -55,11 +55,29 @@
             TextWrapping="Wrap" />
 
         <StackPanel Grid.Row="8" HorizontalAlignment="Right" Orientation="Horizontal">
+            <Button
+                Margin="0,0,8,0"
+                Command="{Binding CancelCommand}"
+                Content="{DynamicResource Update.Dialog.Cancel}">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CanCancelDownload}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
             <Button Margin="0,0,8,0" Command="{Binding LaterCommand}" Content="{DynamicResource Update.Dialog.Later}">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsMandatory}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding CanCancelDownload}" Value="True">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
