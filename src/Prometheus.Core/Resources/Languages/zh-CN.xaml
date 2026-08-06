@@ -377,6 +377,10 @@
     <sys:String x:Key="Utility.Companion.Description">进入英雄选择时，将队友战绩面板吸附到英雄联盟客户端边缘；关闭后会立即隐藏，并阻止后续自动弹出。</sys:String>
     <sys:String x:Key="Utility.Companion.Enable">启用吸附窗</sys:String>
     <sys:String x:Key="Utility.Companion.PersistenceFailed">配置已在本次运行中生效，但无法保存到本地</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.Title">开局自动显示双方战绩</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.Description">游戏进入进行中并获取双方阵容后，自动恢复 Prometheus 并打开对局页面；每局只触发一次。</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.Enable">启用开局自动显示</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.PersistenceFailed">配置已在本次运行中生效，但无法保存到本地</sys:String>
     <sys:String x:Key="Utility.AutoAccept">自动接受</sys:String>
     <sys:String x:Key="Utility.AutoReconnect">自动重连</sys:String>
     <sys:String x:Key="Utility.SelectChampion">自动选择英雄</sys:String>

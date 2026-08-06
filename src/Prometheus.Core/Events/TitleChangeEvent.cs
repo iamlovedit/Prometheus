@@ -17,6 +17,10 @@ namespace Prometheus.Core.Events
     {
     }
 
+    public class ShowMainWindowEvent : PubSubEvent
+    {
+    }
+
     public class LanguageSwitchedEvent : PubSubEvent
     {
 

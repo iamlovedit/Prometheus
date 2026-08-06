@@ -378,6 +378,10 @@
     <sys:String x:Key="Utility.Companion.Description">Attach the teammate-performance panel to the League Client during champion select. Turning it off hides the panel immediately and prevents it from opening automatically.</sys:String>
     <sys:String x:Key="Utility.Companion.Enable">Enable companion</sys:String>
     <sys:String x:Key="Utility.Companion.PersistenceFailed">The setting is active for this session but could not be saved locally</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.Title">Show both teams when the game starts</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.Description">When the game enters progress and both rosters are available, restore Prometheus and open the live match page once for that game.</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.Enable">Enable automatic match view</sys:String>
+    <sys:String x:Key="Utility.AutoShowMatch.PersistenceFailed">The setting is active for this session but could not be saved locally</sys:String>
     <sys:String x:Key="Utility.AutoAccept">Auto Accept</sys:String>
     <sys:String x:Key="Utility.AutoReconnect">Auto Reconnect</sys:String>
     <sys:String x:Key="Utility.SelectChampion">Auto select champion</sys:String>

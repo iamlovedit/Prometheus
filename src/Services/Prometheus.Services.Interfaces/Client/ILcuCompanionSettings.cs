@@ -6,6 +6,8 @@ namespace Prometheus.Services.Interfaces.Client
     {
         bool IsEnabled { get; set; }
 
+        bool AutoShowMatchOnGameStart { get; set; }
+
         bool LastPersistenceSucceeded { get; }
     }
 }

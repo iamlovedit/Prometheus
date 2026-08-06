@@ -6,7 +6,7 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
     public class LcuCompanionSettingsTests
     {
         [Fact]
-        public void IsEnabled_DefaultsToTrueAndPersistsChanges()
+        public void Settings_DefaultToTrueAndPersistChanges()
         {
             var directory = CreateTemporaryDirectory();
             var settingsPath = Path.Combine(directory, "lcu-companion.json");
@@ -16,11 +16,14 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 var settings = new LcuCompanionSettings(settingsPath);
 
                 Assert.True(settings.IsEnabled);
+                Assert.True(settings.AutoShowMatchOnGameStart);
 
                 settings.IsEnabled = false;
+                settings.AutoShowMatchOnGameStart = false;
                 var reloaded = new LcuCompanionSettings(settingsPath);
 
                 Assert.False(reloaded.IsEnabled);
+                Assert.False(reloaded.AutoShowMatchOnGameStart);
                 Assert.True(settings.LastPersistenceSucceeded);
             }
             finally
@@ -42,6 +45,28 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 var settings = new LcuCompanionSettings(settingsPath);
 
                 Assert.True(settings.IsEnabled);
+                Assert.True(settings.AutoShowMatchOnGameStart);
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+
+        [Fact]
+        public void LegacyFile_WithoutAutoShowSetting_DefaultsAutoShowToTrue()
+        {
+            var directory = CreateTemporaryDirectory();
+            var settingsPath = Path.Combine(directory, "lcu-companion.json");
+
+            try
+            {
+                File.WriteAllText(settingsPath, "{\"IsEnabled\":false}");
+
+                var settings = new LcuCompanionSettings(settingsPath);
+
+                Assert.False(settings.IsEnabled);
+                Assert.True(settings.AutoShowMatchOnGameStart);
             }
             finally
             {

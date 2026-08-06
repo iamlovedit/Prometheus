@@ -199,6 +199,139 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void InProgressRoster_AutoShowsMatchOncePerGame()
+        {
+            var matchService = CreateMatchService();
+            var regionManager = new Mock<IRegionManager>();
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var eventAggregator = new EventAggregator();
+            var showRequestCount = 0;
+            eventAggregator.GetEvent<ShowMainWindowEvent>()
+                .Subscribe(() => showRequestCount++);
+            _ = new MainWindowViewModel(
+                regionManager.Object,
+                eventAggregator,
+                moduleManager.Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
+
+            PublishSnapshot(matchService, GameflowPhase.InProgress);
+            PublishRosterSnapshot(matchService, GameflowPhase.InProgress, 42);
+            PublishRosterSnapshot(matchService, GameflowPhase.InProgress, 42);
+            PublishRosterSnapshot(matchService, GameflowPhase.Reconnect, 42);
+            PublishRosterSnapshot(matchService, GameflowPhase.InProgress, 42);
+            PublishSnapshot(matchService, GameflowPhase.EndOfGame);
+            PublishRosterSnapshot(matchService, GameflowPhase.InProgress, 43);
+
+            Assert.Equal(2, showRequestCount);
+            moduleManager.Verify(manager => manager.LoadModule(
+                nameof(MatchModule)), Times.Exactly(2));
+            regionManager.Verify(manager => manager.RequestNavigate(
+                    RegionNames.ContentRegion,
+                    MenuName.Match.ToString(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.IsAny<NavigationParameters>()),
+                Times.Exactly(2));
+        }
+
+        [Fact]
+        public void InProgressRoster_WhenAutoShowDisabled_DoesNotOpenMatch()
+        {
+            var matchService = CreateMatchService();
+            var regionManager = new Mock<IRegionManager>();
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var eventAggregator = new EventAggregator();
+            var showRequestCount = 0;
+            eventAggregator.GetEvent<ShowMainWindowEvent>()
+                .Subscribe(() => showRequestCount++);
+            _ = new MainWindowViewModel(
+                regionManager.Object,
+                eventAggregator,
+                moduleManager.Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings(autoShowMatch: false).Object);
+
+            PublishRosterSnapshot(matchService, GameflowPhase.InProgress, 42);
+
+            Assert.Equal(0, showRequestCount);
+            moduleManager.Verify(manager => manager.LoadModule(
+                It.IsAny<string>()), Times.Never);
+            regionManager.Verify(manager => manager.RequestNavigate(
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.IsAny<NavigationParameters>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public void EnablingAutoShowDuringGame_OpensReadyRosterImmediately()
+        {
+            var matchService = CreateMatchService();
+            var regionManager = new Mock<IRegionManager>();
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var eventAggregator = new EventAggregator();
+            var companionSettings = CreateCompanionSettings(autoShowMatch: false);
+            var showRequestCount = 0;
+            eventAggregator.GetEvent<ShowMainWindowEvent>()
+                .Subscribe(() => showRequestCount++);
+            _ = new MainWindowViewModel(
+                regionManager.Object,
+                eventAggregator,
+                moduleManager.Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IDialogService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                companionSettings.Object);
+            PublishRosterSnapshot(matchService, GameflowPhase.InProgress, 42);
+
+            companionSettings.Object.AutoShowMatchOnGameStart = true;
+            companionSettings.Raise(
+                settings => settings.PropertyChanged += null,
+                new PropertyChangedEventArgs(
+                    nameof(ILcuCompanionSettings.AutoShowMatchOnGameStart)));
+
+            Assert.Equal(1, showRequestCount);
+            regionManager.Verify(manager => manager.RequestNavigate(
+                    RegionNames.ContentRegion,
+                    MenuName.Match.ToString(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.IsAny<NavigationParameters>()),
+                Times.Once);
+        }
+
+        [Fact]
         public void SearchSummonerEvent_NavigatesToSearchWithSummonerParameter()
         {
             var regionManager = new Mock<IRegionManager>();
@@ -428,6 +561,27 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 }));
         }
 
+        private static void PublishRosterSnapshot(
+            Mock<IMatchService> matchService,
+            GameflowPhase phase,
+            long gameId)
+        {
+            matchService.Raise(service => service.SnapshotChanged += null,
+                new LiveMatchSnapshotChangedEventArgs(new LiveMatchSnapshot
+                {
+                    ConnectionState = ConnectionState.Connected,
+                    GameflowPhase = phase,
+                    Roster = new LiveMatchRosterSnapshot
+                    {
+                        GameId = gameId,
+                        SourcePhase = phase,
+                        MyTeam = [new LiveMatchPlayerSnapshot()],
+                        TheirTeam = [new LiveMatchPlayerSnapshot()]
+                    },
+                    UpdatedAt = DateTimeOffset.UtcNow
+                }));
+        }
+
         private static Mock<IResourceService> CreateQuickMatchResourceService()
         {
             var resourceService = new Mock<IResourceService>();
@@ -457,10 +611,14 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             return settings;
         }
 
-        private static Mock<ILcuCompanionSettings> CreateCompanionSettings()
+        private static Mock<ILcuCompanionSettings> CreateCompanionSettings(
+            bool autoShowMatch = true)
         {
             var settings = new Mock<ILcuCompanionSettings>();
             settings.SetupProperty(value => value.IsEnabled, true);
+            settings.SetupProperty(
+                value => value.AutoShowMatchOnGameStart,
+                autoShowMatch);
             settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
             return settings;
         }

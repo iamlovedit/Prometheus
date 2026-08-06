@@ -134,6 +134,36 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void AutoShowMatchToggle_UpdatesSharedSetting()
+        {
+            var companionSettings = CreateCompanionSettings();
+            var viewModel = CreateViewModel(companionSettings: companionSettings);
+            viewModel.OnNavigatedTo(null);
+
+            Assert.True(viewModel.AutoShowMatchOnGameStart);
+
+            viewModel.AutoShowMatchOnGameStart = false;
+
+            Assert.False(companionSettings.Object.AutoShowMatchOnGameStart);
+
+            var changedProperties = new List<string>();
+            viewModel.PropertyChanged += (_, args) =>
+                changedProperties.Add(args.PropertyName);
+            companionSettings.Object.AutoShowMatchOnGameStart = true;
+            companionSettings.Raise(
+                settings => settings.PropertyChanged += null,
+                new PropertyChangedEventArgs(
+                    nameof(ILcuCompanionSettings.AutoShowMatchOnGameStart)));
+
+            Assert.True(viewModel.AutoShowMatchOnGameStart);
+            Assert.Contains(
+                nameof(UtilityViewModel.AutoShowMatchOnGameStart),
+                changedProperties);
+
+            viewModel.OnNavigatedFrom(null);
+        }
+
+        [Fact]
         public void AramChampionSelector_SelectingFilteredChampion_PreservesSelection()
         {
             var gameResourceManager = new Mock<IGameResourceManager>();
@@ -300,6 +330,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         {
             var settings = new Mock<ILcuCompanionSettings>();
             settings.SetupProperty(value => value.IsEnabled, true);
+            settings.SetupProperty(value => value.AutoShowMatchOnGameStart, true);
             settings.SetupGet(value => value.LastPersistenceSucceeded).Returns(true);
             return settings;
         }

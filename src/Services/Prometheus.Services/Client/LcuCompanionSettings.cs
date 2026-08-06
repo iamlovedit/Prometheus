@@ -10,6 +10,7 @@ namespace Prometheus.Services.Client
         private readonly object _syncRoot = new();
         private readonly string _settingsPath;
         private bool _isEnabled = true;
+        private bool _autoShowMatchOnGameStart = true;
         private bool _lastPersistenceSucceeded = true;
 
         public LcuCompanionSettings()
@@ -54,6 +55,18 @@ namespace Prometheus.Services.Client
             }
         }
 
+        public bool AutoShowMatchOnGameStart
+        {
+            get
+            {
+                lock (_syncRoot)
+                {
+                    return _autoShowMatchOnGameStart;
+                }
+            }
+            set => SetAutoShowMatchOnGameStart(value);
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         private static string GetDefaultSettingsPath()
@@ -79,6 +92,22 @@ namespace Prometheus.Services.Client
             RaisePropertyChanged(nameof(IsEnabled));
         }
 
+        private void SetAutoShowMatchOnGameStart(bool value)
+        {
+            lock (_syncRoot)
+            {
+                if (_autoShowMatchOnGameStart == value)
+                {
+                    return;
+                }
+
+                _autoShowMatchOnGameStart = value;
+            }
+
+            UpdatePersistenceState(Save());
+            RaisePropertyChanged(nameof(AutoShowMatchOnGameStart));
+        }
+
         private void Load()
         {
             try
@@ -93,6 +122,7 @@ namespace Prometheus.Services.Client
                 if (value is not null)
                 {
                     _isEnabled = value.IsEnabled;
+                    _autoShowMatchOnGameStart = value.AutoShowMatchOnGameStart;
                 }
             }
             catch (IOException)
@@ -116,7 +146,8 @@ namespace Prometheus.Services.Client
             {
                 value = new PersistedSettings
                 {
-                    IsEnabled = _isEnabled
+                    IsEnabled = _isEnabled,
+                    AutoShowMatchOnGameStart = _autoShowMatchOnGameStart
                 };
             }
 
@@ -154,6 +185,7 @@ namespace Prometheus.Services.Client
         private void ResetToDefault()
         {
             _isEnabled = true;
+            _autoShowMatchOnGameStart = true;
         }
 
         private void RaisePropertyChanged([CallerMemberName] string propertyName = null)
@@ -164,6 +196,8 @@ namespace Prometheus.Services.Client
         private sealed class PersistedSettings
         {
             public bool IsEnabled { get; set; } = true;
+
+            public bool AutoShowMatchOnGameStart { get; set; } = true;
         }
     }
 }

@@ -53,6 +53,8 @@ namespace Prometheus.ViewModels
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
         private bool _isCreatingQuickMatchLobby;
         private int _selectedQuickMatchQueueId;
+        private long _lastAutoShownGameId;
+        private bool _autoShowHandledWithoutGameId;
 
         private GameflowPhase _lastObservedPhase = GameflowPhase.Unknown;
         private MenuName _currentMenu = MenuName.Home;
@@ -566,6 +568,8 @@ namespace Prometheus.ViewModels
                 Navigate(MenuName.Match);
             }
 
+            TryAutoShowMatch(snapshot);
+
             if (phaseChanged &&
                 phase is GameflowPhase.ReadyCheck or GameflowPhase.ChampSelect)
             {
@@ -587,12 +591,90 @@ namespace Prometheus.ViewModels
             object sender,
             PropertyChangedEventArgs args)
         {
-            if (string.IsNullOrEmpty(args?.PropertyName) ||
-                args.PropertyName == nameof(ILcuCompanionSettings.IsEnabled))
+            var propertyName = args?.PropertyName;
+            var companionChanged = string.IsNullOrEmpty(propertyName) ||
+                propertyName == nameof(ILcuCompanionSettings.IsEnabled);
+            var autoShowChanged = string.IsNullOrEmpty(propertyName) ||
+                propertyName == nameof(
+                    ILcuCompanionSettings.AutoShowMatchOnGameStart);
+            if (companionChanged || autoShowChanged)
             {
-                Dispatch(() => RaisePropertyChanged(
-                    nameof(IsTrayCompanionEnabled)));
+                Dispatch(() =>
+                {
+                    if (companionChanged)
+                    {
+                        RaisePropertyChanged(nameof(IsTrayCompanionEnabled));
+                    }
+
+                    if (autoShowChanged &&
+                        _companionSettings.AutoShowMatchOnGameStart)
+                    {
+                        TryAutoShowMatch(_snapshot);
+                    }
+                });
             }
+        }
+
+        private void TryAutoShowMatch(LiveMatchSnapshot snapshot)
+        {
+            snapshot ??= LiveMatchSnapshot.Empty;
+            if (ShouldResetAutoShowFallback(snapshot.GameflowPhase))
+            {
+                _autoShowHandledWithoutGameId = false;
+            }
+
+            if (!_companionSettings.AutoShowMatchOnGameStart ||
+                snapshot.GameflowPhase != GameflowPhase.InProgress)
+            {
+                return;
+            }
+
+            var roster = snapshot.Roster;
+            if ((roster?.MyTeam?.Count ?? 0) == 0 ||
+                (roster?.TheirTeam?.Count ?? 0) == 0)
+            {
+                return;
+            }
+
+            if (roster.GameId > 0)
+            {
+                if (_lastAutoShownGameId == roster.GameId)
+                {
+                    return;
+                }
+
+                _lastAutoShownGameId = roster.GameId;
+            }
+            else
+            {
+                if (_autoShowHandledWithoutGameId)
+                {
+                    return;
+                }
+
+                _autoShowHandledWithoutGameId = true;
+            }
+
+            if (_currentMenu != MenuName.Match)
+            {
+                Navigate(MenuName.Match);
+            }
+
+            _eventAggregator.GetEvent<ShowMainWindowEvent>().Publish();
+        }
+
+        private static bool ShouldResetAutoShowFallback(GameflowPhase phase)
+        {
+            return phase is GameflowPhase.None or
+                GameflowPhase.Lobby or
+                GameflowPhase.Matchmaking or
+                GameflowPhase.ReadyCheck or
+                GameflowPhase.ChampSelect or
+                GameflowPhase.GameStart or
+                GameflowPhase.WaitingForStats or
+                GameflowPhase.PreEndOfGame or
+                GameflowPhase.EndOfGame or
+                GameflowPhase.TerminatedInError;
         }
 
         private void HandleUpdateStateChanged(object sender, UpdateStateChangedEventArgs args)

@@ -1,7 +1,10 @@
 ﻿using HandyControl.Controls;
 using Prism.Events;
 using Prometheus.Core.Events;
+using Serilog;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 
 namespace Prometheus.Views
 {
@@ -10,8 +13,24 @@ namespace Prometheus.Views
     /// </summary>
     public partial class MainWindow : Window
     {
+        private const int SwRestore = 9;
+        private const uint FlashwTray = 0x00000002;
+        private const uint ForegroundFlashCount = 3;
+
         private readonly IEventAggregator _eventAggregator;
         private bool _isExitRequested;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindowAsync(IntPtr windowHandle, int command);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(IntPtr windowHandle);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool FlashWindowEx(ref FlashWindowInfo flashInfo);
 
         public MainWindow(IEventAggregator eventAggregator)
         {
@@ -22,6 +41,8 @@ namespace Prometheus.Views
             Loaded += MainWindow_Loaded;
             _eventAggregator.GetEvent<ApplicationExitRequestedEvent>()
                 .Subscribe(HandleApplicationExitRequested);
+            _eventAggregator.GetEvent<ShowMainWindowEvent>()
+                .Subscribe(ShowMainWindow);
         }
 
         private void MainWindow_Closing(object sender, CancelEventArgs e)
@@ -51,6 +72,8 @@ namespace Prometheus.Views
         {
             _eventAggregator.GetEvent<ApplicationExitRequestedEvent>()
                 .Unsubscribe(HandleApplicationExitRequested);
+            _eventAggregator.GetEvent<ShowMainWindowEvent>()
+                .Unsubscribe(ShowMainWindow);
             TrayIcon.Dispose();
         }
 
@@ -70,17 +93,60 @@ namespace Prometheus.Views
 
         private void ShowMainWindow()
         {
-            if (!IsVisible)
+            try
             {
-                Show();
-            }
+                if (!IsVisible)
+                {
+                    Show();
+                }
 
-            if (WindowState == System.Windows.WindowState.Minimized)
+                if (WindowState == System.Windows.WindowState.Minimized)
+                {
+                    WindowState = System.Windows.WindowState.Normal;
+                }
+
+                var windowHandle = new WindowInteropHelper(this).EnsureHandle();
+                if (windowHandle == IntPtr.Zero)
+                {
+                    Activate();
+                    return;
+                }
+
+                _ = ShowWindowAsync(windowHandle, SwRestore);
+                if (Activate() || SetForegroundWindow(windowHandle))
+                {
+                    return;
+                }
+
+                var flashInfo = new FlashWindowInfo
+                {
+                    Size = (uint)Marshal.SizeOf<FlashWindowInfo>(),
+                    WindowHandle = windowHandle,
+                    Flags = FlashwTray,
+                    Count = ForegroundFlashCount,
+                    Timeout = 0
+                };
+                _ = FlashWindowEx(ref flashInfo);
+            }
+            catch (Exception exception)
             {
-                WindowState = System.Windows.WindowState.Normal;
+                Log.Debug(exception,
+                    "Unable to restore or activate the Prometheus main window");
             }
+        }
 
-            Activate();
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FlashWindowInfo
+        {
+            public uint Size;
+
+            public IntPtr WindowHandle;
+
+            public uint Flags;
+
+            public uint Count;
+
+            public uint Timeout;
         }
     }
 }

@@ -125,6 +125,7 @@ namespace Prometheus.Modules.Utility.ViewModels
             RaisePropertyChanged(nameof(AutoPickChampion));
             RaisePropertyChanged(nameof(AutoBanChampion));
             RaisePropertyChanged(nameof(IsChampionSelectCompanionEnabled));
+            RaisePropertyChanged(nameof(AutoShowMatchOnGameStart));
             LoadAramChampionsAsync().Observe("Loading champion automation preferences");
         }
 
@@ -430,6 +431,26 @@ namespace Prometheus.Modules.Utility.ViewModels
             }
         }
 
+        public bool AutoShowMatchOnGameStart
+        {
+            get => _companionSettings.AutoShowMatchOnGameStart;
+            set
+            {
+                if (_companionSettings.AutoShowMatchOnGameStart == value)
+                {
+                    return;
+                }
+
+                _companionSettings.AutoShowMatchOnGameStart = value;
+                RaisePropertyChanged();
+                if (!_companionSettings.LastPersistenceSucceeded)
+                {
+                    Growl.Warning(_resourceService.FindResource<string>(
+                        "Utility.AutoShowMatch.PersistenceFailed"));
+                }
+            }
+        }
+
         private void HandleCompanionSettingsPropertyChanged(
             object sender,
             PropertyChangedEventArgs args)
@@ -438,6 +459,13 @@ namespace Prometheus.Modules.Utility.ViewModels
                 args.PropertyName == nameof(ILcuCompanionSettings.IsEnabled))
             {
                 RaisePropertyChanged(nameof(IsChampionSelectCompanionEnabled));
+            }
+
+            if (string.IsNullOrEmpty(args?.PropertyName) ||
+                args.PropertyName == nameof(
+                    ILcuCompanionSettings.AutoShowMatchOnGameStart))
+            {
+                RaisePropertyChanged(nameof(AutoShowMatchOnGameStart));
             }
         }
 
