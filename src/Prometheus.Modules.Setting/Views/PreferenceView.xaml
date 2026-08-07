@@ -464,29 +464,28 @@
                         Style="{StaticResource CaptionText}"
                         Text="{DynamicResource Update.Settings.Description}" />
                 </StackPanel>
-                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <StackPanel
+                    Grid.Column="2"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center">
                     <TextBlock
+                        VerticalAlignment="Center"
                         FontWeight="SemiBold"
-                        Text="{Binding UpdateStatus}"
-                        Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                    <ProgressBar
-                        Height="12"
-                        Margin="0,8,0,0"
-                        Maximum="100"
-                        Visibility="{Binding IsUpdateProgressVisible, Converter={StaticResource Boolean2VisibilityConverter}}"
-                        Value="{Binding UpdateProgress, Mode=OneWay}" />
+                        Foreground="{DynamicResource DangerBrush}"
+                        Text="{Binding UpdateStatus}" />
                     <TextBlock
                         Margin="0,6,0,0"
                         Foreground="{DynamicResource DangerBrush}"
                         Text="{Binding UpdateErrorMessage}"
                         TextTrimming="CharacterEllipsis"
-                        ToolTip="{Binding UpdateErrorMessage}" />
+                        ToolTip="{Binding UpdateErrorMessage}"
+                        Visibility="Collapsed" />
                 </StackPanel>
                 <Button
                     Grid.Column="4"
                     VerticalAlignment="Center"
                     Command="{Binding CheckForUpdatesCommand}"
-                    Content="{DynamicResource Update.Settings.Check}"
+                    Content="{Binding UpdateActionText}"
                     Style="{DynamicResource ButtonPrimary}" />
             </Grid>
         </Border>
@@ -528,9 +527,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Margin="0,0,12,0">
-                        <TextBlock
-                            Style="{StaticResource SettingName}"
-                            Text="{DynamicResource Setting.Diagnostics.Logging.Enable}" />
+                        <TextBlock Style="{StaticResource SettingName}" Text="{DynamicResource Setting.Diagnostics.Logging.Enable}" />
                         <TextBlock
                             Margin="0,3,0,0"
                             Style="{StaticResource CaptionText}"

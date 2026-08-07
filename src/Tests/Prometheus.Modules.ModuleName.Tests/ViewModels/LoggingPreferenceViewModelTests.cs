@@ -1,6 +1,5 @@
 using Moq;
 using Prism.Events;
-using Prism.Services.Dialogs;
 using Prometheus.Core.Models;
 using Prometheus.Modules.Setting.ViewModels;
 using Prometheus.Services.Interfaces;
@@ -47,8 +46,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 matchService.Object,
                 logHistory.Object,
                 loggingControl.Object,
-                updateService.Object,
-                new Mock<IDialogService>().Object);
+                updateService.Object);
 
             Assert.False(viewModel.LoggingEnabled);
             Assert.Equal(0, viewModel.LogCount);

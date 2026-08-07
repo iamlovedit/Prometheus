@@ -2,7 +2,6 @@
 
 using Prism.Commands;
 using Prism.Events;
-using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
@@ -23,7 +22,6 @@ namespace Prometheus.Modules.Setting.ViewModels
         private readonly ILogHistoryService _logHistory;
         private readonly ILoggingControlService _loggingControl;
         private readonly IUpdateService _updateService;
-        private readonly IDialogService _dialogService;
 
         protected override string TitleResourceKey { get; set; } = "Setting.Personalization";
 
@@ -34,8 +32,7 @@ namespace Prometheus.Modules.Setting.ViewModels
             IMatchService matchService,
             ILogHistoryService logHistory,
             ILoggingControlService loggingControl,
-            IUpdateService updateService,
-            IDialogService dialogService)
+            IUpdateService updateService)
             : base(eventAggregator, resourceService)
         {
             _automationSettings = automationSettings;
@@ -43,7 +40,6 @@ namespace Prometheus.Modules.Setting.ViewModels
             _logHistory = logHistory;
             _loggingControl = loggingControl;
             _updateService = updateService;
-            _dialogService = dialogService;
 
             _selectedLanguageIndex = Settings.Default.LanguageIndex;
             _selectedThemeIndex = Settings.Default.ThemeIndex;
@@ -178,25 +174,18 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         public DelegateCommand CheckForUpdatesCommand { get; }
 
+        private string _updateActionText = string.Empty;
+        public string UpdateActionText
+        {
+            get => _updateActionText;
+            private set => SetProperty(ref _updateActionText, value);
+        }
+
         private string _updateStatus = string.Empty;
         public string UpdateStatus
         {
             get => _updateStatus;
             private set => SetProperty(ref _updateStatus, value);
-        }
-
-        private double _updateProgress;
-        public double UpdateProgress
-        {
-            get => _updateProgress;
-            private set => SetProperty(ref _updateProgress, value);
-        }
-
-        private bool _isUpdateProgressVisible;
-        public bool IsUpdateProgressVisible
-        {
-            get => _isUpdateProgressVisible;
-            private set => SetProperty(ref _isUpdateProgressVisible, value);
         }
 
         private string? _updateErrorMessage;
@@ -269,10 +258,11 @@ namespace Prometheus.Modules.Setting.ViewModels
 
         private async void CheckForUpdates()
         {
-            var update = await _updateService.CheckAsync(true);
+            var update = _updateService.AvailableUpdate
+                ?? await _updateService.CheckAsync(true);
             if (update is not null)
             {
-                Dispatch(() => _dialogService.ShowDialog(RegionNames.UpdateDialog));
+                _updateService.OpenReleasePage();
             }
         }
 
@@ -281,9 +271,6 @@ namespace Prometheus.Modules.Setting.ViewModels
             var state = _updateService.State;
             IsUpdateBusy = state is UpdateState.Checking
                 or UpdateState.Downloading or UpdateState.Verifying or UpdateState.Installing;
-            IsUpdateProgressVisible = state is UpdateState.Downloading
-                or UpdateState.Verifying or UpdateState.ReadyToInstall or UpdateState.Installing;
-            UpdateProgress = _updateService.Progress * 100;
             UpdateErrorMessage = _updateService.ErrorMessage;
             var key = state switch
             {
@@ -298,6 +285,10 @@ namespace Prometheus.Modules.Setting.ViewModels
                 _ => "Update.Status.Idle"
             };
             UpdateStatus = ResourceService.FindResource<string>(key);
+            UpdateActionText = ResourceService.FindResource<string>(
+                _updateService.AvailableUpdate is null
+                    ? "Update.Settings.Check"
+                    : "Update.Settings.Download");
         }
 
         private void RefreshConnectionStatus()

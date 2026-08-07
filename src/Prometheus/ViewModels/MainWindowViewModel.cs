@@ -4,7 +4,6 @@ using Prism.Events;
 using Prism.Modularity;
 using Prism.Mvvm;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
@@ -43,12 +42,10 @@ namespace Prometheus.ViewModels
         private readonly IGameAutomationSettings _automationSettings;
         private readonly ILcuCompanionSettings _companionSettings;
         private readonly IUpdateService _updateService;
-        private readonly IDialogService _dialogService;
         private readonly IGameService _gameService;
         private readonly IQuickMatchSettings _quickMatchSettings;
         private readonly ILcuCompanionWindowController _lcuCompanionWindowController;
         private readonly LatestValueDispatcher<LiveMatchSnapshot> _snapshotDispatcher;
-        private bool _updateDialogShown;
         private CancellationTokenSource _quickMatchLobbyCts;
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
         private bool _isCreatingQuickMatchLobby;
@@ -70,7 +67,6 @@ namespace Prometheus.ViewModels
             IProfilePresentationStartupService profilePresentationStartupService,
             IGameAutomationSettings automationSettings,
             IUpdateService updateService,
-            IDialogService dialogService,
             IGameService gameService,
             IQuickMatchSettings quickMatchSettings,
             ILcuCompanionSettings companionSettings,
@@ -86,7 +82,6 @@ namespace Prometheus.ViewModels
             _profilePresentationStartupService = profilePresentationStartupService;
             _automationSettings = automationSettings;
             _updateService = updateService;
-            _dialogService = dialogService;
             _gameService = gameService;
             _quickMatchSettings = quickMatchSettings;
             _companionSettings = companionSettings;
@@ -393,21 +388,11 @@ namespace Prometheus.ViewModels
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(15));
-                var update = await _updateService.CheckAsync(false);
-                if (update is null || _updateDialogShown)
-                {
-                    return;
-                }
-
-                _updateDialogShown = true;
-                Dispatch(() => _dialogService.ShowDialog(RegionNames.UpdateDialog, _ =>
-                {
-                    _updateDialogShown = false;
-                }));
+                await _updateService.CheckAsync(false);
             }
             catch (Exception exception)
             {
-                Log.Warning(exception, "Unable to present the automatic update check");
+                Log.Warning(exception, "Unable to complete the automatic update check");
             }
         }
 

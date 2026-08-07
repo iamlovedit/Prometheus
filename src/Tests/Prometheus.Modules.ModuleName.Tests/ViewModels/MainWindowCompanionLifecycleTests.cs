@@ -2,7 +2,6 @@ using Moq;
 using Prism.Events;
 using Prism.Modularity;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Desktop.Services;
@@ -47,7 +46,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 quickMatchSettings.Object,
                 new Mock<ILcuCompanionSettings>().Object,

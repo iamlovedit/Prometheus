@@ -50,14 +50,9 @@
     <sys:String x:Key="Setting.Diagnostics.Logging.Description">开启后才会记录操作、诊断、WebSocket 和异常日志；默认关闭并立即生效</sys:String>
     <sys:String x:Key="Setting.AutoSave">所有更改都会自动保存</sys:String>
     <sys:String x:Key="Update.Settings.Title">软件更新</sys:String>
-    <sys:String x:Key="Update.Settings.Description">检查并安装 Prometheus 的最新稳定版本</sys:String>
+    <sys:String x:Key="Update.Settings.Description">检查最新稳定版本，并前往 GitHub Release 页面下载</sys:String>
     <sys:String x:Key="Update.Settings.Check">检查更新</sys:String>
-    <sys:String x:Key="Update.Dialog.Title">发现新版本</sys:String>
-    <sys:String x:Key="Update.Dialog.Version">版本</sys:String>
-    <sys:String x:Key="Update.Dialog.Install">下载并安装</sys:String>
-    <sys:String x:Key="Update.Dialog.Later">稍后</sys:String>
-    <sys:String x:Key="Update.Dialog.Cancel">取消下载</sys:String>
-    <sys:String x:Key="Update.Dialog.Exit">退出</sys:String>
+    <sys:String x:Key="Update.Settings.Download">前往 GitHub 下载</sys:String>
     <sys:String x:Key="Update.Status.Idle">尚未检查更新</sys:String>
     <sys:String x:Key="Update.Status.Checking">正在检查更新</sys:String>
     <sys:String x:Key="Update.Status.UpToDate">已是最新版本</sys:String>

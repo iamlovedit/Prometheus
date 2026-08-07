@@ -23,6 +23,7 @@ public sealed class AvailableUpdate
     public bool IsMandatory { get; init; }
     public string ReleaseNotes { get; init; } = string.Empty;
     public long DownloadSize { get; init; }
+    public Uri ReleasePageUrl { get; init; } = null!;
 }
 
 public sealed class UpdateStateChangedEventArgs : EventArgs
@@ -60,6 +61,7 @@ public interface IUpdateService
 
     Task<AvailableUpdate?> CheckAsync(bool manual,
         CancellationToken cancellationToken = default);
+    bool OpenReleasePage();
     Task DownloadAsync(CancellationToken cancellationToken = default);
     Task InstallAsync(CancellationToken cancellationToken = default);
 }

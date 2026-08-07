@@ -21,22 +21,34 @@ public static class UpdateValidation
         var packageName = $"Prometheus-{version}-{UpdateProtocol.WindowsX64Rid}.zip";
         var checksumName = packageName + ".sha256";
         var package = ResolveSingleAsset(release.Assets, packageName);
-        var checksum = ResolveSingleAsset(release.Assets, checksumName);
-        if (package.Size <= 0 || checksum.Size <= 0 || checksum.Size > MaximumChecksumFileSize)
+        var checksum = ResolveOptionalSingleAsset(release.Assets, checksumName);
+        var packageDigestSha256 = ParseGitHubAssetSha256(package.Digest);
+        if (checksum is null && packageDigestSha256 is null)
+        {
+            throw new InvalidDataException(
+                "The GitHub Release does not provide SHA-256 for the update package.");
+        }
+
+        if (package.Size <= 0 || checksum is not null
+                && (checksum.Size <= 0 || checksum.Size > MaximumChecksumFileSize))
         {
             throw new InvalidDataException("The GitHub Release contains invalid update asset sizes.");
         }
 
         ValidateReleaseAssetUrl(package.BrowserDownloadUrl, owner, repository,
             release.TagName, packageName);
-        ValidateReleaseAssetUrl(checksum.BrowserDownloadUrl, owner, repository,
-            release.TagName, checksumName);
+        if (checksum is not null)
+        {
+            ValidateReleaseAssetUrl(checksum.BrowserDownloadUrl, owner, repository,
+                release.TagName, checksumName);
+        }
         return new GitHubReleaseSelection
         {
             Version = version.ToString(),
             Release = release,
             Package = package,
-            Checksum = checksum
+            Checksum = checksum,
+            PackageDigestSha256 = packageDigestSha256
         };
     }
 
@@ -134,6 +146,42 @@ public static class UpdateValidation
                 $"The GitHub Release must contain exactly one {expectedName} asset.");
         }
         return matches[0];
+    }
+
+    private static GitHubReleaseAsset? ResolveOptionalSingleAsset(
+        IEnumerable<GitHubReleaseAsset> assets, string expectedName)
+    {
+        var matches = assets.Where(asset => asset is not null
+            && string.Equals(asset.Name, expectedName, StringComparison.Ordinal)).ToArray();
+        if (matches.Length > 1)
+        {
+            throw new InvalidDataException(
+                $"The GitHub Release contains more than one {expectedName} asset.");
+        }
+        return matches.SingleOrDefault();
+    }
+
+    private static string? ParseGitHubAssetSha256(string? digest)
+    {
+        if (digest is null)
+        {
+            return null;
+        }
+
+        const string prefix = "sha256:";
+        if (!digest.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                "The GitHub Release contains an unsupported Asset digest.");
+        }
+
+        var hash = digest[prefix.Length..];
+        if (!IsSha256(hash))
+        {
+            throw new InvalidDataException(
+                "The GitHub Release contains an invalid SHA-256 Asset digest.");
+        }
+        return hash.ToLowerInvariant();
     }
 
     private static void ValidateReleaseAssetUrl(Uri? uri, string owner, string repository,

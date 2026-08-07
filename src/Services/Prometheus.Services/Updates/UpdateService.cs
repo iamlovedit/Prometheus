@@ -104,7 +104,10 @@ public sealed class UpdateService : IUpdateService, IDisposable
                 Version = selection.Version,
                 IsMandatory = false,
                 ReleaseNotes = selection.Release.Body ?? string.Empty,
-                DownloadSize = selection.Package.Size
+                DownloadSize = selection.Package.Size,
+                ReleasePageUrl = new Uri(
+                    $"https://github.com/{_options.GitHubOwner}/"
+                    + $"{_options.GitHubRepository}/releases/tag/{selection.Release.TagName}")
             };
             SetState(UpdateState.Available, 0, null);
             return AvailableUpdate;
@@ -135,6 +138,34 @@ public sealed class UpdateService : IUpdateService, IDisposable
         }
     }
 
+    public bool OpenReleasePage()
+    {
+        if (AvailableUpdate?.ReleasePageUrl is not { } releasePageUrl)
+        {
+            return false;
+        }
+
+        try
+        {
+            _startProcess(new ProcessStartInfo(releasePageUrl.AbsoluteUri)
+            {
+                UseShellExecute = true
+            });
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Log.Warning(exception, "Unable to open the Prometheus GitHub Release page");
+            var isChinese = string.Equals(
+                CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+                "zh", StringComparison.OrdinalIgnoreCase);
+            SetState(UpdateState.Failed, 0, isChinese
+                ? "无法打开 GitHub Release 页面，请检查系统浏览器设置。"
+                : "Unable to open the GitHub Release page. Check the default browser settings.");
+            return false;
+        }
+    }
+
     public async Task DownloadAsync(CancellationToken cancellationToken = default)
     {
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -148,10 +179,8 @@ public sealed class UpdateService : IUpdateService, IDisposable
             SetState(UpdateState.Downloading, 0, null);
             var updateRoot = Path.Combine(_localDataRoot, "Updates", _selection.Version);
             Directory.CreateDirectory(updateRoot);
-            var checksumContent = await DownloadChecksumAsync(_selection.Checksum,
-                cancellationToken).ConfigureAwait(false);
-            _packageSha256 = UpdateValidation.ParseSha256File(checksumContent,
-                _selection.Package.Name);
+            _packageSha256 = await ResolvePackageSha256Async(_selection, cancellationToken)
+                .ConfigureAwait(false);
 
             _packagePath = Path.Combine(updateRoot, _selection.Package.Name);
             var metadataPath = Path.Combine(updateRoot, "download.json");
@@ -362,6 +391,31 @@ public sealed class UpdateService : IUpdateService, IDisposable
             throw new InvalidDataException("The GitHub checksum asset size does not match.");
         }
         return new UTF8Encoding(false, true).GetString(bytes);
+    }
+
+    private async Task<string> ResolvePackageSha256Async(GitHubReleaseSelection selection,
+        CancellationToken cancellationToken)
+    {
+        string? checksumSha256 = null;
+        if (selection.Checksum is not null)
+        {
+            var checksumContent = await DownloadChecksumAsync(selection.Checksum,
+                cancellationToken).ConfigureAwait(false);
+            checksumSha256 = UpdateValidation.ParseSha256File(checksumContent,
+                selection.Package.Name);
+        }
+
+        if (selection.PackageDigestSha256 is not null && checksumSha256 is not null
+            && !string.Equals(selection.PackageDigestSha256, checksumSha256,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                "The GitHub Asset digest does not match the checksum file.");
+        }
+
+        return checksumSha256 ?? selection.PackageDigestSha256
+            ?? throw new InvalidDataException(
+                "The GitHub Release does not provide SHA-256 for the update package.");
     }
 
     private static void CleanupStaleHosts(string hostRoot)

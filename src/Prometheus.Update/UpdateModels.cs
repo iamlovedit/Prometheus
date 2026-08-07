@@ -28,6 +28,7 @@ public sealed class GitHubReleaseAsset
 {
     public string Name { get; set; } = string.Empty;
     public long Size { get; set; }
+    public string? Digest { get; set; }
 
     [JsonPropertyName("browser_download_url")]
     public Uri BrowserDownloadUrl { get; set; } = null!;
@@ -38,7 +39,8 @@ public sealed class GitHubReleaseSelection
     public string Version { get; init; } = string.Empty;
     public GitHubRelease Release { get; init; } = new();
     public GitHubReleaseAsset Package { get; init; } = new();
-    public GitHubReleaseAsset Checksum { get; init; } = new();
+    public GitHubReleaseAsset? Checksum { get; init; }
+    public string? PackageDigestSha256 { get; init; }
 }
 
 public sealed class UpdateDownloadMetadata

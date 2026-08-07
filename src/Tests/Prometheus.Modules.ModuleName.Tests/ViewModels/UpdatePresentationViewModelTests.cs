@@ -2,7 +2,6 @@ using Moq;
 using Prism.Events;
 using Prism.Modularity;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Modules.Setting.ViewModels;
@@ -16,69 +15,80 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 {
     public class UpdatePresentationViewModelTests
     {
-        [Theory]
-        [InlineData(UpdateState.Idle, false)]
-        [InlineData(UpdateState.Checking, false)]
-        [InlineData(UpdateState.UpToDate, false)]
-        [InlineData(UpdateState.Available, false)]
-        [InlineData(UpdateState.Downloading, true)]
-        [InlineData(UpdateState.ReadyToInstall, true)]
-        [InlineData(UpdateState.Installing, true)]
-        [InlineData(UpdateState.Failed, false)]
-        public void ProgressVisibility_OnlyShowsFromDownloadThroughInstall(
-            UpdateState state, bool expectedVisible)
+        [Fact]
+        public void SettingsAction_ChangesFromCheckToGitHubDownloadWhenUpdateIsAvailable()
         {
-            var updateService = CreateUpdateService(state);
+            AvailableUpdate availableUpdate = null;
+            var state = UpdateState.Idle;
+            var updateService = new Mock<IUpdateService>();
+            updateService.SetupGet(service => service.State).Returns(() => state);
+            updateService.SetupGet(service => service.AvailableUpdate)
+                .Returns(() => availableUpdate);
             var preferenceViewModel = CreatePreferenceViewModel(updateService.Object);
-            var dialogViewModel = new UpdateDialogViewModel(
-                updateService.Object,
-                new EventAggregator(),
-                CreateResourceService().Object);
 
             try
             {
-                Assert.Equal(expectedVisible, preferenceViewModel.IsUpdateProgressVisible);
-                Assert.Equal(expectedVisible, dialogViewModel.IsProgressVisible);
+                Assert.Equal("Update.Settings.Check", preferenceViewModel.UpdateActionText);
+
+                availableUpdate = new AvailableUpdate();
+                state = UpdateState.Available;
+                RaiseUpdateStateChanged(updateService, state, 0);
+
+                Assert.Equal("Update.Settings.Download", preferenceViewModel.UpdateActionText);
             }
             finally
             {
                 preferenceViewModel.Destroy();
-                dialogViewModel.OnDialogClosed();
             }
         }
 
         [Fact]
-        public void ProgressVisibility_RefreshesWhenUpdateStateChanges()
+        public void SettingsAction_WhenUpdateIsKnown_OpensGitHubWithoutCheckingAgain()
         {
-            var state = UpdateState.Available;
             var updateService = new Mock<IUpdateService>();
-            updateService.SetupGet(service => service.State).Returns(() => state);
-            updateService.SetupGet(service => service.Progress).Returns(0.5);
+            updateService.SetupGet(service => service.State).Returns(UpdateState.Available);
+            updateService.SetupGet(service => service.AvailableUpdate)
+                .Returns(new AvailableUpdate());
+            updateService.Setup(service => service.OpenReleasePage()).Returns(true);
 
             var preferenceViewModel = CreatePreferenceViewModel(updateService.Object);
-            var dialogViewModel = new UpdateDialogViewModel(
-                updateService.Object,
-                new EventAggregator(),
-                CreateResourceService().Object);
 
             try
             {
-                state = UpdateState.Downloading;
-                RaiseUpdateStateChanged(updateService, state, 0.5);
+                preferenceViewModel.CheckForUpdatesCommand.Execute();
 
-                Assert.True(preferenceViewModel.IsUpdateProgressVisible);
-                Assert.True(dialogViewModel.IsProgressVisible);
-
-                state = UpdateState.Failed;
-                RaiseUpdateStateChanged(updateService, state, 0.5, "download failed");
-
-                Assert.False(preferenceViewModel.IsUpdateProgressVisible);
-                Assert.False(dialogViewModel.IsProgressVisible);
+                updateService.Verify(service => service.OpenReleasePage(), Times.Once);
+                updateService.Verify(service => service.CheckAsync(
+                    It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
             }
             finally
             {
                 preferenceViewModel.Destroy();
-                dialogViewModel.OnDialogClosed();
+            }
+        }
+
+        [Fact]
+        public void SettingsAction_WhenCheckFindsUpdate_OpensGitHubReleasePage()
+        {
+            var updateService = new Mock<IUpdateService>();
+            updateService.SetupGet(service => service.State).Returns(UpdateState.Idle);
+            updateService.Setup(service => service.CheckAsync(true,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new AvailableUpdate());
+            updateService.Setup(service => service.OpenReleasePage()).Returns(true);
+            var preferenceViewModel = CreatePreferenceViewModel(updateService.Object);
+
+            try
+            {
+                preferenceViewModel.CheckForUpdatesCommand.Execute();
+
+                updateService.Verify(service => service.CheckAsync(true,
+                    It.IsAny<CancellationToken>()), Times.Once);
+                updateService.Verify(service => service.OpenReleasePage(), Times.Once);
+            }
+            finally
+            {
+                preferenceViewModel.Destroy();
             }
         }
 
@@ -109,14 +119,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             eventAggregator.GetEvent<WindowClosingEvent>().Publish();
         }
 
-        private static Mock<IUpdateService> CreateUpdateService(UpdateState state)
-        {
-            var updateService = new Mock<IUpdateService>();
-            updateService.SetupGet(service => service.State).Returns(state);
-            updateService.SetupGet(service => service.Progress).Returns(0.5);
-            return updateService;
-        }
-
         private static PreferenceViewModel CreatePreferenceViewModel(
             IUpdateService updateService)
         {
@@ -136,8 +138,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 matchService.Object,
                 logHistory.Object,
                 loggingControl.Object,
-                updateService,
-                new Mock<IDialogService>().Object);
+                updateService);
         }
 
         private static MainWindowViewModel CreateMainWindowViewModel(
@@ -158,7 +159,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 updateService,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 new Mock<ILcuCompanionSettings>().Object);

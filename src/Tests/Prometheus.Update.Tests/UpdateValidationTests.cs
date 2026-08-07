@@ -14,6 +14,45 @@ public sealed class UpdateValidationTests
 
         Assert.Equal("2.0.0", selection.Version);
         Assert.Equal("Prometheus-2.0.0-win-x64.zip", selection.Package.Name);
+        Assert.NotNull(selection.Checksum);
+        Assert.Equal(new string('a', 64), selection.PackageDigestSha256);
+    }
+
+    [Fact]
+    public void ValidateGitHubRelease_WithAssetDigestOnly_ReturnsSelection()
+    {
+        var release = ValidRelease();
+        release.Assets.RemoveAt(1);
+
+        var selection = UpdateValidation.ValidateGitHubRelease(release,
+            "iamlovedit", "Prometheus");
+
+        Assert.Null(selection.Checksum);
+        Assert.Equal(new string('a', 64), selection.PackageDigestSha256);
+    }
+
+    [Fact]
+    public void ValidateGitHubRelease_WithChecksumOnly_ReturnsSelection()
+    {
+        var release = ValidRelease();
+        release.Assets[0].Digest = null;
+
+        var selection = UpdateValidation.ValidateGitHubRelease(release,
+            "iamlovedit", "Prometheus");
+
+        Assert.NotNull(selection.Checksum);
+        Assert.Null(selection.PackageDigestSha256);
+    }
+
+    [Fact]
+    public void ValidateGitHubRelease_WithoutSha256Source_Throws()
+    {
+        var release = ValidRelease();
+        release.Assets[0].Digest = null;
+        release.Assets.RemoveAt(1);
+
+        Assert.Throws<InvalidDataException>(() =>
+            UpdateValidation.ValidateGitHubRelease(release, "iamlovedit", "Prometheus"));
     }
 
     [Theory]
@@ -48,6 +87,26 @@ public sealed class UpdateValidationTests
     {
         var release = ValidRelease();
         release.Assets.Add(release.Assets[0]);
+
+        Assert.Throws<InvalidDataException>(() =>
+            UpdateValidation.ValidateGitHubRelease(release, "iamlovedit", "Prometheus"));
+    }
+
+    [Fact]
+    public void ValidateGitHubRelease_WhenChecksumIsDuplicated_Throws()
+    {
+        var release = ValidRelease();
+        release.Assets.Add(release.Assets[1]);
+
+        Assert.Throws<InvalidDataException>(() =>
+            UpdateValidation.ValidateGitHubRelease(release, "iamlovedit", "Prometheus"));
+    }
+
+    [Fact]
+    public void ValidateGitHubRelease_WhenSha256DigestIsInvalid_Throws()
+    {
+        var release = ValidRelease();
+        release.Assets[0].Digest = "sha256:not-a-hash";
 
         Assert.Throws<InvalidDataException>(() =>
             UpdateValidation.ValidateGitHubRelease(release, "iamlovedit", "Prometheus"));
@@ -101,6 +160,7 @@ public sealed class UpdateValidationTests
                 {
                     Name = packageName,
                     Size = 100,
+                    Digest = $"sha256:{new string('a', 64)}",
                     BrowserDownloadUrl = new Uri(
                         $"https://github.com/iamlovedit/Prometheus/releases/download/v2.0.0/{packageName}")
                 },

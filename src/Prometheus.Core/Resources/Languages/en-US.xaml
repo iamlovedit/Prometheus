@@ -50,14 +50,9 @@
     <sys:String x:Key="Setting.Diagnostics.Logging.Description">Records operations, diagnostics, WebSocket events, and exceptions only when enabled; off by default and effective immediately</sys:String>
     <sys:String x:Key="Setting.AutoSave">All changes are saved automatically</sys:String>
     <sys:String x:Key="Update.Settings.Title">Software update</sys:String>
-    <sys:String x:Key="Update.Settings.Description">Check for and install the latest stable Prometheus release</sys:String>
+    <sys:String x:Key="Update.Settings.Description">Check the latest stable version and download it from GitHub Releases</sys:String>
     <sys:String x:Key="Update.Settings.Check">Check for updates</sys:String>
-    <sys:String x:Key="Update.Dialog.Title">A new version is available</sys:String>
-    <sys:String x:Key="Update.Dialog.Version">Version</sys:String>
-    <sys:String x:Key="Update.Dialog.Install">Download and install</sys:String>
-    <sys:String x:Key="Update.Dialog.Later">Later</sys:String>
-    <sys:String x:Key="Update.Dialog.Cancel">Cancel download</sys:String>
-    <sys:String x:Key="Update.Dialog.Exit">Exit</sys:String>
+    <sys:String x:Key="Update.Settings.Download">Download from GitHub</sys:String>
     <sys:String x:Key="Update.Status.Idle">Updates have not been checked</sys:String>
     <sys:String x:Key="Update.Status.Checking">Checking for updates</sys:String>
     <sys:String x:Key="Update.Status.UpToDate">Prometheus is up to date</sys:String>

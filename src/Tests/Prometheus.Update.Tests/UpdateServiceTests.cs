@@ -38,6 +38,8 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.Equal("2.0.0", update.Version);
         Assert.Equal("Release notes", update.ReleaseNotes);
         Assert.False(update.IsMandatory);
+        Assert.Equal("https://github.com/iamlovedit/Prometheus/releases/tag/v2.0.0",
+            update.ReleasePageUrl.AbsoluteUri);
         Assert.Equal(UpdateState.Available, service.State);
         Assert.Equal("https://api.github.com/repos/iamlovedit/Prometheus/releases/latest",
             requestedUri);
@@ -115,6 +117,39 @@ public sealed class UpdateServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task OpenReleasePage_WithAvailableUpdate_UsesDefaultBrowser()
+    {
+        var fixture = CreateFixture("2.0.0");
+        ProcessStartInfo? capturedStartInfo = null;
+        using var service = CreateService(_ => JsonResponse(fixture.Release),
+            startProcess: startInfo => capturedStartInfo = startInfo);
+        await service.CheckAsync(true);
+
+        var opened = service.OpenReleasePage();
+
+        Assert.True(opened);
+        Assert.NotNull(capturedStartInfo);
+        Assert.True(capturedStartInfo.UseShellExecute);
+        Assert.Equal("https://github.com/iamlovedit/Prometheus/releases/tag/v2.0.0",
+            capturedStartInfo.FileName);
+    }
+
+    [Fact]
+    public async Task OpenReleasePage_WhenBrowserCannotStart_ReportsFailure()
+    {
+        var fixture = CreateFixture("2.0.0");
+        using var service = CreateService(_ => JsonResponse(fixture.Release),
+            startProcess: _ => throw new InvalidOperationException("No browser"));
+        await service.CheckAsync(true);
+
+        var opened = service.OpenReleasePage();
+
+        Assert.False(opened);
+        Assert.Equal(UpdateState.Failed, service.State);
+        Assert.NotNull(service.ErrorMessage);
+    }
+
+    [Fact]
     public async Task DownloadAsync_WithValidAssets_VerifiesAndPreparesPackage()
     {
         var fixture = CreateFixture("2.0.0", [1, 2, 3, 4, 5]);
@@ -128,6 +163,34 @@ public sealed class UpdateServiceTests : IDisposable
         Assert.Equal(UpdateState.ReadyToInstall, service.State);
         Assert.Equal(fixture.PackageBytes, await File.ReadAllBytesAsync(packagePath));
         Assert.False(File.Exists(packagePath + ".part"));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WithGitHubDigestOnly_VerifiesAndPreparesPackage()
+    {
+        var fixture = CreateFixture("2.0.0", [1, 2, 3, 4, 5]);
+        fixture.Release.Assets.RemoveAll(asset => asset.Name.EndsWith(".sha256",
+            StringComparison.Ordinal));
+        var checksumRequested = false;
+        using var service = CreateService(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/releases/latest", StringComparison.Ordinal))
+            {
+                return JsonResponse(fixture.Release);
+            }
+            checksumRequested |= path.EndsWith(".sha256", StringComparison.Ordinal);
+            return BytesResponse(fixture.PackageBytes);
+        });
+        await service.CheckAsync(true);
+
+        await service.DownloadAsync();
+
+        var packagePath = Path.Combine(_root, "local", "Updates", "2.0.0",
+            fixture.PackageName);
+        Assert.False(checksumRequested);
+        Assert.Equal(UpdateState.ReadyToInstall, service.State);
+        Assert.Equal(fixture.PackageBytes, await File.ReadAllBytesAsync(packagePath));
     }
 
     [Fact]
@@ -179,6 +242,8 @@ public sealed class UpdateServiceTests : IDisposable
         var fixture = CreateFixture("2.0.0", [1, 2, 3]);
         fixture.ChecksumBytes = Encoding.ASCII.GetBytes(
             $"{new string('0', 64)}  {fixture.PackageName}");
+        fixture.Release.Assets.Single(asset => asset.Name == fixture.PackageName).Digest =
+            $"sha256:{new string('0', 64)}";
         fixture.Release.Assets.Single(asset => asset.Name.EndsWith(".sha256",
             StringComparison.Ordinal)).Size = fixture.ChecksumBytes.Length;
         using var service = CreateService(request => RouteFixture(request, fixture));
@@ -190,6 +255,37 @@ public sealed class UpdateServiceTests : IDisposable
             fixture.PackageName);
         Assert.Equal(UpdateState.Failed, service.State);
         Assert.False(File.Exists(packagePath));
+    }
+
+    [Fact]
+    public async Task DownloadAsync_WhenDigestAndChecksumDisagree_RejectsRelease()
+    {
+        var fixture = CreateFixture("2.0.0", [1, 2, 3]);
+        fixture.ChecksumBytes = Encoding.ASCII.GetBytes(
+            $"{new string('0', 64)}  {fixture.PackageName}");
+        fixture.Release.Assets.Single(asset => asset.Name.EndsWith(".sha256",
+            StringComparison.Ordinal)).Size = fixture.ChecksumBytes.Length;
+        var packageRequested = false;
+        using var service = CreateService(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/releases/latest", StringComparison.Ordinal))
+            {
+                return JsonResponse(fixture.Release);
+            }
+            if (path.EndsWith(".sha256", StringComparison.Ordinal))
+            {
+                return BytesResponse(fixture.ChecksumBytes);
+            }
+            packageRequested = true;
+            return BytesResponse(fixture.PackageBytes);
+        });
+        await service.CheckAsync(true);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.DownloadAsync());
+
+        Assert.False(packageRequested);
+        Assert.Equal(UpdateState.Failed, service.State);
     }
 
     [Fact]
@@ -292,6 +388,7 @@ public sealed class UpdateServiceTests : IDisposable
                 {
                     Name = packageName,
                     Size = packageBytes.Length,
+                    Digest = $"sha256:{hash}",
                     BrowserDownloadUrl = new Uri(baseUrl + packageName)
                 },
                 new GitHubReleaseAsset

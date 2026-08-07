@@ -2,7 +2,6 @@ using Moq;
 using Prism.Events;
 using Prism.Modularity;
 using Prism.Regions;
-using Prism.Services.Dialogs;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
@@ -42,7 +41,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings().Object);
@@ -96,7 +94,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 automationSettings.Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings().Object);
@@ -137,7 +134,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 companionSettings.Object);
@@ -179,7 +175,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings().Object);
@@ -221,7 +216,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings().Object);
@@ -268,7 +262,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings(autoShowMatch: false).Object);
@@ -310,7 +303,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 companionSettings.Object);
@@ -350,7 +342,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings().Object);
@@ -529,7 +520,6 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IProfilePresentationStartupService>().Object,
                 new Mock<IGameAutomationSettings>().Object,
                 new Mock<IUpdateService>().Object,
-                new Mock<IDialogService>().Object,
                 gameService.Object,
                 quickMatchSettings.Object,
                 CreateCompanionSettings().Object);
