@@ -174,7 +174,11 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition />
-                            <RowDefinition Height="Auto" />
+                            <!--
+                                Fixed height so loaded and loading cards share the same geometry.
+                                Dots are 7 px; status text is ~12 px — 16 px covers both.
+                            -->
+                            <RowDefinition Height="16" />
                         </Grid.RowDefinitions>
                         <Grid VerticalAlignment="Top">
                             <Grid.ColumnDefinitions>
@@ -213,7 +217,7 @@
                                 Foreground="{DynamicResource PrimaryTextBrush}"
                                 Text="{Binding KdaText}" />
                         </Grid>
-                        <Grid Grid.Row="2" VerticalAlignment="Bottom">
+                        <Grid Grid.Row="2" VerticalAlignment="Center">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
@@ -232,6 +236,7 @@
                                 Grid.Column="1"
                                 Margin="8,0,0,0"
                                 HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
                                 FontSize="10"
                                 Foreground="{DynamicResource SecondaryTextBrush}"
                                 Text="{Binding StatusText}"
