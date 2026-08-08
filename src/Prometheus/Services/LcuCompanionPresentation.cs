@@ -59,8 +59,31 @@ namespace Prometheus.Desktop.Services
         public static int GetLocalChampionId(LiveMatchSnapshot snapshot)
         {
             var championSelect = snapshot?.ChampionSelect;
-            return championSelect?.MyTeam?.FirstOrDefault(member =>
-                    member?.CellId == championSelect.LocalPlayerCellId)?.ChampionId ?? 0;
+            var member = championSelect?.MyTeam?.FirstOrDefault(item =>
+                item?.CellId == championSelect.LocalPlayerCellId);
+            return member?.ChampionId > 0
+                ? member.ChampionId
+                : member?.ChampionPickIntent ?? 0;
+        }
+
+        public static string GetLocalAssignedPosition(LiveMatchSnapshot snapshot)
+        {
+            var championSelect = snapshot?.ChampionSelect;
+            var position = championSelect?.MyTeam?.FirstOrDefault(member =>
+                    member?.CellId == championSelect.LocalPlayerCellId)
+                ?.AssignedPosition;
+            return position?.Trim().ToLowerInvariant() switch
+            {
+                "middle" => "mid",
+                "utility" => "support",
+                "bot" or "adc" => "bottom",
+                "top" => "top",
+                "jungle" => "jungle",
+                "mid" => "mid",
+                "bottom" => "bottom",
+                "support" => "support",
+                _ => string.Empty
+            };
         }
 
         public static int GetAramAutomationTarget(

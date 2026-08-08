@@ -1,12 +1,17 @@
 using Prism.Events;
+using Prism.Commands;
 using Prism.Mvvm;
 using Prometheus.Core.Events;
+using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Desktop.Services;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
+using Serilog.Events;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -68,10 +73,20 @@ namespace Prometheus.ViewModels
         }
     }
 
+    public sealed class LcuCompanionRunePerkViewModel
+    {
+        public int PerkId { get; init; }
+
+        public string Name { get; init; } = string.Empty;
+
+        public string Icon { get; init; } = string.Empty;
+    }
+
     public sealed class LcuCompanionViewModel : BindableBase
     {
         private readonly IEventAggregator _eventAggregator;
         private readonly IMatchService _matchService;
+        private readonly IGameService _gameService;
         private readonly IGameAutomationSettings _automationSettings;
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IResourceService _resourceService;
@@ -79,11 +94,23 @@ namespace Prometheus.ViewModels
         private Task<IReadOnlyDictionary<int, string>> _championNamesTask;
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
         private long _resourceGeneration;
+        private long _runeGeneration;
+        private CancellationTokenSource _runeRecommendationCts;
+        private CancellationTokenSource _runeApplyCts;
+        private RuneRecommendationSet _runeRecommendations;
+        private RuneRecommendationOption _selectedRuneRecommendation;
+        private IReadOnlyDictionary<int, (string Name, string Icon)> _runeResources =
+            new Dictionary<int, (string Name, string Icon)>();
+        private RuneRecommendationKind _selectedRuneKind = RuneRecommendationKind.Popular;
+        private string _runeRequestKey = string.Empty;
+        private string _runeChampionName = string.Empty;
+        private string _appliedRuneSignature = string.Empty;
         private bool _started;
 
         public LcuCompanionViewModel(
             IEventAggregator eventAggregator,
             IMatchService matchService,
+            IGameService gameService,
             IGameAutomationSettings automationSettings,
             IGameResourceManager gameResourceManager,
             IResourceService resourceService)
@@ -91,6 +118,7 @@ namespace Prometheus.ViewModels
             _eventAggregator = eventAggregator ??
                 throw new ArgumentNullException(nameof(eventAggregator));
             _matchService = matchService ?? throw new ArgumentNullException(nameof(matchService));
+            _gameService = gameService ?? throw new ArgumentNullException(nameof(gameService));
             _automationSettings = automationSettings ??
                 throw new ArgumentNullException(nameof(automationSettings));
             _gameResourceManager = gameResourceManager ??
@@ -103,11 +131,27 @@ namespace Prometheus.ViewModels
 
             Teammates = [];
             AutomationCards = [];
+            RunePerks = [];
+            SelectPopularRuneCommand = new DelegateCommand(
+                () => SelectRuneRecommendation(RuneRecommendationKind.Popular));
+            SelectWinRateRuneCommand = new DelegateCommand(
+                () => SelectRuneRecommendation(RuneRecommendationKind.WinRate));
+            ApplyRuneCommand = new DelegateCommand(
+                ExecuteApplyRune,
+                CanApplyRune);
         }
 
         public ObservableCollection<LcuCompanionPlayerViewModel> Teammates { get; }
 
         public ObservableCollection<LcuCompanionAutomationCardViewModel> AutomationCards { get; }
+
+        public ObservableCollection<LcuCompanionRunePerkViewModel> RunePerks { get; }
+
+        public DelegateCommand SelectPopularRuneCommand { get; }
+
+        public DelegateCommand SelectWinRateRuneCommand { get; }
+
+        public DelegateCommand ApplyRuneCommand { get; }
 
         private string _modeText = string.Empty;
         public string ModeText
@@ -121,6 +165,109 @@ namespace Prometheus.ViewModels
         {
             get => _teamStatusText;
             private set => SetProperty(ref _teamStatusText, value);
+        }
+
+        private bool _isRuneRecommendationVisible;
+        public bool IsRuneRecommendationVisible
+        {
+            get => _isRuneRecommendationVisible;
+            private set => SetProperty(ref _isRuneRecommendationVisible, value);
+        }
+
+        private bool _isRuneRecommendationLoading;
+        public bool IsRuneRecommendationLoading
+        {
+            get => _isRuneRecommendationLoading;
+            private set => SetProperty(ref _isRuneRecommendationLoading, value);
+        }
+
+        private bool _hasRuneRecommendation;
+        public bool HasRuneRecommendation
+        {
+            get => _hasRuneRecommendation;
+            private set => SetProperty(ref _hasRuneRecommendation, value);
+        }
+
+        private bool _isPopularRuneSelected = true;
+        public bool IsPopularRuneSelected
+        {
+            get => _isPopularRuneSelected;
+            private set => SetProperty(ref _isPopularRuneSelected, value);
+        }
+
+        private bool _isWinRateRuneSelected;
+        public bool IsWinRateRuneSelected
+        {
+            get => _isWinRateRuneSelected;
+            private set => SetProperty(ref _isWinRateRuneSelected, value);
+        }
+
+        private bool _isRuneRecommendationValid;
+        public bool IsRuneRecommendationValid
+        {
+            get => _isRuneRecommendationValid;
+            private set
+            {
+                if (SetProperty(ref _isRuneRecommendationValid, value))
+                {
+                    ApplyRuneCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private bool _isApplyingRune;
+        public bool IsApplyingRune
+        {
+            get => _isApplyingRune;
+            private set
+            {
+                if (SetProperty(ref _isApplyingRune, value))
+                {
+                    ApplyRuneCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _runeChampionText = string.Empty;
+        public string RuneChampionText
+        {
+            get => _runeChampionText;
+            private set => SetProperty(ref _runeChampionText, value);
+        }
+
+        private string _runeStyleText = string.Empty;
+        public string RuneStyleText
+        {
+            get => _runeStyleText;
+            private set => SetProperty(ref _runeStyleText, value);
+        }
+
+        private string _runeStatsText = string.Empty;
+        public string RuneStatsText
+        {
+            get => _runeStatsText;
+            private set => SetProperty(ref _runeStatsText, value);
+        }
+
+        private string _runeSourceText = string.Empty;
+        public string RuneSourceText
+        {
+            get => _runeSourceText;
+            private set => SetProperty(ref _runeSourceText, value);
+        }
+
+        private string _runeStatusText = string.Empty;
+        public string RuneStatusText
+        {
+            get => _runeStatusText;
+            private set => SetProperty(ref _runeStatusText, value);
+        }
+
+        private string _runeApplyButtonText = string.Empty;
+        public string RuneApplyButtonText
+        {
+            get => _runeApplyButtonText;
+            private set => SetProperty(ref _runeApplyButtonText, value);
         }
 
         public void Start()
@@ -147,6 +294,8 @@ namespace Prometheus.ViewModels
 
             _started = false;
             _resourceGeneration++;
+            _runeGeneration++;
+            CancelRuneOperations();
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
             _automationSettings.Changed -= HandleAutomationSettingsChanged;
             _eventAggregator.GetEvent<LanguageSwitchedEvent>()
@@ -201,6 +350,8 @@ namespace Prometheus.ViewModels
             Replace(AutomationCards, cards);
             var generation = ++_resourceGeneration;
             _ = LoadChampionResourcesAsync(cards, generation);
+            UpdateRuneRecommendation(_snapshot);
+            ApplyRuneCommand.RaiseCanExecuteChanged();
         }
 
         private LcuCompanionPlayerViewModel CreatePlayer(LiveMatchPlayerSnapshot player)
@@ -448,6 +599,596 @@ namespace Prometheus.ViewModels
                 .ToDictionary(
                     group => group.Key,
                     group => group.First().Name ?? $"#{group.Key}");
+        }
+
+        private void UpdateRuneRecommendation(LiveMatchSnapshot snapshot)
+        {
+            var mode = LcuCompanionPresentation.GetMode(snapshot);
+            var shouldShow = snapshot?.GameflowPhase == GameflowPhase.ChampSelect &&
+                mode != LcuCompanionMode.HextechAram;
+            IsRuneRecommendationVisible = shouldShow;
+            if (!shouldShow)
+            {
+                ResetRuneRecommendation(hide: true);
+                return;
+            }
+
+            var championId = LcuCompanionPresentation.GetLocalChampionId(snapshot);
+            var lane = LcuCompanionPresentation.GetLocalAssignedPosition(snapshot);
+            var isAram = mode == LcuCompanionMode.Aram;
+            var requestKey = championId > 0
+                ? $"{championId}:{lane}:{isAram}"
+                : string.Empty;
+            if (championId <= 0)
+            {
+                if (!string.IsNullOrEmpty(_runeRequestKey))
+                {
+                    ResetRuneRecommendation(hide: false);
+                }
+
+                RuneStatusText = Text(
+                    "Companion.Runes.WaitingForChampion",
+                    "Select a champion to view recommendations");
+                RuneApplyButtonText = Text(
+                    "Companion.Runes.Apply",
+                    "Apply to League Client");
+                return;
+            }
+
+            if (string.Equals(requestKey, _runeRequestKey, StringComparison.Ordinal))
+            {
+                if (IsRuneRecommendationLoading)
+                {
+                    RuneStatusText = Text(
+                        "Companion.Runes.Loading",
+                        "Loading rune recommendations");
+                }
+                else
+                {
+                    RefreshRunePresentation();
+                }
+
+                return;
+            }
+
+            CancelRuneOperations();
+            _runeRequestKey = requestKey;
+            _runeRecommendations = null;
+            _selectedRuneRecommendation = null;
+            _runeResources = new Dictionary<int, (string Name, string Icon)>();
+            _runeChampionName = $"#{championId}";
+            _selectedRuneKind = RuneRecommendationKind.Popular;
+            _appliedRuneSignature = string.Empty;
+            Replace(RunePerks, []);
+            HasRuneRecommendation = false;
+            IsRuneRecommendationValid = false;
+            IsRuneRecommendationLoading = true;
+            IsPopularRuneSelected = true;
+            IsWinRateRuneSelected = false;
+            RuneChampionText = $"#{championId}";
+            RuneStyleText = string.Empty;
+            RuneStatsText = string.Empty;
+            RuneSourceText = string.Empty;
+            RuneStatusText = Text(
+                "Companion.Runes.Loading",
+                "Loading rune recommendations");
+            RuneApplyButtonText = Text(
+                "Companion.Runes.Apply",
+                "Apply to League Client");
+
+            var generation = ++_runeGeneration;
+            _runeRecommendationCts = new CancellationTokenSource();
+            LoadRuneRecommendationAsync(
+                    championId,
+                    lane,
+                    isAram,
+                    requestKey,
+                    generation,
+                    _runeRecommendationCts.Token)
+                .Observe("Loading companion rune recommendations");
+        }
+
+        private async Task LoadRuneRecommendationAsync(
+            int championId,
+            string lane,
+            bool isAram,
+            string requestKey,
+            long generation,
+            CancellationToken cancellationToken)
+        {
+            RuneRecommendationSet recommendations;
+            try
+            {
+                recommendations = await _gameService.GetRuneRecommendationsAsync(
+                        championId, lane, isAram, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception,
+                    "Unable to load companion rune recommendations for champion {ChampionId}",
+                    championId);
+                Dispatch(() => CompleteRuneLoadFailure(requestKey, generation));
+                return;
+            }
+
+            if (recommendations is null)
+            {
+                Dispatch(() => CompleteRuneLoadFailure(requestKey, generation));
+                return;
+            }
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var perks = await _gameResourceManager.GetPerksAsync()
+                    .ConfigureAwait(false) ?? [];
+                var metadata = perks
+                    .Where(perk => perk is not null && perk.Id > 0)
+                    .GroupBy(perk => perk.Id)
+                    .ToDictionary(group => group.Key, group => group.First());
+                var allPerkIds = (recommendations.Popular?.SelectedPerkIds ?? [])
+                    .Concat(recommendations.WinRate?.SelectedPerkIds ?? [])
+                    .Where(perkId => perkId > 0)
+                    .Distinct()
+                    .ToArray();
+                var resources = new Dictionary<int, (string Name, string Icon)>();
+                foreach (var perkId in allPerkIds)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!metadata.TryGetValue(perkId, out var perk))
+                    {
+                        continue;
+                    }
+
+                    var icon = await _gameResourceManager.GetPerkIconByIdAsync(perkId)
+                        .ConfigureAwait(false) ?? string.Empty;
+                    resources[perkId] = (
+                        string.IsNullOrWhiteSpace(perk.Name) ? $"#{perkId}" : perk.Name,
+                        icon);
+                }
+
+                _championNamesTask ??= LoadChampionNamesAsync();
+                var championNames = await _championNamesTask.ConfigureAwait(false);
+                var championName = championNames.TryGetValue(championId, out var name)
+                    ? name
+                    : $"#{championId}";
+                Dispatch(() =>
+                {
+                    if (!CanCommitRuneResult(requestKey, generation))
+                    {
+                        return;
+                    }
+
+                    _runeRecommendations = recommendations;
+                    _runeResources = resources;
+                    _runeChampionName = championName;
+                    IsRuneRecommendationLoading = false;
+                    RefreshRunePresentation();
+                });
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception,
+                    "Unable to resolve companion rune resources for champion {ChampionId}",
+                    championId);
+                Dispatch(() => CompleteRuneLoadFailure(requestKey, generation));
+            }
+        }
+
+        private void CompleteRuneLoadFailure(string requestKey, long generation)
+        {
+            if (!CanCommitRuneResult(requestKey, generation))
+            {
+                return;
+            }
+
+            IsRuneRecommendationLoading = false;
+            HasRuneRecommendation = false;
+            IsRuneRecommendationValid = false;
+            RuneStatusText = Text(
+                "Companion.Runes.Unavailable",
+                "Rune recommendations are unavailable");
+        }
+
+        private bool CanCommitRuneResult(string requestKey, long generation)
+        {
+            return _started &&
+                generation == _runeGeneration &&
+                string.Equals(requestKey, _runeRequestKey, StringComparison.Ordinal);
+        }
+
+        private void SelectRuneRecommendation(RuneRecommendationKind kind)
+        {
+            if (_runeRecommendations is null || IsRuneRecommendationLoading)
+            {
+                return;
+            }
+
+            _selectedRuneKind = kind;
+            RefreshRunePresentation();
+        }
+
+        private void RefreshRunePresentation()
+        {
+            if (_runeRecommendations is null)
+            {
+                return;
+            }
+
+            _selectedRuneRecommendation = _selectedRuneKind == RuneRecommendationKind.WinRate
+                ? _runeRecommendations.WinRate ?? _runeRecommendations.Popular
+                : _runeRecommendations.Popular ?? _runeRecommendations.WinRate;
+            if (_selectedRuneRecommendation is null)
+            {
+                HasRuneRecommendation = false;
+                IsRuneRecommendationValid = false;
+                RuneStatusText = Text(
+                    "Companion.Runes.Unavailable",
+                    "Rune recommendations are unavailable");
+                return;
+            }
+
+            IsPopularRuneSelected = _selectedRuneKind == RuneRecommendationKind.Popular;
+            IsWinRateRuneSelected = _selectedRuneKind == RuneRecommendationKind.WinRate;
+            HasRuneRecommendation = true;
+            var laneText = GetRuneLaneText(_runeRecommendations.Lane);
+            RuneChampionText = string.IsNullOrWhiteSpace(laneText)
+                ? _runeChampionName
+                : $"{_runeChampionName} · {laneText}";
+            RuneStyleText = string.Format(
+                Text("Companion.Runes.Style.Format", "{0} > {1}"),
+                GetRuneStyleText(_selectedRuneRecommendation.PrimaryStyleId),
+                GetRuneStyleText(_selectedRuneRecommendation.SubStyleId));
+            RuneStatsText = FormatRuneStats(_selectedRuneRecommendation);
+            RuneSourceText = string.IsNullOrWhiteSpace(_runeRecommendations.DataVersion)
+                ? _runeRecommendations.Source
+                : $"{_runeRecommendations.Source} · {_runeRecommendations.DataVersion}";
+
+            var perkViewModels = _selectedRuneRecommendation.SelectedPerkIds
+                .Select(perkId => _runeResources.TryGetValue(perkId, out var resource)
+                    ? new LcuCompanionRunePerkViewModel
+                    {
+                        PerkId = perkId,
+                        Name = resource.Name,
+                        Icon = resource.Icon
+                    }
+                    : new LcuCompanionRunePerkViewModel
+                    {
+                        PerkId = perkId,
+                        Name = $"#{perkId}"
+                    })
+                .ToArray();
+            Replace(RunePerks, perkViewModels);
+            IsRuneRecommendationValid = perkViewModels.Length == 9 &&
+                perkViewModels.All(perk => _runeResources.ContainsKey(perk.PerkId));
+            var isApplied = string.Equals(
+                _appliedRuneSignature,
+                GetRuneSignature(_selectedRuneRecommendation),
+                StringComparison.Ordinal);
+            RuneStatusText = !IsRuneRecommendationValid
+                ? Text("Companion.Runes.Outdated", "Recommendation does not match this client version")
+                : isApplied
+                    ? Text("Companion.Runes.Applied", "Rune page applied")
+                    : Text("Companion.Runes.Ready", "Ready to apply");
+            RuneApplyButtonText = isApplied
+                ? Text("Companion.Runes.Applied.Button", "Applied")
+                : Text("Companion.Runes.Apply", "Apply to League Client");
+            ApplyRuneCommand.RaiseCanExecuteChanged();
+        }
+
+        private void ExecuteApplyRune()
+        {
+            ApplyRuneRecommendationAsync().Observe("Applying companion rune recommendation");
+        }
+
+        private bool CanApplyRune()
+        {
+            return _started &&
+                _snapshot.GameflowPhase == GameflowPhase.ChampSelect &&
+                _snapshot.ConnectionState == ConnectionState.Connected &&
+                IsRuneRecommendationVisible &&
+                IsRuneRecommendationValid &&
+                !IsRuneRecommendationLoading &&
+                !IsApplyingRune &&
+                _selectedRuneRecommendation is not null;
+        }
+
+        private async Task ApplyRuneRecommendationAsync()
+        {
+            if (!CanApplyRune())
+            {
+                return;
+            }
+
+            var recommendation = _selectedRuneRecommendation;
+            var championId = _runeRecommendations?.ChampionId ?? 0;
+            var queueId = LcuCompanionPresentation.GetQueueId(_snapshot);
+            var requestKey = _runeRequestKey;
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            _runeApplyCts?.Cancel();
+            _runeApplyCts?.Dispose();
+            var cancellationTokenSource = new CancellationTokenSource();
+            _runeApplyCts = cancellationTokenSource;
+            IsApplyingRune = true;
+            RuneStatusText = Text("Companion.Runes.Applying", "Applying rune page");
+            RuneApplyButtonText = Text("Companion.Runes.Applying.Button", "Applying...");
+
+            try
+            {
+                var result = await _gameService.ApplyRuneRecommendationAsync(
+                    GetManagedRunePageName(),
+                    recommendation,
+                    cancellationTokenSource.Token);
+                stopwatch.Stop();
+                if (result.PageCreated)
+                {
+                    WriteRuneOperation(
+                        LogEventLevel.Information,
+                        "rune.page.create",
+                        "Succeeded",
+                        operationId,
+                        championId,
+                        queueId,
+                        result.RunePageId,
+                        stopwatch.ElapsedMilliseconds,
+                        Text("Companion.Runes.Log.Created", "Created managed rune page"));
+                }
+
+                if (result.Succeeded)
+                {
+                    if (string.Equals(_runeRequestKey, requestKey, StringComparison.Ordinal))
+                    {
+                        _appliedRuneSignature = GetRuneSignature(recommendation);
+                        RuneStatusText = Text("Companion.Runes.Applied", "Rune page applied");
+                        RuneApplyButtonText = Text("Companion.Runes.Applied.Button", "Applied");
+                    }
+                    WriteRuneOperation(
+                        LogEventLevel.Information,
+                        "rune.page.apply",
+                        "Succeeded",
+                        operationId,
+                        championId,
+                        queueId,
+                        result.RunePageId,
+                        stopwatch.ElapsedMilliseconds,
+                        Text("Companion.Runes.Log.Applied", "Applied recommended rune page"));
+                }
+                else
+                {
+                    var rejected = result.Status is RunePageApplyStatus.ClientUnavailable or
+                        RunePageApplyStatus.InvalidRecommendation;
+                    var resultText = rejected
+                        ? Text("Companion.Runes.ClientUnavailable", "League Client is unavailable")
+                        : Text("Companion.Runes.ConfirmationFailed", "Unable to confirm the active rune page");
+                    if (string.Equals(_runeRequestKey, requestKey, StringComparison.Ordinal))
+                    {
+                        RuneStatusText = resultText;
+                    }
+                    WriteRuneOperation(
+                        rejected ? LogEventLevel.Warning : LogEventLevel.Error,
+                        "rune.page.apply",
+                        rejected ? "Rejected" : "Failed",
+                        operationId,
+                        championId,
+                        queueId,
+                        result.RunePageId,
+                        stopwatch.ElapsedMilliseconds,
+                        resultText,
+                        result.Status.ToString());
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                stopwatch.Stop();
+                var resultText = Text(
+                    "Companion.Runes.Cancelled", "Rune application cancelled");
+                if (string.Equals(_runeRequestKey, requestKey, StringComparison.Ordinal))
+                {
+                    RuneStatusText = resultText;
+                }
+                WriteRuneOperation(
+                    LogEventLevel.Information,
+                    "rune.page.apply",
+                    "Cancelled",
+                    operationId,
+                    championId,
+                    queueId,
+                    0,
+                    stopwatch.ElapsedMilliseconds,
+                    resultText,
+                    "Cancelled");
+            }
+            catch (Exception exception)
+            {
+                stopwatch.Stop();
+                var resultText = Text(
+                    "Companion.Runes.ApplyFailed", "Unable to apply rune page");
+                if (string.Equals(_runeRequestKey, requestKey, StringComparison.Ordinal))
+                {
+                    RuneStatusText = resultText;
+                }
+                WriteRuneOperation(
+                    LogEventLevel.Error,
+                    "rune.page.apply",
+                    "Failed",
+                    operationId,
+                    championId,
+                    queueId,
+                    0,
+                    stopwatch.ElapsedMilliseconds,
+                    resultText,
+                    null,
+                    exception);
+            }
+            finally
+            {
+                if (ReferenceEquals(_runeApplyCts, cancellationTokenSource))
+                {
+                    _runeApplyCts.Dispose();
+                    _runeApplyCts = null;
+                    if (string.Equals(_runeRequestKey, requestKey, StringComparison.Ordinal))
+                    {
+                        IsApplyingRune = false;
+                        if (string.IsNullOrWhiteSpace(RuneApplyButtonText) ||
+                            RuneApplyButtonText == Text(
+                                "Companion.Runes.Applying.Button", "Applying..."))
+                        {
+                            RuneApplyButtonText = Text(
+                                "Companion.Runes.Apply", "Apply to League Client");
+                        }
+                    }
+                }
+            }
+        }
+
+        private void ResetRuneRecommendation(bool hide)
+        {
+            CancelRuneOperations();
+            _runeGeneration++;
+            _runeRequestKey = string.Empty;
+            _runeRecommendations = null;
+            _selectedRuneRecommendation = null;
+            _runeResources = new Dictionary<int, (string Name, string Icon)>();
+            _appliedRuneSignature = string.Empty;
+            IsRuneRecommendationLoading = false;
+            HasRuneRecommendation = false;
+            IsRuneRecommendationValid = false;
+            IsApplyingRune = false;
+            Replace(RunePerks, []);
+            RuneChampionText = string.Empty;
+            RuneStyleText = string.Empty;
+            RuneStatsText = string.Empty;
+            RuneSourceText = string.Empty;
+            RuneApplyButtonText = Text("Companion.Runes.Apply", "Apply to League Client");
+            if (hide)
+            {
+                RuneStatusText = string.Empty;
+            }
+        }
+
+        private void CancelRuneOperations()
+        {
+            _runeRecommendationCts?.Cancel();
+            _runeRecommendationCts?.Dispose();
+            _runeRecommendationCts = null;
+            _runeApplyCts?.Cancel();
+        }
+
+        private string FormatRuneStats(RuneRecommendationOption recommendation)
+        {
+            var pickRate = recommendation.PickRateBasisPoints / 100d;
+            var winRate = recommendation.WinRateBasisPoints / 100d;
+            return recommendation.SampleCount > 0
+                ? string.Format(
+                    Text("Companion.Runes.Stats.WithSample", "Pick {0:0.0}% · Win {1:0.0}% · {2:N0} games"),
+                    pickRate,
+                    winRate,
+                    recommendation.SampleCount)
+                : string.Format(
+                    Text("Companion.Runes.Stats", "Pick {0:0.0}% · Win {1:0.0}%"),
+                    pickRate,
+                    winRate);
+        }
+
+        private string GetRuneLaneText(string lane)
+        {
+            return lane switch
+            {
+                "top" => Text("Companion.Runes.Lane.Top", "Top"),
+                "jungle" => Text("Companion.Runes.Lane.Jungle", "Jungle"),
+                "mid" => Text("Companion.Runes.Lane.Mid", "Mid"),
+                "bottom" => Text("Companion.Runes.Lane.Bottom", "Bottom"),
+                "support" => Text("Companion.Runes.Lane.Support", "Support"),
+                "aram" => Text("Companion.Mode.Aram", "ARAM"),
+                _ => string.Empty
+            };
+        }
+
+        private string GetRuneStyleText(int styleId)
+        {
+            return styleId switch
+            {
+                8000 => Text("Companion.Runes.Style.Precision", "Precision"),
+                8100 => Text("Companion.Runes.Style.Domination", "Domination"),
+                8200 => Text("Companion.Runes.Style.Sorcery", "Sorcery"),
+                8300 => Text("Companion.Runes.Style.Inspiration", "Inspiration"),
+                8400 => Text("Companion.Runes.Style.Resolve", "Resolve"),
+                _ => $"#{styleId}"
+            };
+        }
+
+        private static string GetRuneSignature(RuneRecommendationOption recommendation)
+        {
+            return recommendation is null
+                ? string.Empty
+                : $"{recommendation.PrimaryStyleId}:{recommendation.SubStyleId}:" +
+                  string.Join(',', recommendation.SelectedPerkIds);
+        }
+
+        private string GetManagedRunePageName()
+        {
+            var recommendationName = _selectedRuneKind == RuneRecommendationKind.WinRate
+                ? Text("Companion.Runes.PageName.WinRate", "Highest win rate runes")
+                : Text("Companion.Runes.PageName.Popular", "Most popular runes");
+            return $"{_runeChampionName} - {recommendationName} [Prometheus]";
+        }
+
+        private static void WriteRuneOperation(
+            LogEventLevel level,
+            string eventName,
+            string outcome,
+            Guid operationId,
+            int championId,
+            int queueId,
+            long runePageId,
+            long durationMs,
+            string displayMessage,
+            string errorCode = null,
+            Exception exception = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["TargetType"] = "RunePage",
+                ["TargetId"] = "PrometheusManaged",
+                ["ChampionId"] = championId,
+                ["QueueId"] = queueId,
+                ["DurationMs"] = durationMs
+            };
+            if (runePageId > 0)
+            {
+                properties["RunePageId"] = runePageId;
+            }
+
+            if (!string.IsNullOrWhiteSpace(errorCode))
+            {
+                properties["ErrorCode"] = errorCode;
+            }
+
+            if (exception is not null)
+            {
+                properties["ErrorType"] = exception.GetType().Name;
+            }
+
+            OperationLog.Write(
+                level,
+                eventName,
+                "Rune",
+                "Manual",
+                outcome,
+                operationId,
+                "Companion",
+                displayMessage,
+                properties,
+                exception);
         }
 
         private string GetModeText(LcuCompanionMode mode)

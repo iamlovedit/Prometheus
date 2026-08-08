@@ -67,6 +67,29 @@ namespace Prometheus.Services.Interfaces.Client
 
         Task<string> GetRuneItemsFromOnlineAsync(int championId);
 
+        /// <summary>
+        /// Gets rune recommendations for a champion from public QQ/WeGame data.
+        /// Summoner's Rift prefers the assigned lane while ARAM uses its dedicated
+        /// recommendation set. Returns <see langword="null"/> when LCU HTTP is not
+        /// initialized, no current recommendation can be parsed, or the request fails.
+        /// </summary>
+        Task<RuneRecommendationSet> GetRuneRecommendationsAsync(
+            int championId,
+            string assignedPosition,
+            bool isAram,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Creates or updates the Prometheus-managed rune page identified by a name
+        /// ending in <c>[Prometheus]</c> and confirms through
+        /// <c>lol-perks/v1/currentpage</c> that it became the active page. Other player
+        /// rune pages are never modified. Supports cancellation.
+        /// </summary>
+        Task<RunePageApplyResult> ApplyRuneRecommendationAsync(
+            string managedPageName,
+            RuneRecommendationOption recommendation,
+            CancellationToken cancellationToken = default);
+
         Task<string> GetPickableChampionsAsync();
 
         Task<string> GetChampionRankAsync(string lane, int tier, int time);

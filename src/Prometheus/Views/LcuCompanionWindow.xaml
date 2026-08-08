@@ -21,15 +21,50 @@
     WindowStyle="None"
     mc:Ignorable="d">
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <Style x:Key="CompanionCaption" TargetType="{x:Type TextBlock}">
             <Setter Property="FontSize" Value="11" />
             <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
         </Style>
+        <Style x:Key="RuneChoiceButton" TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <DataTemplate x:Key="RunePerkTemplate">
+            <Border
+                Width="28"
+                Height="28"
+                Margin="0,0,5,0"
+                Background="{DynamicResource SecondaryRegionBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1"
+                CornerRadius="14"
+                ToolTip="{Binding Name}">
+                <Grid>
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="10"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        Text="?" />
+                    <Image
+                        RenderOptions.BitmapScalingMode="HighQuality"
+                        Source="{Binding Icon}"
+                        Stretch="UniformToFill" />
+                </Grid>
+            </Border>
+        </DataTemplate>
 
         <DataTemplate x:Key="RecentResultTemplate">
             <Rectangle
                 Width="5"
-                Height="7"
+                Height="8"
                 Margin="0,0,2,0"
                 RadiusX="2"
                 RadiusY="2">
@@ -125,9 +160,9 @@
 
         <DataTemplate x:Key="TeammateTemplate">
             <Border
-                Height="96"
+                Height="76"
                 Margin="0,0,0,6"
-                Padding="8"
+                Padding="8,0"
                 Background="{DynamicResource MainContentForegroundDrawingBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
@@ -145,7 +180,7 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Grid VerticalAlignment="Center">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="44" />
                         <ColumnDefinition Width="10" />
@@ -167,17 +202,10 @@
                             <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
                         </Grid>
                     </Border>
-                    <Grid
-                        Grid.Column="2"
-                        Height="44"
-                        VerticalAlignment="Center">
+                    <Grid Grid.Column="2" VerticalAlignment="Center">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition />
-                            <!--
-                                Fixed height so loaded and loading cards share the same geometry.
-                                Dots are 7 px; status text is ~12 px — 16 px covers both.
-                            -->
                             <RowDefinition Height="16" />
                         </Grid.RowDefinitions>
                         <Grid VerticalAlignment="Top">
@@ -205,6 +233,8 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock
+                                FontSize="11"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
                                 Style="{StaticResource CompanionCaption}"
                                 Text="{Binding RecentRecordText}"
                                 TextTrimming="CharacterEllipsis" />
@@ -267,6 +297,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="64" />
                     <RowDefinition Height="1" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="40" />
                     <RowDefinition />
                     <RowDefinition Height="1" />
@@ -335,7 +366,167 @@
                     Background="{DynamicResource BorderBrush}"
                     Opacity="0.7" />
 
-                <Grid Grid.Row="2">
+                <Border
+                    Grid.Row="2"
+                    Margin="0,10,0,6"
+                    Padding="10"
+                    Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="9"
+                    Visibility="{Binding IsRuneRecommendationVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    Text="{DynamicResource Companion.Runes.Title}" />
+                                <TextBlock
+                                    Margin="7,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource CompanionCaption}"
+                                    Text="{Binding RuneChampionText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="6,0,0,0"
+                                HorizontalAlignment="Right"
+                                Style="{StaticResource CompanionCaption}"
+                                Text="{Binding RuneSourceText}"
+                                TextTrimming="CharacterEllipsis" />
+                        </Grid>
+
+                        <Grid Grid.Row="1" Margin="0,8,0,0">
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Text="{Binding RuneStatusText}">
+                                <TextBlock.Style>
+                                    <Style BasedOn="{StaticResource CompanionCaption}" TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasRuneRecommendation}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="{x:Type Grid}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasRuneRecommendation}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="6" />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Command="{Binding SelectPopularRuneCommand}" Content="{DynamicResource Companion.Runes.Popular}">
+                                        <Button.Style>
+                                            <Style BasedOn="{StaticResource RuneChoiceButton}" TargetType="{x:Type Button}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPopularRuneSelected}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource InfoBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button
+                                        Grid.Column="2"
+                                        Command="{Binding SelectWinRateRuneCommand}"
+                                        Content="{DynamicResource Companion.Runes.WinRate}">
+                                        <Button.Style>
+                                            <Style BasedOn="{StaticResource RuneChoiceButton}" TargetType="{x:Type Button}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsWinRateRuneSelected}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource InfoBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </Grid>
+                                <Grid Grid.Row="1" Margin="0,7,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        FontSize="11"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Text="{Binding RuneStyleText}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="7,0,0,0"
+                                        HorizontalAlignment="Right"
+                                        Style="{StaticResource CompanionCaption}"
+                                        Text="{Binding RuneStatsText}" />
+                                </Grid>
+                                <ItemsControl
+                                    Grid.Row="2"
+                                    Margin="0,7,0,0"
+                                    HorizontalAlignment="Center"
+                                    ItemTemplate="{StaticResource RunePerkTemplate}"
+                                    ItemsSource="{Binding RunePerks}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <Button
+                                    Grid.Row="3"
+                                    Height="30"
+                                    Margin="0,8,0,0"
+                                    Command="{Binding ApplyRuneCommand}"
+                                    Content="{Binding RuneApplyButtonText}"
+                                    FontSize="11"
+                                    FontWeight="SemiBold" />
+                                <TextBlock
+                                    Grid.Row="4"
+                                    Margin="0,5,0,0"
+                                    HorizontalAlignment="Center"
+                                    FontSize="10"
+                                    Foreground="{DynamicResource SecondaryTextBrush}"
+                                    Text="{Binding RuneStatusText}"
+                                    TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="3">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
                         <ColumnDefinition Width="Auto" />
@@ -354,19 +545,19 @@
                 </Grid>
 
                 <ScrollViewer
-                    Grid.Row="3"
+                    Grid.Row="4"
                     HorizontalScrollBarVisibility="Disabled"
                     VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemTemplate="{StaticResource TeammateTemplate}" ItemsSource="{Binding Teammates}" />
                 </ScrollViewer>
 
                 <Border
-                    Grid.Row="4"
+                    Grid.Row="5"
                     Margin="0,6,0,0"
                     Background="{DynamicResource BorderBrush}"
                     Opacity="0.7" />
 
-                <Grid Grid.Row="5" Margin="0,10,0,0">
+                <Grid Grid.Row="6" Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />

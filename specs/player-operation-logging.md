@@ -116,6 +116,11 @@ P0 操作会改变对局、LCU、玩家资料、持久化自动化设置，或�
 
 服务层已经具备但尚未接入 UI 的动作，也必须在未来接入时遵守本节，例如英雄选择/禁用、符文页写操作和修改头像。
 
+选人伴随窗口的一键应用使用一个玩家手动操作上下文。若需要新建 Prometheus 托管符文页，
+`rune.page.create` 与最终的 `rune.page.apply` 共享同一 `OperationId`；只有 LCU 写请求成功且重新
+读取当前符文页确认主副系和 9 个符文完全一致时，`rune.page.apply` 才能记录为 `Succeeded`。
+不得记录完整符文页请求体，允许记录 `RunePageId`、`ChampionId`、`QueueId` 和安全错误码。
+
 自动接受和自动重连分别复用 `match.ready_check.accept` 与 `match.reconnect`，并以 `Origin=Automation` 区分来源。禁止再生成含义相同的 `automation.*.execute` 最终结果事件。
 
 ### 4.2 P1：建议记录

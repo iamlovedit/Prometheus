@@ -87,6 +87,30 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.Equal(55, result);
         }
 
+        [Fact]
+        public void GetLocalChampionId_WhenChampionIsNotLocked_UsesPickIntent()
+        {
+            var snapshot = CreateSnapshot(GameQueueIds.RankedSoloDuo);
+            snapshot.ChampionSelect.MyTeam[0].ChampionPickIntent = 103;
+
+            Assert.Equal(103, LcuCompanionPresentation.GetLocalChampionId(snapshot));
+        }
+
+        [Theory]
+        [InlineData("middle", "mid")]
+        [InlineData("utility", "support")]
+        [InlineData("bottom", "bottom")]
+        public void GetLocalAssignedPosition_NormalizesLcuPosition(
+            string assignedPosition,
+            string expected)
+        {
+            var snapshot = CreateSnapshot(GameQueueIds.RankedSoloDuo);
+            snapshot.ChampionSelect.MyTeam[0].AssignedPosition = assignedPosition;
+
+            Assert.Equal(expected,
+                LcuCompanionPresentation.GetLocalAssignedPosition(snapshot));
+        }
+
         private static LiveMatchSnapshot CreateSnapshot(
             int queueId,
             int currentChampionId = 0)

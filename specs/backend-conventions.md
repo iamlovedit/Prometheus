@@ -334,7 +334,7 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `lol-gameflow/v1/session` | GET | 对局会话全量 | `MatchService` / `GameService` |
 | `lol-gameflow/v1/reconnect` | POST | 重连对局 | `GameService` |
 | `lol-end-of-game/v1/eog-stats-block` | GET | 结算数据 | `MatchService` |
-| `lol-perks/v1/pages` · `/currentpage` | GET / POST / DELETE | 符文页 CRUD | `GameService` |
+| `lol-perks/v1/pages` · `/pages/{id}` · `/currentpage` | GET / POST / PUT / DELETE | 符文页 CRUD 与当前页确认 | `GameService` |
 | `lol-game-data/assets/v1/champion-summary.json` · `champions/{id}.json` | GET | 英雄数据 | `GameResourceManager` / `GameService` |
 | `lol-game-data/assets/v1/items.json` · `perks.json` · `summoner-spells.json` · `profile-icons.json` | GET | 装备/符文/技能/头像数据 | `GameResourceManager` / `GameService` |
 | `lol-game-data/assets/v1/profile-icons/{id}.jpg` · `champion-icons/{id}.png` | GET（二进制） | 图标下载 | `GameResourceManager` |
@@ -356,8 +356,8 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | 端点 | 用途 | 调用方 |
 |------|------|--------|
 | `https://x1-6833.native.qq.com/x1/6833/1061021&3af49f?lane=&tier=&dtstatdate=&ijob=all&gamequeueconfigid=420&championid=666` | 英雄梯度/胜率榜（国服数据） | `GameService.GetChampionRankAsync` |
-| `https://lol.qq.com/act/lbp/common/guides/champDetail/champDetail_{id}.js` | 英雄克制关系 | `GameService` |
-| `https://www.wegame.com.cn/lol/resources/js/champion/recommend/{id}.js` | 推荐符文 | `GameService.GetRuneItemsFromOnlineAsync` |
+| `https://lol.qq.com/act/lbp/common/guides/champDetail/champDetail_{id}.js` | 英雄克制关系、峡谷分路推荐符文 | `GameService.GetRuneRecommendationsAsync` |
+| `https://www.wegame.com.cn/lol/resources/js/champion/recommend/{id}.js` | 大乱斗推荐符文、峡谷推荐降级 | `GameService.GetRuneRecommendationsAsync` |
 
 约定：外部端点必须走与 LCU 相同的 `IHttpService`（`ShouldAuthenticate` 保证不会附带 LCU 凭据）；返回多为 JS/JSONP 风格文本，按字符串获取、自行解析，禁止用 `GetAsync<T>` 直接反序列化。
 
@@ -386,5 +386,4 @@ ServerCertificateCustomValidationCallback = (request, cert, chain, errors) =>
 | `ClientListener` | 旧 WebSocket 实现（Rx + Websocket.Client），重连/生命周期不如 `LeagueClient` 严谨 | 下线，统一 `ILeagueClient` |
 | `MatchService` 端点前导 `/` | 常量为 `/lol-...`，与其他服务不一致 | 去掉前导 `/` |
 | `GameService.BanChampionAsync` | body `type` 误写为 `"pick"`（应 `"ban"`） | 修正并补测试 |
-| 外部 URL `_recommendPerks` | 常量尾部带空格 | 去除 |
 | `ClientService.GetCommandLines` | `[Obsolete]` 旧实现残留 | 删除 |
