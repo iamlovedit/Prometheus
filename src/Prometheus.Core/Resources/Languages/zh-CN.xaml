@@ -449,6 +449,14 @@
 
     <sys:String x:Key="Match.Live.Title">实时对局</sys:String>
     <sys:String x:Key="Match.Live.Refresh">刷新</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain">再来一局</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Creating">正在创建房间</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Ready">创建{0}房间</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Waiting">等待客户端完成对局结算</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Offline">英雄联盟客户端未连接</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Unsupported">当前模式暂不支持再来一局</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Unavailable">当前无法再来一局</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.UnknownMode">当前模式</sys:String>
     <sys:String x:Key="Match.Live.MyTeam">我方</sys:String>
     <sys:String x:Key="Match.Live.EnemyTeam">敌方</sys:String>
     <sys:String x:Key="Match.Live.Recent20">最近 20 场</sys:String>

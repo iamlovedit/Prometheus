@@ -262,6 +262,150 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void PlayAgain_IsVisibleDuringPostGameAndEnablesWhenClientBecomesIdle()
+        {
+            using var context = new TestContext(CreatePostGameSnapshot(
+                version: 10,
+                queueId: GameQueueIds.RankedSoloDuo));
+
+            Assert.True(context.ViewModel.IsPlayAgainVisible);
+            Assert.False(context.ViewModel.PlayAgainCommand.CanExecute());
+            Assert.Equal(
+                "Waiting for League Client to finish post-game processing",
+                context.ViewModel.PlayAgainToolTip);
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                Version = 11,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None
+            });
+
+            Assert.True(context.ViewModel.IsPlayAgainVisible);
+            Assert.True(context.ViewModel.PlayAgainCommand.CanExecute());
+            Assert.Equal("Create a Ranked Solo/Duo lobby",
+                context.ViewModel.PlayAgainToolTip);
+        }
+
+        [Theory]
+        [InlineData(GameQueueIds.RankedSoloDuo)]
+        [InlineData(GameQueueIds.RankedFlex)]
+        [InlineData(GameQueueIds.Aram)]
+        [InlineData(GameQueueIds.HextechAram)]
+        public async Task PlayAgain_UsesCompletedMatchQueueWithoutChangingSettings(
+            int queueId)
+        {
+            using var context = new TestContext(CreatePostGameSnapshot(
+                version: 20,
+                queueId: queueId));
+            var invoked = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                    queueId,
+                    It.IsAny<CancellationToken>()))
+                .Callback<int, CancellationToken>((value, _) =>
+                    invoked.TrySetResult(value))
+                .ReturnsAsync(new MatchmadeLobbyCreationResult
+                {
+                    Status = MatchmadeLobbyCreationStatus.Created,
+                    QueueId = queueId
+                });
+            context.Publish(new LiveMatchSnapshot
+            {
+                Version = 21,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None
+            });
+
+            context.ViewModel.PlayAgainCommand.Execute();
+
+            Assert.Equal(queueId,
+                await invoked.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+            context.GameService.Verify(service => service.CreateMatchmadeLobbyAsync(
+                queueId,
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task PlayAgain_WhenPostGameOmitsQueue_UsesActiveMatchQueue()
+        {
+            var activeMatch = CreateProgressSnapshot(version: 30);
+            activeMatch.GameflowSession = new GameflowSessionSnapshot
+            {
+                GameData = new GameflowGameData
+                {
+                    QueueId = GameQueueIds.Aram
+                }
+            };
+            using var context = new TestContext(activeMatch);
+            var invoked = new TaskCompletionSource<int>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                    GameQueueIds.Aram,
+                    It.IsAny<CancellationToken>()))
+                .Callback<int, CancellationToken>((value, _) =>
+                    invoked.TrySetResult(value))
+                .ReturnsAsync(new MatchmadeLobbyCreationResult
+                {
+                    Status = MatchmadeLobbyCreationStatus.Created,
+                    QueueId = GameQueueIds.Aram
+                });
+
+            context.Publish(CreatePostGameSnapshot(version: 31, queueId: 0));
+            context.Publish(new LiveMatchSnapshot
+            {
+                Version = 32,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None
+            });
+            context.ViewModel.PlayAgainCommand.Execute();
+
+            Assert.Equal(GameQueueIds.Aram,
+                await invoked.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+        }
+
+        [Fact]
+        public void PlayAgain_UnsupportedQueueRemainsVisibleButDisabled()
+        {
+            using var context = new TestContext(CreatePostGameSnapshot(
+                version: 40,
+                queueId: GameQueueIds.NormalDraft));
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                Version = 41,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.None
+            });
+
+            Assert.True(context.ViewModel.IsPlayAgainVisible);
+            Assert.False(context.ViewModel.PlayAgainCommand.CanExecute());
+            Assert.Equal("Play again is not supported for this mode",
+                context.ViewModel.PlayAgainToolTip);
+            context.GameService.Verify(service => service.CreateMatchmadeLobbyAsync(
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public void PlayAgain_NewLobbyClearsCompletedMatchContext()
+        {
+            using var context = new TestContext(CreatePostGameSnapshot(
+                version: 50,
+                queueId: GameQueueIds.RankedFlex));
+
+            context.Publish(new LiveMatchSnapshot
+            {
+                Version = 51,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.Lobby
+            });
+
+            Assert.False(context.ViewModel.IsPlayAgainVisible);
+            Assert.False(context.ViewModel.PlayAgainCommand.CanExecute());
+        }
+
+        [Fact]
         public void NavigationLifecycle_PausesSubscriptionAndCatchesUpFromCurrent()
         {
             using var context = new TestContext(CreateNamedSnapshot(6, "BeforeLeave"));
@@ -341,6 +485,24 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                             DataState = LiveMatchPlayerDataState.Loading
                         })
                         .ToArray()
+                }
+            };
+        }
+
+        private static LiveMatchSnapshot CreatePostGameSnapshot(long version, int queueId)
+        {
+            return new LiveMatchSnapshot
+            {
+                Version = version,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.EndOfGame,
+                DataQuality = DataQuality.Complete,
+                UpdatedAt = DateTimeOffset.UtcNow,
+                PostGame = new PostGameSnapshot
+                {
+                    GameId = 987654,
+                    QueueId = queueId,
+                    GameMode = "CLASSIC"
                 }
             };
         }
@@ -453,10 +615,20 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 MatchService.Setup(service => service.RefreshAsync(
                         It.IsAny<CancellationToken>()))
                     .Returns(Task.CompletedTask);
+                GameService.Setup(service => service.CreateMatchmadeLobbyAsync(
+                        It.IsAny<int>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync((int queueId, CancellationToken _) =>
+                        new MatchmadeLobbyCreationResult
+                        {
+                            Status = MatchmadeLobbyCreationStatus.Created,
+                            QueueId = queueId
+                        });
                 ViewModel = new MatchViewModel(
                     RegionManager.Object,
                     EventAggregator,
                     MatchService.Object,
+                    GameService.Object,
                     ResourceService.Object);
             }
 
@@ -465,6 +637,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             public EventAggregator EventAggregator { get; }
 
             public Mock<IMatchService> MatchService { get; } = new();
+
+            public Mock<IGameService> GameService { get; } = new();
 
             public Mock<IResourceService> ResourceService { get; } = new();
 

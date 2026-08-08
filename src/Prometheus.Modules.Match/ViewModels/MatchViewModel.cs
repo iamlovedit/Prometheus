@@ -1,12 +1,17 @@
+using HandyControl.Controls;
 using Prism.Commands;
 using Prism.Events;
 using Prism.Regions;
 using Prometheus.Core.Events;
+using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
+using Prometheus.Core.Tasks;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
+using Serilog.Events;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -22,12 +27,18 @@ namespace Prometheus.Modules.Match.ViewModels
 
         private readonly IEventAggregator _eventAggregator;
         private readonly IMatchService _matchService;
+        private readonly IGameService _gameService;
         private readonly IResourceService _resourceService;
         private readonly LatestValueDispatcher<(LiveMatchSnapshot Snapshot, long Generation)>
             _snapshotDispatcher;
 
         private long _appliedVersion = -1;
         private long _subscriptionGeneration;
+        private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
+        private CancellationTokenSource _playAgainCts;
+        private int _activeMatchQueueId;
+        private int _completedMatchQueueId;
+        private bool _isCreatingPlayAgainLobby;
         private bool _isSubscribed;
         private bool _destroyed;
 
@@ -41,11 +52,13 @@ namespace Prometheus.Modules.Match.ViewModels
             IRegionManager regionManager,
             IEventAggregator eventAggregator,
             IMatchService matchService,
+            IGameService gameService,
             IResourceService resourceService) : base(regionManager)
         {
             _eventAggregator = eventAggregator ??
                 throw new ArgumentNullException(nameof(eventAggregator));
             _matchService = matchService ?? throw new ArgumentNullException(nameof(matchService));
+            _gameService = gameService ?? throw new ArgumentNullException(nameof(gameService));
             _resourceService = resourceService ??
                 throw new ArgumentNullException(nameof(resourceService));
             _snapshotDispatcher = new LatestValueDispatcher<
@@ -66,6 +79,10 @@ namespace Prometheus.Modules.Match.ViewModels
             SelectPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(
                 SelectPlayer);
             CloseDetailsCommand = new DelegateCommand(CloseDetails);
+            PlayAgainCommand = new DelegateCommand(
+                () => CreatePlayAgainLobbyAsync().Observe(
+                    "Creating a play-again matchmade lobby"),
+                CanPlayAgain);
 
             Subscribe();
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty, true);
@@ -82,6 +99,53 @@ namespace Prometheus.Modules.Match.ViewModels
         public DelegateCommand<LiveMatchPlayerViewModel> SelectPlayerCommand { get; }
 
         public DelegateCommand CloseDetailsCommand { get; }
+
+        public DelegateCommand PlayAgainCommand { get; }
+
+        private bool _isPlayAgainVisible;
+        public bool IsPlayAgainVisible
+        {
+            get => _isPlayAgainVisible;
+            private set => SetProperty(ref _isPlayAgainVisible, value);
+        }
+
+        public string PlayAgainButtonText => _isCreatingPlayAgainLobby
+            ? Text("Match.Live.PlayAgain.Creating", "Creating lobby")
+            : Text("Match.Live.PlayAgain", "Play again");
+
+        public string PlayAgainToolTip
+        {
+            get
+            {
+                if (_isCreatingPlayAgainLobby)
+                {
+                    return Text("Match.Live.PlayAgain.Creating",
+                        "Creating lobby");
+                }
+
+                if (!IsSupportedQuickMatchQueue(_completedMatchQueueId))
+                {
+                    return Text("Match.Live.PlayAgain.Unsupported",
+                        "Play again is not supported for this mode");
+                }
+
+                if (_snapshot.ConnectionState != ConnectionState.Connected)
+                {
+                    return Text("Match.Live.PlayAgain.Offline",
+                        "League Client is not connected");
+                }
+
+                if (_snapshot.GameflowPhase != GameflowPhase.None)
+                {
+                    return Text("Match.Live.PlayAgain.Waiting",
+                        "Waiting for League Client to finish post-game processing");
+                }
+
+                return string.Format(
+                    Text("Match.Live.PlayAgain.Ready", "Create a {0} lobby"),
+                    GetQueueDisplayName(_completedMatchQueueId));
+            }
+        }
 
         private LiveMatchPlayerViewModel _selectedPlayer;
         public LiveMatchPlayerViewModel SelectedPlayer
@@ -205,6 +269,7 @@ namespace Prometheus.Modules.Match.ViewModels
         public override void Destroy()
         {
             _destroyed = true;
+            _playAgainCts?.Cancel();
             Unsubscribe();
             base.Destroy();
         }
@@ -269,6 +334,8 @@ namespace Prometheus.Modules.Match.ViewModels
             }
 
             _appliedVersion = snapshot.Version;
+            _snapshot = snapshot;
+            UpdatePlayAgainContext(snapshot);
             var previousSelection = SelectedPlayer;
             var roster = snapshot.Roster;
             var hasIncomingRoster = (roster?.MyTeam?.Count ?? 0) > 0 ||
@@ -676,6 +743,275 @@ namespace Prometheus.Modules.Match.ViewModels
 
             return string.Format(Text("Match.Live.Data.FullCount",
                 "Complete {0}/{1}"), loaded, total);
+        }
+
+        private void UpdatePlayAgainContext(LiveMatchSnapshot snapshot)
+        {
+            var queueId = GetSnapshotQueueId(snapshot);
+            if (snapshot.GameflowPhase is GameflowPhase.ChampSelect or
+                GameflowPhase.GameStart or GameflowPhase.InProgress or
+                GameflowPhase.Reconnect)
+            {
+                if (queueId > 0)
+                {
+                    _activeMatchQueueId = queueId;
+                }
+
+                _completedMatchQueueId = 0;
+                IsPlayAgainVisible = false;
+            }
+            else if (IsPostGamePhase(snapshot.GameflowPhase))
+            {
+                _completedMatchQueueId = queueId > 0
+                    ? queueId
+                    : _activeMatchQueueId;
+                IsPlayAgainVisible = true;
+            }
+            else if (snapshot.GameflowPhase is GameflowPhase.Lobby or
+                GameflowPhase.Matchmaking or GameflowPhase.ReadyCheck)
+            {
+                _completedMatchQueueId = 0;
+                IsPlayAgainVisible = false;
+            }
+
+            RaisePlayAgainStateChanged();
+        }
+
+        private bool CanPlayAgain()
+        {
+            return !_destroyed &&
+                !_isCreatingPlayAgainLobby &&
+                IsPlayAgainVisible &&
+                IsSupportedQuickMatchQueue(_completedMatchQueueId) &&
+                _snapshot.ConnectionState == ConnectionState.Connected &&
+                _snapshot.GameflowPhase == GameflowPhase.None;
+        }
+
+        private async Task CreatePlayAgainLobbyAsync()
+        {
+            var operationId = Guid.NewGuid();
+            var stopwatch = Stopwatch.StartNew();
+            var queueId = _completedMatchQueueId;
+            var connectionState = _snapshot.ConnectionState;
+            var gameflowPhase = _snapshot.GameflowPhase;
+            var queueName = GetQueueDisplayName(queueId);
+
+            if (!CanPlayAgain())
+            {
+                var rejectionMessage = Text("Match.Live.PlayAgain.Unavailable",
+                    "Play again is not available right now");
+                WritePlayAgainOperation(
+                    LogEventLevel.Warning,
+                    "Rejected",
+                    operationId,
+                    queueId,
+                    gameflowPhase,
+                    connectionState,
+                    stopwatch.ElapsedMilliseconds,
+                    rejectionMessage,
+                    "InvalidClientState");
+                Growl.Warning(rejectionMessage);
+                return;
+            }
+
+            _isCreatingPlayAgainLobby = true;
+            RaisePlayAgainStateChanged();
+            var cancellation = new CancellationTokenSource();
+            _playAgainCts = cancellation;
+            var level = LogEventLevel.Error;
+            var outcome = "Failed";
+            var message = Text("HomePage.QuickMatch.Failed",
+                "Unable to create the matchmade lobby");
+            string errorCode = "LobbyNotConfirmed";
+            string errorType = null;
+            Exception operationException = null;
+            try
+            {
+                var result = await _gameService.CreateMatchmadeLobbyAsync(
+                    queueId,
+                    cancellation.Token);
+                switch (result.Status)
+                {
+                    case MatchmadeLobbyCreationStatus.Created:
+                        level = LogEventLevel.Information;
+                        outcome = "Succeeded";
+                        message = string.Format(
+                            Text("HomePage.QuickMatch.Created",
+                                "Entered the {0} lobby"),
+                            queueName);
+                        errorCode = null;
+                        IsPlayAgainVisible = false;
+                        break;
+                    case MatchmadeLobbyCreationStatus.ClientUnavailable:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = Text("HomePage.QuickMatch.Unavailable",
+                            "The current client state cannot create a matchmade lobby");
+                        errorCode = "ClientUnavailable";
+                        break;
+                    case MatchmadeLobbyCreationStatus.QueueUnavailable:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = string.Format(
+                            Text("HomePage.QuickMatch.QueueUnavailable",
+                                "{0} is currently unavailable"),
+                            queueName);
+                        errorCode = "QueueUnavailable";
+                        break;
+                    case MatchmadeLobbyCreationStatus.OperationInProgress:
+                        level = LogEventLevel.Warning;
+                        outcome = "Rejected";
+                        message = Text("HomePage.QuickMatch.Unavailable",
+                            "The current client state cannot create a matchmade lobby");
+                        errorCode = "OperationInProgress";
+                        break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                level = LogEventLevel.Information;
+                outcome = "Cancelled";
+                message = Text("HomePage.QuickMatch.Cancelled",
+                    "Creating the matchmade lobby was cancelled");
+                errorCode = null;
+            }
+            catch (Exception exception)
+            {
+                errorCode = null;
+                errorType = exception.GetType().Name;
+                operationException = exception;
+            }
+            finally
+            {
+                if (ReferenceEquals(_playAgainCts, cancellation))
+                {
+                    _playAgainCts = null;
+                }
+
+                cancellation.Dispose();
+                _isCreatingPlayAgainLobby = false;
+                RaisePlayAgainStateChanged();
+            }
+
+            WritePlayAgainOperation(
+                level,
+                outcome,
+                operationId,
+                queueId,
+                gameflowPhase,
+                connectionState,
+                stopwatch.ElapsedMilliseconds,
+                message,
+                errorCode,
+                errorType,
+                operationException);
+            if (_destroyed)
+            {
+                return;
+            }
+
+            switch (outcome)
+            {
+                case "Succeeded":
+                    Growl.Info(message);
+                    break;
+                case "Rejected":
+                    Growl.Warning(message);
+                    break;
+                case "Failed":
+                    Growl.Error(message);
+                    break;
+            }
+        }
+
+        private static void WritePlayAgainOperation(
+            LogEventLevel level,
+            string outcome,
+            Guid operationId,
+            int queueId,
+            GameflowPhase gameflowPhase,
+            ConnectionState connectionState,
+            long durationMs,
+            string displayMessage,
+            string errorCode = null,
+            string errorType = null,
+            Exception exception = null)
+        {
+            var properties = new Dictionary<string, object>
+            {
+                ["QueueId"] = queueId,
+                ["GameflowPhase"] = gameflowPhase.ToString(),
+                ["ConnectionState"] = connectionState.ToString(),
+                ["DurationMs"] = durationMs
+            };
+            if (!string.IsNullOrWhiteSpace(errorCode))
+            {
+                properties["ErrorCode"] = errorCode;
+            }
+
+            if (!string.IsNullOrWhiteSpace(errorType))
+            {
+                properties["ErrorType"] = errorType;
+            }
+
+            OperationLog.Write(
+                level,
+                "lobby.matchmade.create",
+                "Lobby",
+                "Manual",
+                outcome,
+                operationId,
+                "Match",
+                displayMessage,
+                properties,
+                exception);
+        }
+
+        private void RaisePlayAgainStateChanged()
+        {
+            RaisePropertyChanged(nameof(PlayAgainButtonText));
+            RaisePropertyChanged(nameof(PlayAgainToolTip));
+            PlayAgainCommand?.RaiseCanExecuteChanged();
+        }
+
+        private int GetSnapshotQueueId(LiveMatchSnapshot snapshot)
+        {
+            return snapshot.PostGame?.QueueId > 0
+                ? snapshot.PostGame.QueueId
+                : snapshot.GameflowSession?.GameData?.QueueId > 0
+                    ? snapshot.GameflowSession.GameData.QueueId
+                    : snapshot.Matchmaking?.Queue?.Id ?? 0;
+        }
+
+        private string GetQueueDisplayName(int queueId)
+        {
+            return queueId switch
+            {
+                GameQueueIds.RankedSoloDuo =>
+                    Text("HomePage.QuickMatch.SoloDuo", "Ranked Solo/Duo"),
+                GameQueueIds.RankedFlex =>
+                    Text("HomePage.QuickMatch.Flex", "Ranked Flex"),
+                GameQueueIds.Aram =>
+                    Text("HomePage.QuickMatch.Aram", "ARAM"),
+                GameQueueIds.HextechAram =>
+                    Text("HomePage.QuickMatch.HextechAram", "ARAM Mayhem"),
+                _ => Text("Match.Live.PlayAgain.UnknownMode", "this mode")
+            };
+        }
+
+        private static bool IsSupportedQuickMatchQueue(int queueId)
+        {
+            return queueId is GameQueueIds.RankedSoloDuo or
+                GameQueueIds.RankedFlex or
+                GameQueueIds.Aram or
+                GameQueueIds.HextechAram;
+        }
+
+        private static bool IsPostGamePhase(GameflowPhase phase)
+        {
+            return phase is GameflowPhase.WaitingForStats or
+                GameflowPhase.PreEndOfGame or
+                GameflowPhase.EndOfGame;
         }
 
         private async void ExecuteRefresh()

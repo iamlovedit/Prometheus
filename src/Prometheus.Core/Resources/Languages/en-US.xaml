@@ -450,6 +450,14 @@
 
     <sys:String x:Key="Match.Live.Title">Live match</sys:String>
     <sys:String x:Key="Match.Live.Refresh">Refresh</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain">Play again</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Creating">Creating lobby</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Ready">Create a {0} lobby</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Waiting">Waiting for League Client to finish post-game processing</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Offline">League Client is not connected</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Unsupported">Play again is not supported for this mode</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.Unavailable">Play again is not available right now</sys:String>
+    <sys:String x:Key="Match.Live.PlayAgain.UnknownMode">this mode</sys:String>
     <sys:String x:Key="Match.Live.MyTeam">My team</sys:String>
     <sys:String x:Key="Match.Live.EnemyTeam">Enemy team</sys:String>
     <sys:String x:Key="Match.Live.Recent20">Last 20 matches</sys:String>

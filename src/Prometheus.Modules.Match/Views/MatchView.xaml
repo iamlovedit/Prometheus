@@ -561,6 +561,15 @@
                         Command="{Binding RefreshCommand}"
                         Content="{DynamicResource Match.Live.Refresh}"
                         Style="{DynamicResource ButtonPrimary}" />
+                    <Button
+                        Height="32"
+                        MinWidth="96"
+                        Margin="8,0,0,0"
+                        Command="{Binding PlayAgainCommand}"
+                        Content="{Binding PlayAgainButtonText}"
+                        Style="{DynamicResource ButtonPrimary}"
+                        ToolTip="{Binding PlayAgainToolTip}"
+                        Visibility="{Binding IsPlayAgainVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
                 </StackPanel>
             </Grid>
         </Border>
