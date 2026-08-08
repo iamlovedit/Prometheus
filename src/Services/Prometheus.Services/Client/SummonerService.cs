@@ -51,8 +51,21 @@ namespace Prometheus.Services.Client
         public async Task<SummonerAccount> GetCurrentSummoner(
             CancellationToken cancellationToken = default)
         {
-            return await _httpService.GetAsync<SummonerAccount>(CurrentSummonerEndpoint,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await _httpService.GetAsync<SummonerAccount>(CurrentSummonerEndpoint,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Error(exception, "Unable to load the current LCU summoner");
+                return default;
+            }
+            catch (JsonException exception)
+            {
+                Log.Error(exception, "Unable to parse the current LCU summoner response");
+                return default;
+            }
         }
 
         public async Task<string> GetRankStatsByPuuid(string puuid,

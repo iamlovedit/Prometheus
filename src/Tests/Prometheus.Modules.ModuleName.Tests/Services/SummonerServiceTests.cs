@@ -46,6 +46,37 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public async Task GetCurrentSummoner_WhenLcuReturnsNotFound_ReturnsNull()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync<SummonerAccount>(
+                    "lol-summoner/v1/current-summoner", null,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException(
+                    "Current summoner unavailable", null, System.Net.HttpStatusCode.NotFound));
+            var service = CreateService(httpService);
+
+            var result = await service.GetCurrentSummoner();
+
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetCurrentSummoner_WhenResponseIsInvalid_ReturnsNull()
+        {
+            var httpService = new Mock<IHttpService>();
+            httpService.Setup(service => service.GetAsync<SummonerAccount>(
+                    "lol-summoner/v1/current-summoner", null,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new JsonException("Invalid current summoner response"));
+            var service = CreateService(httpService);
+
+            var result = await service.GetCurrentSummoner();
+
+            Assert.Null(result);
+        }
+
+        [Fact]
         public async Task SearchSummonerByName_WhenRiotIdProvided_UsesAliasEndpoint()
         {
             var httpService = new Mock<IHttpService>();
