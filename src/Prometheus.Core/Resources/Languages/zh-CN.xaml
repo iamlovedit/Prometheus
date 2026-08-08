@@ -9,6 +9,7 @@
     <sys:String x:Key="Menu.Inventory">藏品</sys:String>
     <sys:String x:Key="Menu.Utility">实用工具</sys:String>
     <sys:String x:Key="Menu.Setting">设置</sys:String>
+    <sys:String x:Key="Navigation.ClientRequired">启动并登录英雄联盟客户端后即可使用此页面。</sys:String>
     <sys:String x:Key="Update.Menu.Available">有更新</sys:String>
     <sys:String x:Key="Tray.ClientStatus">英雄联盟客户端：{0}</sys:String>
     <sys:String x:Key="Tray.GameflowStatus">游戏状态：{0}</sys:String>

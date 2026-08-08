@@ -11,6 +11,7 @@ using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
 using Prometheus.ViewModels;
 using System.ComponentModel;
+using System.Reflection;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.ViewModels
@@ -324,7 +325,48 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
-        public void SearchSummonerEvent_NavigatesToSearchWithSummonerParameter()
+        public void ClientDependentNavigation_TracksConnectionState()
+        {
+            var matchService = CreateMatchService();
+            var viewModel = CreateViewModel(
+                matchService,
+                new Mock<IGameService>(),
+                CreateQuickMatchSettings(),
+                CreateQuickMatchResourceService());
+
+            Assert.False(viewModel.CareerCommand.CanExecute());
+            Assert.False(viewModel.InventoryCommand.CanExecute());
+            Assert.False(viewModel.SearchCommand.CanExecute());
+            Assert.False(viewModel.MatchCommand.CanExecute());
+            Assert.False(viewModel.UtilityCommand.CanExecute());
+            Assert.True(viewModel.HomeCommand.CanExecute());
+            Assert.True(viewModel.SettingCommand.CanExecute());
+
+            PublishConnectionSnapshot(
+                matchService,
+                ConnectionState.Connected,
+                GameflowPhase.None);
+
+            Assert.True(viewModel.CareerCommand.CanExecute());
+            Assert.True(viewModel.InventoryCommand.CanExecute());
+            Assert.True(viewModel.SearchCommand.CanExecute());
+            Assert.True(viewModel.MatchCommand.CanExecute());
+            Assert.True(viewModel.UtilityCommand.CanExecute());
+
+            PublishConnectionSnapshot(
+                matchService,
+                ConnectionState.Reconnecting,
+                GameflowPhase.Reconnect);
+
+            Assert.False(viewModel.CareerCommand.CanExecute());
+            Assert.False(viewModel.InventoryCommand.CanExecute());
+            Assert.False(viewModel.SearchCommand.CanExecute());
+            Assert.False(viewModel.MatchCommand.CanExecute());
+            Assert.False(viewModel.UtilityCommand.CanExecute());
+        }
+
+        [Fact]
+        public void SearchSummonerEvent_WhenDisconnected_DoesNotNavigate()
         {
             var regionManager = new Mock<IRegionManager>();
             var moduleManager = new Mock<IModuleManager>();
@@ -345,6 +387,129 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new Mock<IGameService>().Object,
                 CreateQuickMatchSettings().Object,
                 CreateCompanionSettings().Object);
+
+            eventAggregator.GetEvent<SearchSummonerEvent>().Publish(
+                new SummonerAccount
+                {
+                    Puuid = "offline-puuid",
+                    GameName = "Offline Player",
+                    TagLine = "CN1"
+                });
+
+            moduleManager.Verify(manager => manager.LoadModule(
+                nameof(SearchModule)), Times.Never);
+            regionManager.Verify(manager => manager.RequestNavigate(
+                    RegionNames.ContentRegion,
+                    MenuName.Search.ToString(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.IsAny<NavigationParameters>()),
+                Times.Never);
+        }
+
+        [Theory]
+        [InlineData(MenuName.Search, ConnectionState.Disconnected)]
+        [InlineData(MenuName.Search, ConnectionState.Error)]
+        [InlineData(MenuName.Utility, ConnectionState.Disconnected)]
+        [InlineData(MenuName.Utility, ConnectionState.Error)]
+        public void ClientDependentPage_ReconnectingKeepsPage_ThenTerminalStateReturnsHome(
+            MenuName targetMenu,
+            ConnectionState terminalState)
+        {
+            var destinations = new List<string>();
+            var regionManager = new Mock<IRegionManager>();
+            regionManager.Setup(manager => manager.RequestNavigate(
+                    RegionNames.ContentRegion,
+                    It.IsAny<string>(),
+                    It.IsAny<Action<NavigationResult>>(),
+                    It.IsAny<NavigationParameters>()))
+                .Callback<string, string, Action<NavigationResult>, NavigationParameters>(
+                    (_, destination, callback, _) =>
+                    {
+                        destinations.Add(destination);
+                        if (destination == MenuName.Home.ToString())
+                        {
+                            callback(new NavigationResult(null, true));
+                        }
+                    });
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var matchService = CreateMatchService();
+            var viewModel = new MainWindowViewModel(
+                regionManager.Object,
+                new EventAggregator(),
+                moduleManager.Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
+
+            PublishConnectionSnapshot(
+                matchService,
+                ConnectionState.Connected,
+                GameflowPhase.None);
+            var command = targetMenu == MenuName.Utility
+                ? viewModel.UtilityCommand
+                : viewModel.SearchCommand;
+            command.Execute();
+            SetCurrentMenu(viewModel, targetMenu);
+
+            Assert.True(targetMenu == MenuName.Utility
+                ? viewModel.IsUtilitySelected
+                : viewModel.IsSearchSelected);
+            Assert.Equal([targetMenu.ToString()], destinations);
+
+            PublishConnectionSnapshot(
+                matchService,
+                ConnectionState.Reconnecting,
+                GameflowPhase.Reconnect);
+
+            Assert.True(targetMenu == MenuName.Utility
+                ? viewModel.IsUtilitySelected
+                : viewModel.IsSearchSelected);
+            Assert.Equal([targetMenu.ToString()], destinations);
+
+            PublishConnectionSnapshot(
+                matchService,
+                terminalState,
+                GameflowPhase.Unknown);
+
+            Assert.True(viewModel.IsHomeSelected);
+            Assert.Equal(
+                [targetMenu.ToString(), MenuName.Home.ToString()],
+                destinations);
+        }
+
+        [Fact]
+        public void SearchSummonerEvent_NavigatesToSearchWithSummonerParameter()
+        {
+            var regionManager = new Mock<IRegionManager>();
+            var moduleManager = new Mock<IModuleManager>();
+            moduleManager.SetupGet(manager => manager.Modules)
+                .Returns(Array.Empty<IModuleInfo>());
+            var eventAggregator = new EventAggregator();
+            var matchService = CreateMatchService();
+            _ = new MainWindowViewModel(
+                regionManager.Object,
+                eventAggregator,
+                moduleManager.Object,
+                matchService.Object,
+                new Mock<IClientService>().Object,
+                new Mock<IClientListener>().Object,
+                CreateQuickMatchResourceService().Object,
+                new Mock<IProfilePresentationStartupService>().Object,
+                new Mock<IGameAutomationSettings>().Object,
+                new Mock<IUpdateService>().Object,
+                new Mock<IGameService>().Object,
+                CreateQuickMatchSettings().Object,
+                CreateCompanionSettings().Object);
+            PublishIdleSnapshot(matchService);
             var summoner = new SummonerAccount
             {
                 Puuid = "searched-puuid",
@@ -525,6 +690,17 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 CreateCompanionSettings().Object);
         }
 
+        private static void SetCurrentMenu(
+            MainWindowViewModel viewModel,
+            MenuName menuName)
+        {
+            var field = typeof(MainWindowViewModel).GetField(
+                "_currentMenu",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            field.SetValue(viewModel, menuName);
+        }
+
         private static Mock<IMatchService> CreateMatchService()
         {
             var matchService = new Mock<IMatchService>();
@@ -542,10 +718,21 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Mock<IMatchService> matchService,
             GameflowPhase phase)
         {
+            PublishConnectionSnapshot(
+                matchService,
+                ConnectionState.Connected,
+                phase);
+        }
+
+        private static void PublishConnectionSnapshot(
+            Mock<IMatchService> matchService,
+            ConnectionState connectionState,
+            GameflowPhase phase)
+        {
             matchService.Raise(service => service.SnapshotChanged += null,
                 new LiveMatchSnapshotChangedEventArgs(new LiveMatchSnapshot
                 {
-                    ConnectionState = ConnectionState.Connected,
+                    ConnectionState = connectionState,
                     GameflowPhase = phase,
                     UpdatedAt = DateTimeOffset.UtcNow
                 }));

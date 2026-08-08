@@ -9,6 +9,7 @@
     <sys:String x:Key="Menu.Inventory">Inventory</sys:String>
     <sys:String x:Key="Menu.Utility">Utility</sys:String>
     <sys:String x:Key="Menu.Setting">Setting</sys:String>
+    <sys:String x:Key="Navigation.ClientRequired">Start and sign in to the League of Legends client to use this page.</sys:String>
     <sys:String x:Key="Update.Menu.Available">Update</sys:String>
     <sys:String x:Key="Tray.ClientStatus">League Client: {0}</sys:String>
     <sys:String x:Key="Tray.GameflowStatus">Game: {0}</sys:String>

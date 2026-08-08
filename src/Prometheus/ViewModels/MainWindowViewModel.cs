@@ -122,6 +122,8 @@ namespace Prometheus.ViewModels
         public bool IsMatchSelected => _currentMenu == MenuName.Match;
         public bool IsUtilitySelected => _currentMenu == MenuName.Utility;
         public bool IsSettingSelected => _currentMenu == MenuName.Setting;
+        public bool IsClientNavigationAvailable =>
+            _snapshot.ConnectionState == ConnectionState.Connected;
 
         private bool _hasAvailableUpdate;
         public bool HasAvailableUpdate
@@ -402,23 +404,33 @@ namespace Prometheus.ViewModels
 
         private DelegateCommand _careerCommand;
         public DelegateCommand CareerCommand =>
-            _careerCommand ??= new DelegateCommand(() => Navigate(MenuName.Career));
+            _careerCommand ??= new DelegateCommand(
+                () => Navigate(MenuName.Career),
+                CanNavigateToClientFeature);
 
         private DelegateCommand _inventoryCommand;
         public DelegateCommand InventoryCommand =>
-            _inventoryCommand ??= new DelegateCommand(() => Navigate(MenuName.Inventory));
+            _inventoryCommand ??= new DelegateCommand(
+                () => Navigate(MenuName.Inventory),
+                CanNavigateToClientFeature);
 
         private DelegateCommand _searchCommand;
         public DelegateCommand SearchCommand =>
-            _searchCommand ??= new DelegateCommand(() => Navigate(MenuName.Search));
+            _searchCommand ??= new DelegateCommand(
+                () => Navigate(MenuName.Search),
+                CanNavigateToClientFeature);
 
         private DelegateCommand _matchCommand;
         public DelegateCommand MatchCommand =>
-            _matchCommand ??= new DelegateCommand(() => Navigate(MenuName.Match));
+            _matchCommand ??= new DelegateCommand(
+                () => Navigate(MenuName.Match),
+                CanNavigateToClientFeature);
 
         private DelegateCommand _utilityCommand;
         public DelegateCommand UtilityCommand =>
-            _utilityCommand ??= new DelegateCommand(() => Navigate(MenuName.Utility));
+            _utilityCommand ??= new DelegateCommand(
+                () => Navigate(MenuName.Utility),
+                CanNavigateToClientFeature);
 
         private DelegateCommand _settingCommand;
         public DelegateCommand SettingCommand =>
@@ -544,6 +556,12 @@ namespace Prometheus.ViewModels
         private void ApplySnapshot(LiveMatchSnapshot snapshot)
         {
             UpdateTrayState(snapshot);
+            if (RequiresClientConnection(_currentMenu) &&
+                IsTerminalClientUnavailable(snapshot.ConnectionState))
+            {
+                Navigate(MenuName.Home);
+            }
+
             var phase = snapshot.GameflowPhase;
             var phaseChanged = _lastObservedPhase != phase;
             _lastObservedPhase = phase;
@@ -933,6 +951,11 @@ namespace Prometheus.ViewModels
 
         private void Navigate(MenuName menuName, SummonerAccount summoner = null)
         {
+            if (!CanNavigate(menuName))
+            {
+                return;
+            }
+
             EnsureModuleLoaded(menuName);
             var parameters = new NavigationParameters();
             if (menuName is MenuName.Career or MenuName.Search)
@@ -986,8 +1009,15 @@ namespace Prometheus.ViewModels
 
         private void UpdateTrayState(LiveMatchSnapshot snapshot)
         {
+            var wasClientNavigationAvailable = IsClientNavigationAvailable;
             _snapshot = snapshot ?? LiveMatchSnapshot.Empty;
             snapshot = _snapshot;
+            if (wasClientNavigationAvailable != IsClientNavigationAvailable)
+            {
+                RaisePropertyChanged(nameof(IsClientNavigationAvailable));
+                RaiseClientNavigationCanExecuteChanged();
+            }
+
             var connectionText = Text(GetConnectionStatusKey(snapshot.ConnectionState));
             TrayClientStatus = string.Format(Text("Tray.ClientStatus"), connectionText);
             TrayGameflowStatus = string.Format(
@@ -1061,6 +1091,42 @@ namespace Prometheus.ViewModels
                 ConnectionState.Error => "Setting.Connection.Error",
                 _ => "Setting.Connection.Disconnected"
             };
+        }
+
+        private bool CanNavigateToClientFeature()
+        {
+            return IsClientNavigationAvailable;
+        }
+
+        private bool CanNavigate(MenuName menuName)
+        {
+            return !RequiresClientConnection(menuName) ||
+                   IsClientNavigationAvailable;
+        }
+
+        private static bool RequiresClientConnection(MenuName menuName)
+        {
+            return menuName is MenuName.Career or
+                MenuName.Inventory or
+                MenuName.Search or
+                MenuName.Match or
+                MenuName.Utility;
+        }
+
+        private static bool IsTerminalClientUnavailable(
+            ConnectionState connectionState)
+        {
+            return connectionState is ConnectionState.Disconnected or
+                ConnectionState.Error;
+        }
+
+        private void RaiseClientNavigationCanExecuteChanged()
+        {
+            _careerCommand?.RaiseCanExecuteChanged();
+            _inventoryCommand?.RaiseCanExecuteChanged();
+            _searchCommand?.RaiseCanExecuteChanged();
+            _matchCommand?.RaiseCanExecuteChanged();
+            _utilityCommand?.RaiseCanExecuteChanged();
         }
 
         private void EnsureModuleLoaded(MenuName menuName)
