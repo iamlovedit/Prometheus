@@ -71,6 +71,98 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void LoadedPlayer_ProjectsEveryResultStripSegmentWithMatchedTooltip()
+        {
+            using var context = new TestContext(CreateProgressSnapshot(version: 3));
+            var player = context.ViewModel.MyTeam[0];
+
+            // The strip must carry all 20 segments; the card layout can no longer clip them.
+            Assert.Equal(20, player.RecentResults.Count);
+            Assert.Equal(
+                player.RecentMatches.Select(match => match.IsWin),
+                player.RecentResults.Select(result => result.IsWin));
+
+            // Segment i describes RecentMatches[i] (both are newest-first).
+            Assert.Equal("Match 1 · Win · 10/2/8 · Ranked Solo/Duo",
+                player.RecentResults[0].ResultTooltip);
+            Assert.Equal("Match 2 · Loss · 11/3/9 · ARAM",
+                player.RecentResults[1].ResultTooltip);
+        }
+
+        [Fact]
+        public void Streak_IsCountedFromTheNewestResultForward()
+        {
+            var snapshot = CreateProgressSnapshot(version: 3);
+            var target = snapshot.Roster.MyTeam[0];
+            // Newest-first: three losses at the front, a win behind them.
+            target.RecentResults = new[] { false, false, false, true, true }
+                .Concat(Enumerable.Repeat(true, 15))
+                .ToArray();
+
+            using var context = new TestContext(snapshot);
+            var player = context.ViewModel.MyTeam[0];
+
+            Assert.True(player.HasStreak);
+            Assert.False(player.StreakIsWinning);
+            Assert.Equal(3, player.StreakCount);
+            Assert.Equal("3 Loss Streak", player.StreakText);
+        }
+
+        [Fact]
+        public void Streak_WhenShorterThanThreeGames_IsNotDisplayed()
+        {
+            var snapshot = CreateProgressSnapshot(version: 3);
+            var target = snapshot.Roster.MyTeam[0];
+            target.RecentResults = new[] { true, true, false, true, false }
+                .Concat(Enumerable.Repeat(true, 15))
+                .ToArray();
+
+            using var context = new TestContext(snapshot);
+
+            Assert.False(context.ViewModel.MyTeam[0].HasStreak);
+        }
+
+        [Fact]
+        public void SelectPlayerCommand_WhenInvokedOnSelectedPlayer_CollapsesDetailBar()
+        {
+            using var context = new TestContext(CreateProgressSnapshot(version: 3));
+            var player = context.ViewModel.MyTeam[0];
+            Assert.Same(player, context.ViewModel.SelectedPlayer);
+
+            context.ViewModel.SelectPlayerCommand.Execute(player);
+
+            Assert.Null(context.ViewModel.SelectedPlayer);
+            Assert.False(player.IsSelected);
+            Assert.False(context.ViewModel.HasSelectedPlayer);
+        }
+
+        [Fact]
+        public void CloseDetailsCommand_SurvivesSubsequentSnapshots()
+        {
+            using var context = new TestContext(CreateProgressSnapshot(version: 4));
+            Assert.True(context.ViewModel.HasSelectedPlayer);
+
+            context.ViewModel.CloseDetailsCommand.Execute();
+            context.Publish(CreateProgressSnapshot(version: 5));
+
+            // A refresh must not silently reopen a bar the user dismissed.
+            Assert.Null(context.ViewModel.SelectedPlayer);
+            Assert.False(context.ViewModel.HasSelectedPlayer);
+        }
+
+        [Fact]
+        public void EmptyRoster_ClearsDismissalSoTheNextMatchAutoOpens()
+        {
+            using var context = new TestContext(CreateProgressSnapshot(version: 4));
+            context.ViewModel.CloseDetailsCommand.Execute();
+
+            context.Publish(new LiveMatchSnapshot { Version = 5 });
+            context.Publish(CreateProgressSnapshot(version: 6));
+
+            Assert.True(context.ViewModel.HasSelectedPlayer);
+        }
+
+        [Fact]
         public void SnapshotRefresh_PreservesSelectedPlayerByPublicIdentity()
         {
             using var context = new TestContext(CreateProgressSnapshot(version: 4));

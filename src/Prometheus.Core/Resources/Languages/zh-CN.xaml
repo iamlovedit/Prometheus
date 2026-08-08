@@ -474,6 +474,15 @@
     <sys:String x:Key="Match.Live.RecentDetails.Win">胜</sys:String>
     <sys:String x:Key="Match.Live.RecentDetails.Loss">负</sys:String>
     <sys:String x:Key="Match.Live.RecentDetails.Automation">第 {0} 场，{1}，K/D/A {2}/{3}/{4}，{5}</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Collapse">收起</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Latest">最新</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.DockedHint">逐场战绩已在下方展开，再次点击可收起</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Newest">最新</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Oldest">较早</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Tooltip">第 {0} 场 · {1} · {2}/{3}/{4} · {5}</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Tooltip.Short">第 {0} 场 · {1}</sys:String>
+    <sys:String x:Key="Match.Live.Streak.Win">{0} 连胜</sys:String>
+    <sys:String x:Key="Match.Live.Streak.Loss">{0} 连败</sys:String>
     <sys:String x:Key="Match.Live.Position.Top">上路</sys:String>
     <sys:String x:Key="Match.Live.Position.Jungle">打野</sys:String>
     <sys:String x:Key="Match.Live.Position.Middle">中路</sys:String>

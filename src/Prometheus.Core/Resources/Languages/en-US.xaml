@@ -475,6 +475,15 @@
     <sys:String x:Key="Match.Live.RecentDetails.Win">Win</sys:String>
     <sys:String x:Key="Match.Live.RecentDetails.Loss">Loss</sys:String>
     <sys:String x:Key="Match.Live.RecentDetails.Automation">Match {0}, {1}, K/D/A {2}/{3}/{4}, {5}</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Collapse">Collapse</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.Latest">Latest</sys:String>
+    <sys:String x:Key="Match.Live.RecentDetails.DockedHint">Per-match details are shown below; click again to collapse</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Newest">Newest</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Oldest">Older</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Tooltip">Match {0} · {1} · {2}/{3}/{4} · {5}</sys:String>
+    <sys:String x:Key="Match.Live.Strip.Tooltip.Short">Match {0} · {1}</sys:String>
+    <sys:String x:Key="Match.Live.Streak.Win">{0} Win Streak</sys:String>
+    <sys:String x:Key="Match.Live.Streak.Loss">{0} Loss Streak</sys:String>
     <sys:String x:Key="Match.Live.Position.Top">Top</sys:String>
     <sys:String x:Key="Match.Live.Position.Jungle">Jungle</sys:String>
     <sys:String x:Key="Match.Live.Position.Middle">Middle</sys:String>

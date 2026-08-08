@@ -65,7 +65,7 @@
             </Style.Triggers>
         </Style>
         <Style x:Key="LivePlayerCard" TargetType="{x:Type Border}">
-            <Setter Property="Height" Value="76" />
+            <Setter Property="Height" Value="92" />
             <Setter Property="Margin" Value="0,0,0,6" />
             <Setter Property="Padding" Value="10,8" />
             <Setter Property="Background" Value="{DynamicResource MainContentForegroundDrawingBrush}" />
@@ -162,247 +162,336 @@
             </Setter>
         </Style>
         <DataTemplate x:Key="LivePlayerTemplate">
-            <Border AutomationProperties.Name="{Binding DisplayName}" Style="{StaticResource LivePlayerCard}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="42" />
-                        <ColumnDefinition Width="48" />
-                        <ColumnDefinition Width="28" />
-                        <ColumnDefinition />
-                        <ColumnDefinition Width="166" />
-                    </Grid.ColumnDefinitions>
-
-                    <Border
-                        Width="36"
-                        Height="24"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Background="{DynamicResource SecondaryRegionBrush}"
-                        CornerRadius="12">
-                        <TextBlock
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            FontSize="11"
-                            FontWeight="SemiBold"
-                            Foreground="{DynamicResource PrimaryTextBrush}"
-                            Text="{Binding PositionText}"
-                            TextTrimming="CharacterEllipsis" />
-                    </Border>
-
-                    <Border
-                        Grid.Column="1"
-                        Width="46"
-                        Height="46"
-                        VerticalAlignment="Center"
-                        Background="{DynamicResource SecondaryRegionBrush}"
-                        CornerRadius="8">
-                        <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
-                    </Border>
-
-                    <StackPanel
-                        Grid.Column="2"
-                        Margin="4,0,0,0"
-                        VerticalAlignment="Center">
-                        <Border
-                            Width="18"
-                            Height="18"
-                            Margin="0,0,0,3"
-                            Background="{DynamicResource SecondaryRegionBrush}"
-                            CornerRadius="4">
-                            <Image Source="{Binding Spell1Icon}" Stretch="UniformToFill" />
-                        </Border>
-                        <Border
-                            Width="18"
-                            Height="18"
-                            Background="{DynamicResource SecondaryRegionBrush}"
-                            CornerRadius="4">
-                            <Image Source="{Binding Spell2Icon}" Stretch="UniformToFill" />
-                        </Border>
-                    </StackPanel>
-
-                    <Grid Grid.Column="3" Margin="10,0,8,0">
+            <StackPanel>
+                <Border AutomationProperties.Name="{Binding DisplayName}" Style="{StaticResource LivePlayerCard}">
+                    <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition />
-                            <RowDefinition />
+                            <!--  Fixed so loaded and not-yet-loaded cards keep identical geometry.  -->
+                            <RowDefinition Height="31" />
                         </Grid.RowDefinitions>
-                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="42" />
+                            <ColumnDefinition Width="48" />
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="150" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="36"
+                            Height="24"
+                            HorizontalAlignment="Left"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SecondaryRegionBrush}"
+                            CornerRadius="12">
                             <TextBlock
-                                MaxWidth="164"
-                                FontSize="14"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="11"
                                 FontWeight="SemiBold"
                                 Foreground="{DynamicResource PrimaryTextBrush}"
-                                Text="{Binding DisplayName}"
+                                Text="{Binding PositionText}"
                                 TextTrimming="CharacterEllipsis" />
-                            <Border
-                                Margin="6,0,0,0"
-                                Padding="6,2"
-                                Background="{DynamicResource InfoBrush}"
-                                CornerRadius="8"
-                                Visibility="{Binding IsLocalPlayer, Converter={StaticResource Boolean2VisibilityConverter}}">
-                                <TextBlock
-                                    FontSize="10"
-                                    Foreground="White"
-                                    Text="{DynamicResource Match.Live.LocalTag}" />
-                            </Border>
-                            <Button
-                                AutomationProperties.Name="{DynamicResource Match.Live.OpenProfile}"
-                                Command="{Binding DataContext.OpenPlayerCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                CommandParameter="{Binding}"
-                                Content="{DynamicResource Match.Live.Profile.Short}"
-                                Style="{StaticResource LiveInlineButton}"
-                                ToolTip="{DynamicResource Match.Live.OpenProfile}"
-                                Visibility="{Binding CanOpenProfile, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                        </StackPanel>
-                        <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{Binding RankText}"
-                                TextTrimming="CharacterEllipsis" />
-                            <StackPanel
-                                Grid.Column="1"
-                                Margin="8,0,0,0"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center"
-                                Orientation="Horizontal"
-                                Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}">
-                                <hc:LoadingCircle
-                                    Width="14"
-                                    Height="14"
-                                    Margin="0,0,5,0"
-                                    Style="{DynamicResource LoadingBaseStyle}" />
-                                <TextBlock
-                                    MaxWidth="110"
-                                    Style="{StaticResource LiveCaption}"
-                                    Text="{Binding StatusText}"
-                                    TextAlignment="Right"
-                                    TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                            <TextBlock
-                                Grid.Column="1"
-                                MaxWidth="110"
-                                Margin="8,0,0,0"
-                                VerticalAlignment="Center"
-                                Foreground="#D85C5C"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{Binding StatusText}"
-                                TextAlignment="Right"
-                                TextTrimming="CharacterEllipsis"
-                                Visibility="{Binding HasError, Converter={StaticResource Boolean2VisibilityConverter}}" />
-                            <TextBlock
-                                Grid.Column="1"
-                                MaxWidth="110"
-                                Margin="8,0,0,0"
-                                VerticalAlignment="Center"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Text="{Binding StatusText}"
-                                TextAlignment="Right"
-                                TextTrimming="CharacterEllipsis">
-                                <TextBlock.Style>
-                                    <Style BasedOn="{StaticResource LiveCaption}" TargetType="{x:Type TextBlock}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding IsLoading}" Value="False" />
-                                                    <Condition Binding="{Binding HasError}" Value="False" />
-                                                </MultiDataTrigger.Conditions>
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </MultiDataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Grid>
-                    </Grid>
+                        </Border>
 
-                    <Button
-                        Grid.Column="4"
-                        AutomationProperties.Name="{DynamicResource Match.Live.RecentDetails.Open}"
-                        Command="{Binding DataContext.SelectPlayerCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                        CommandParameter="{Binding}"
-                        IsEnabled="{Binding HasRecentMatchDetails}"
-                        Style="{StaticResource LiveRecentDetailsButton}"
-                        ToolTip="{DynamicResource Match.Live.RecentDetails.Open}">
-                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Grid>
+                        <Border
+                            Grid.Column="1"
+                            Width="46"
+                            Height="46"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource SecondaryRegionBrush}"
+                            CornerRadius="8">
+                            <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                        </Border>
+
+                        <StackPanel
+                            Grid.Column="2"
+                            Margin="4,0,0,0"
+                            VerticalAlignment="Center">
+                            <Border
+                                Width="18"
+                                Height="18"
+                                Margin="0,0,0,3"
+                                Background="{DynamicResource SecondaryRegionBrush}"
+                                CornerRadius="4">
+                                <Image Source="{Binding Spell1Icon}" Stretch="UniformToFill" />
+                            </Border>
+                            <Border
+                                Width="18"
+                                Height="18"
+                                Background="{DynamicResource SecondaryRegionBrush}"
+                                CornerRadius="4">
+                                <Image Source="{Binding Spell2Icon}" Stretch="UniformToFill" />
+                            </Border>
+                        </StackPanel>
+
+                        <Grid Grid.Column="3" Margin="10,0,8,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                <TextBlock
+                                    MaxWidth="164"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    Text="{Binding DisplayName}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <Border
+                                    Margin="6,0,0,0"
+                                    Padding="6,2"
+                                    Background="{DynamicResource InfoBrush}"
+                                    CornerRadius="8"
+                                    Visibility="{Binding IsLocalPlayer, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                    <TextBlock
+                                        FontSize="10"
+                                        Foreground="White"
+                                        Text="{DynamicResource Match.Live.LocalTag}" />
+                                </Border>
+                                <Button
+                                    AutomationProperties.Name="{DynamicResource Match.Live.OpenProfile}"
+                                    Command="{Binding DataContext.OpenPlayerCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                    CommandParameter="{Binding}"
+                                    Content="{DynamicResource Match.Live.Profile.Short}"
+                                    Style="{StaticResource LiveInlineButton}"
+                                    ToolTip="{DynamicResource Match.Live.OpenProfile}"
+                                    Visibility="{Binding CanOpenProfile, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                            </StackPanel>
+                            <Grid Grid.Row="1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock
-                                    HorizontalAlignment="Right"
-                                    FontSize="12"
-                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center"
                                     Foreground="{DynamicResource PrimaryTextBrush}"
-                                    Text="{Binding RecentRecordText}" />
+                                    Style="{StaticResource LiveCaption}"
+                                    Text="{Binding RankText}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <StackPanel
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal"
+                                    Visibility="{Binding IsLoading, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                    <hc:LoadingCircle
+                                        Width="14"
+                                        Height="14"
+                                        Margin="0,0,5,0"
+                                        Style="{DynamicResource LoadingBaseStyle}" />
+                                    <TextBlock
+                                        MaxWidth="110"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{Binding StatusText}"
+                                        TextAlignment="Right"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
                                 <TextBlock
                                     Grid.Column="1"
-                                    Margin="7,0,0,0"
-                                    Foreground="{DynamicResource InfoBrush}"
+                                    MaxWidth="110"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="#D85C5C"
                                     Style="{StaticResource LiveCaption}"
-                                    Text="{DynamicResource Match.Live.RecentDetails.Open.Short}" />
+                                    Text="{Binding StatusText}"
+                                    TextAlignment="Right"
+                                    TextTrimming="CharacterEllipsis"
+                                    Visibility="{Binding HasError, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    MaxWidth="110"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    Text="{Binding StatusText}"
+                                    TextAlignment="Right"
+                                    TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style BasedOn="{StaticResource LiveCaption}" TargetType="{x:Type TextBlock}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsLoading}" Value="False" />
+                                                        <Condition Binding="{Binding HasError}" Value="False" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </Grid>
-                            <TextBlock
-                                Margin="0,3,0,0"
-                                HorizontalAlignment="Right"
-                                Foreground="{DynamicResource PrimaryTextBrush}"
-                                Style="{StaticResource LiveCaption}"
-                                Text="{Binding KdaText}" />
+                        </Grid>
+
+                        <Button
+                            Grid.Column="4"
+                            AutomationProperties.Name="{DynamicResource Match.Live.RecentDetails.Open}"
+                            Command="{Binding DataContext.SelectPlayerCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                            CommandParameter="{Binding}"
+                            IsEnabled="{Binding HasRecentMatchDetails}"
+                            Style="{StaticResource LiveRecentDetailsButton}"
+                            ToolTip="{DynamicResource Match.Live.RecentDetails.Open}">
+                            <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock
+                                        HorizontalAlignment="Right"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="{DynamicResource PrimaryTextBrush}"
+                                        Text="{Binding RecentRecordText}" />
+                                    <Border
+                                        Grid.Column="1"
+                                        Margin="7,0,0,0"
+                                        Padding="5,2"
+                                        CornerRadius="8"
+                                        Visibility="{Binding HasStreak, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                        <Border.Style>
+                                            <Style TargetType="{x:Type Border}">
+                                                <Setter Property="Background" Value="#D85C5C" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding StreakIsWinning}" Value="True">
+                                                        <Setter Property="Background" Value="#45B97C" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock
+                                            FontSize="10"
+                                            FontWeight="SemiBold"
+                                            Foreground="White"
+                                            Text="{Binding StreakText}" />
+                                    </Border>
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="7,0,0,0"
+                                        Foreground="{DynamicResource InfoBrush}"
+                                        Text="{DynamicResource Match.Live.RecentDetails.Open.Short}">
+                                        <TextBlock.Style>
+                                            <Style BasedOn="{StaticResource LiveCaption}" TargetType="{x:Type TextBlock}">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding HasStreak}" Value="False" />
+                                                            <Condition Binding="{Binding IsSelected}" Value="False" />
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="7,0,0,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="13"
+                                        FontWeight="Bold"
+                                        Foreground="{DynamicResource InfoBrush}"
+                                        Text="▼"
+                                        ToolTip="{DynamicResource Match.Live.RecentDetails.DockedHint}"
+                                        Visibility="{Binding IsSelected, Converter={StaticResource Boolean2VisibilityConverter}}" />
+                                </Grid>
+                                <TextBlock
+                                    Margin="0,3,0,0"
+                                    HorizontalAlignment="Right"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    Style="{StaticResource LiveCaption}"
+                                    Text="{Binding KdaText}" />
+                            </StackPanel>
+                        </Button>
+
+                        <!--
+                            Full-width 20-slot result strip. The container is always present
+                            (even without data) so every card keeps the same internal geometry
+                            and the strips line up across the roster.
+                        -->
+                        <Grid
+                            Grid.Row="1"
+                            Grid.ColumnSpan="5"
+                            Margin="0,6,0,0"
+                            VerticalAlignment="Top">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="9" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!--  Empty track: also renders the unfilled slots when fewer than 20 games exist.  -->
+                            <Border
+                                Height="9"
+                                VerticalAlignment="Top"
+                                Background="{DynamicResource SecondaryRegionBrush}"
+                                CornerRadius="2"
+                                SnapsToDevicePixels="True" />
                             <ItemsControl
-                                Height="8"
-                                Margin="0,4,0,0"
-                                HorizontalAlignment="Stretch"
+                                Height="9"
                                 VerticalAlignment="Top"
                                 ItemsSource="{Binding RecentResults}"
-                                SnapsToDevicePixels="True"
-                                UseLayoutRounding="True">
+                                SnapsToDevicePixels="True">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <StackPanel
-                                            HorizontalAlignment="Right"
-                                            VerticalAlignment="Top"
-                                            Orientation="Horizontal" />
+                                        <UniformGrid Columns="20" Rows="1" />
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemContainerStyle>
                                     <Style TargetType="{x:Type ContentPresenter}">
-                                        <Setter Property="Height" Value="8" />
                                         <Setter Property="VerticalAlignment" Value="Top" />
-                                        <Setter Property="SnapsToDevicePixels" Value="True" />
                                     </Style>
                                 </ItemsControl.ItemContainerStyle>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Ellipse
-                                            Width="8"
-                                            Height="8"
-                                            Margin="1,0,0,0"
+                                        <Border
+                                            Height="9"
+                                            Margin="0,0,2,0"
                                             VerticalAlignment="Top"
-                                            SnapsToDevicePixels="True">
-                                            <Ellipse.Style>
-                                                <Style TargetType="{x:Type Ellipse}">
-                                                    <Setter Property="Fill" Value="#D85C5C" />
+                                            CornerRadius="2"
+                                            SnapsToDevicePixels="True"
+                                            ToolTip="{Binding ResultTooltip}">
+                                            <Border.Style>
+                                                <Style TargetType="{x:Type Border}">
+                                                    <Setter Property="Background" Value="#D85C5C" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsWin}" Value="True">
-                                                            <Setter Property="Fill" Value="#45B97C" />
+                                                            <Setter Property="Background" Value="#45B97C" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
+                                            </Border.Style>
+                                        </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                        </StackPanel>
-                    </Button>
-                </Grid>
-            </Border>
+
+                            <Grid
+                                Grid.Row="1"
+                                Margin="0,3,0,0"
+                                Visibility="{Binding HasPerformanceData, Converter={StaticResource Boolean2VisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    FontSize="10"
+                                    Foreground="{DynamicResource SecondaryTextBrush}"
+                                    Text="{DynamicResource Match.Live.Strip.Newest}" />
+                                <TextBlock
+                                    Grid.Column="1"
+                                    FontSize="10"
+                                    Foreground="{DynamicResource SecondaryTextBrush}"
+                                    Text="{DynamicResource Match.Live.Strip.Oldest}" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </StackPanel>
         </DataTemplate>
     </UserControl.Resources>
 
@@ -411,6 +500,8 @@
             <RowDefinition Height="76" />
             <RowDefinition Height="12" />
             <RowDefinition />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Border Padding="18,0" Style="{StaticResource LiveCard}">
@@ -579,165 +670,196 @@
                         </Grid>
                     </Border>
                 </Grid>
-
-                <Border
-                    Margin="0,12,0,0"
-                    Padding="12"
-                    Style="{StaticResource LiveCard}"
-                    Visibility="{Binding HasSelectedPlayer, Converter={StaticResource Boolean2VisibilityConverter}}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="50" />
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Border
-                                Width="42"
-                                Height="42"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Background="{DynamicResource SecondaryRegionBrush}"
-                                CornerRadius="8">
-                                <Image Source="{Binding SelectedPlayer.ChampionIcon}" Stretch="UniformToFill" />
-                            </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock
-                                        FontSize="16"
-                                        FontWeight="Bold"
-                                        Text="{Binding SelectedPlayer.DisplayName}" />
-                                    <TextBlock
-                                        Margin="10,0,0,0"
-                                        VerticalAlignment="Center"
-                                        Foreground="{DynamicResource SecondaryTextBrush}"
-                                        Style="{StaticResource LiveCaption}"
-                                        Text="{DynamicResource Match.Live.RecentDetails.Title}" />
-                                </StackPanel>
-                                <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource LiveCaption}" Text="{Binding SelectedPlayer.RankText}" />
-                                    <TextBlock
-                                        Margin="10,0,0,0"
-                                        Style="{StaticResource LiveCaption}"
-                                        Text="{Binding SelectedPlayer.RecentRecordText}" />
-                                    <TextBlock
-                                        Margin="10,0,0,0"
-                                        Style="{StaticResource LiveCaption}"
-                                        Text="{Binding SelectedPlayer.KdaText}" />
-                                </StackPanel>
-                            </StackPanel>
-                            <StackPanel
-                                Grid.Column="2"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Center">
-                                <TextBlock
-                                    HorizontalAlignment="Right"
-                                    FontWeight="SemiBold"
-                                    Text="{DynamicResource Match.Live.RecentDetails.KdaLabel}" />
-                                <TextBlock
-                                    Margin="0,4,0,0"
-                                    HorizontalAlignment="Right"
-                                    Style="{StaticResource LiveCaption}"
-                                    Text="{DynamicResource Match.Live.RecentDetails.Order}" />
-                            </StackPanel>
-                        </Grid>
-
-                        <ItemsControl
-                            Grid.Row="1"
-                            Margin="-3,10,-3,-3"
-                            ItemsSource="{Binding SelectedPlayer.RecentMatches}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border
-                                        Width="94"
-                                        Height="104"
-                                        Margin="3"
-                                        Padding="7"
-                                        AutomationProperties.Name="{Binding AutomationText}"
-                                        Background="{DynamicResource MainContentForegroundDrawingBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8">
-                                        <Border.Style>
-                                            <Style TargetType="{x:Type Border}">
-                                                <Setter Property="BorderBrush" Value="#D85C5C" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsWin}" Value="True">
-                                                        <Setter Property="BorderBrush" Value="#45B97C" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
-                                                    <ColumnDefinition Width="Auto" />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource LiveCaption}" Text="{Binding IndexText}" />
-                                                <TextBlock
-                                                    Grid.Column="1"
-                                                    FontWeight="SemiBold"
-                                                    Text="{Binding ResultText}" />
-                                            </Grid>
-                                            <Border
-                                                Grid.Row="1"
-                                                Width="30"
-                                                Height="30"
-                                                Margin="0,5,0,4"
-                                                HorizontalAlignment="Center"
-                                                Background="{DynamicResource SecondaryRegionBrush}"
-                                                CornerRadius="6">
-                                                <Grid>
-                                                    <TextBlock
-                                                        HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"
-                                                        FontSize="10"
-                                                        Foreground="{DynamicResource SecondaryTextBrush}"
-                                                        Text="{Binding ChampionFallbackText}" />
-                                                    <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
-                                                </Grid>
-                                            </Border>
-                                            <TextBlock
-                                                Grid.Row="2"
-                                                HorizontalAlignment="Center"
-                                                FontWeight="SemiBold">
-                                                <Run Text="{Binding Kills}" />
-                                                <Run Text=" / " />
-                                                <Run Foreground="#D85C5C" Text="{Binding Deaths}" />
-                                                <Run Text=" / " />
-                                                <Run Text="{Binding Assists}" />
-                                            </TextBlock>
-                                            <TextBlock
-                                                Grid.Row="3"
-                                                Margin="0,3,0,0"
-                                                HorizontalAlignment="Center"
-                                                Style="{StaticResource LiveCaption}"
-                                                Text="{Binding GameModeText}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </Grid>
-                </Border>
             </StackPanel>
         </ScrollViewer>
+
+        <!--  Docked recent-match detail bar: full width, fixed at the bottom  -->
+        <Border
+            Grid.Row="3"
+            Height="12"
+            Visibility="{Binding HasSelectedPlayer, Converter={StaticResource Boolean2VisibilityConverter}}" />
+        <Border
+            Grid.Row="4"
+            Padding="14,12"
+            Style="{StaticResource LiveCard}"
+            Visibility="{Binding HasSelectedPlayer, Converter={StaticResource Boolean2VisibilityConverter}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="50" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Width="42"
+                        Height="42"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Background="{DynamicResource SecondaryRegionBrush}"
+                        CornerRadius="8">
+                        <Image Source="{Binding SelectedPlayer.ChampionIcon}" Stretch="UniformToFill" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="{Binding SelectedPlayer.DisplayName}" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{DynamicResource Match.Live.RecentDetails.Title}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource LiveCaption}" Text="{Binding SelectedPlayer.RankText}" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{Binding SelectedPlayer.RecentRecordText}" />
+                            <TextBlock
+                                Margin="10,0,0,0"
+                                Style="{StaticResource LiveCaption}"
+                                Text="{Binding SelectedPlayer.KdaText}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel
+                        Grid.Column="2"
+                        Margin="0,0,12,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            FontWeight="SemiBold"
+                            Text="{DynamicResource Match.Live.RecentDetails.KdaLabel}" />
+                        <TextBlock
+                            Margin="0,4,0,0"
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource LiveCaption}"
+                            Text="{DynamicResource Match.Live.RecentDetails.Order}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Column="3"
+                        Width="30"
+                        Height="30"
+                        Padding="0"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{DynamicResource Generic.Close}"
+                        Command="{Binding CloseDetailsCommand}"
+                        Content="×"
+                        FontSize="17"
+                        Style="{StaticResource LiveInlineButton}"
+                        ToolTip="{DynamicResource Generic.Close}" />
+                </Grid>
+
+                <ItemsControl
+                    Grid.Row="1"
+                    Margin="-3,10,-3,-3"
+                    ItemsSource="{Binding SelectedPlayer.RecentMatches}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border
+                                Width="94"
+                                Height="104"
+                                Margin="3"
+                                Padding="7"
+                                AutomationProperties.Name="{Binding AutomationText}"
+                                Background="{DynamicResource MainContentForegroundDrawingBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8">
+                                <Border.Style>
+                                    <Style TargetType="{x:Type Border}">
+                                        <Setter Property="BorderBrush" Value="#D85C5C" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsWin}" Value="True">
+                                                <Setter Property="BorderBrush" Value="#45B97C" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Style="{StaticResource LiveCaption}" Text="{Binding IndexText}" />
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            FontWeight="SemiBold"
+                                            Text="{Binding ResultText}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="{x:Type TextBlock}">
+                                                    <Setter Property="Foreground" Value="#D85C5C" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsWin}" Value="True">
+                                                            <Setter Property="Foreground" Value="#45B97C" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                    <Border
+                                        Grid.Row="1"
+                                        Width="30"
+                                        Height="30"
+                                        Margin="0,5,0,4"
+                                        HorizontalAlignment="Center"
+                                        Background="{DynamicResource SecondaryRegionBrush}"
+                                        CornerRadius="6">
+                                        <Grid>
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                FontSize="10"
+                                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                                Text="{Binding ChampionFallbackText}" />
+                                            <Image Source="{Binding ChampionIcon}" Stretch="UniformToFill" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock
+                                        Grid.Row="2"
+                                        HorizontalAlignment="Center"
+                                        FontWeight="SemiBold">
+                                        <Run Text="{Binding Kills}" />
+                                        <Run Text=" / " />
+                                        <Run Foreground="#D85C5C" Text="{Binding Deaths}" />
+                                        <Run Text=" / " />
+                                        <Run Text="{Binding Assists}" />
+                                    </TextBlock>
+                                    <TextBlock
+                                        Grid.Row="3"
+                                        Margin="0,3,0,0"
+                                        HorizontalAlignment="Center"
+                                        Style="{StaticResource LiveCaption}"
+                                        Text="{Binding GameModeText}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
 
         <Border
             Grid.Row="2"

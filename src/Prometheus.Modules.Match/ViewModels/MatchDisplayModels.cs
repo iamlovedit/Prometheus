@@ -13,6 +13,17 @@ namespace Prometheus.Modules.Match.ViewModels
             get => _isWin;
             set => SetProperty(ref _isWin, value);
         }
+
+        private string _resultTooltip = string.Empty;
+
+        /// <summary>
+        /// Hover text for a single segment of the 20-slot result strip.
+        /// </summary>
+        public string ResultTooltip
+        {
+            get => _resultTooltip;
+            set => SetProperty(ref _resultTooltip, value);
+        }
     }
 
     public sealed class LiveMatchRecentMatchViewModel
@@ -216,6 +227,34 @@ namespace Prometheus.Modules.Match.ViewModels
         {
             get => _summoner;
             set => SetProperty(ref _summoner, value);
+        }
+
+        private int _streakCount;
+        public int StreakCount
+        {
+            get => _streakCount;
+            set => SetProperty(ref _streakCount, value);
+        }
+
+        private bool _streakIsWinning;
+        public bool StreakIsWinning
+        {
+            get => _streakIsWinning;
+            set => SetProperty(ref _streakIsWinning, value);
+        }
+
+        private string _streakText;
+        public string StreakText
+        {
+            get => _streakText;
+            set => SetProperty(ref _streakText, value);
+        }
+
+        private bool _hasStreak;
+        public bool HasStreak
+        {
+            get => _hasStreak;
+            set => SetProperty(ref _hasStreak, value);
         }
     }
 }

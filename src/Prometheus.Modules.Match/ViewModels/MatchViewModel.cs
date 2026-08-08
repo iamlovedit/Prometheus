@@ -31,6 +31,12 @@ namespace Prometheus.Modules.Match.ViewModels
         private bool _isSubscribed;
         private bool _destroyed;
 
+        /// <summary>
+        /// Set when the user explicitly closes the docked detail bar, so incoming
+        /// snapshots do not silently reopen it.
+        /// </summary>
+        private bool _detailsDismissed;
+
         public MatchViewModel(
             IRegionManager regionManager,
             IEventAggregator eventAggregator,
@@ -59,6 +65,7 @@ namespace Prometheus.Modules.Match.ViewModels
             OpenPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(OpenPlayer);
             SelectPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(
                 SelectPlayer);
+            CloseDetailsCommand = new DelegateCommand(CloseDetails);
 
             Subscribe();
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty, true);
@@ -73,6 +80,8 @@ namespace Prometheus.Modules.Match.ViewModels
         public DelegateCommand<LiveMatchPlayerViewModel> OpenPlayerCommand { get; }
 
         public DelegateCommand<LiveMatchPlayerViewModel> SelectPlayerCommand { get; }
+
+        public DelegateCommand CloseDetailsCommand { get; }
 
         private LiveMatchPlayerViewModel _selectedPlayer;
         public LiveMatchPlayerViewModel SelectedPlayer
@@ -262,6 +271,13 @@ namespace Prometheus.Modules.Match.ViewModels
             _appliedVersion = snapshot.Version;
             var previousSelection = SelectedPlayer;
             var roster = snapshot.Roster;
+            var hasIncomingRoster = (roster?.MyTeam?.Count ?? 0) > 0 ||
+                (roster?.TheirTeam?.Count ?? 0) > 0;
+            if (!hasIncomingRoster)
+            {
+                // Roster cleared (match ended): allow the next match to auto-open.
+                _detailsDismissed = false;
+            }
             var myTeam = (roster?.MyTeam ?? Array.Empty<LiveMatchPlayerSnapshot>())
                 .Select(source => CreatePlayer(source, true))
                 .ToArray();
@@ -271,7 +287,9 @@ namespace Prometheus.Modules.Match.ViewModels
 
             Replace(MyTeam, myTeam);
             Replace(TheirTeam, theirTeam);
-            SelectedPlayer = FindSelectedPlayer(previousSelection, myTeam, theirTeam);
+            SelectedPlayer = _detailsDismissed
+                ? null
+                : FindSelectedPlayer(previousSelection, myTeam, theirTeam);
 
             HasRoster = myTeam.Length > 0 || theirTeam.Length > 0;
             ShowEmptyState = !HasRoster;
@@ -339,12 +357,24 @@ namespace Prometheus.Modules.Match.ViewModels
                 Summoner = navigationSummoner
             };
 
+            // RecentResults and RecentMatches share the same newest-first ordering,
+            // so the strip segment at index i describes RecentMatches[i].
+            var recentMatchDetails = source.RecentMatches;
+            var resultIndex = 0;
             foreach (var result in source.RecentResults ?? Array.Empty<bool>())
             {
                 player.RecentResults.Add(new RecentMatchResultViewModel
                 {
-                    IsWin = result
+                    IsWin = result,
+                    ResultTooltip = BuildStripTooltip(
+                        resultIndex,
+                        result,
+                        recentMatchDetails is not null &&
+                            resultIndex < recentMatchDetails.Count
+                            ? recentMatchDetails[resultIndex]
+                            : null)
                 });
+                resultIndex++;
             }
 
             var matchIndex = 0;
@@ -385,6 +415,8 @@ namespace Prometheus.Modules.Match.ViewModels
                 });
             }
             player.HasRecentMatchDetails = player.RecentMatches.Count > 0;
+
+            CalculateStreak(player, source);
 
             return player;
         }
@@ -677,10 +709,27 @@ namespace Prometheus.Modules.Match.ViewModels
 
         private void SelectPlayer(LiveMatchPlayerViewModel player)
         {
-            if (player?.HasRecentMatchDetails == true)
+            if (player?.HasRecentMatchDetails != true)
             {
-                SelectedPlayer = player;
+                return;
             }
+
+            // Clicking the already-selected player collapses the docked detail bar.
+            if (ReferenceEquals(player, SelectedPlayer))
+            {
+                _detailsDismissed = true;
+                SelectedPlayer = null;
+                return;
+            }
+
+            _detailsDismissed = false;
+            SelectedPlayer = player;
+        }
+
+        private void CloseDetails()
+        {
+            _detailsDismissed = true;
+            SelectedPlayer = null;
         }
 
         private string Text(string key, string fallback)
@@ -783,6 +832,76 @@ namespace Prometheus.Modules.Match.ViewModels
             }
 
             dispatcher.BeginInvoke(priority, action);
+        }
+
+        /// <summary>
+        /// Builds the hover text for one segment of the 20-slot result strip.
+        /// Falls back to index + result when per-match detail is unavailable.
+        /// </summary>
+        private string BuildStripTooltip(
+            int index,
+            bool isWin,
+            LiveMatchRecentMatchSnapshot detail)
+        {
+            var resultText = isWin
+                ? Text("Match.Live.RecentDetails.Win", "Win")
+                : Text("Match.Live.RecentDetails.Loss", "Loss");
+            if (detail is null)
+            {
+                return string.Format(
+                    Text("Match.Live.Strip.Tooltip.Short", "Match {0} · {1}"),
+                    index + 1, resultText);
+            }
+
+            var gameModeText = string.IsNullOrWhiteSpace(detail.GameMode)
+                ? "--"
+                : detail.GameMode;
+            return string.Format(
+                Text("Match.Live.Strip.Tooltip", "Match {0} · {1} · {2}/{3}/{4} · {5}"),
+                index + 1, resultText, detail.Kills, detail.Deaths,
+                detail.Assists, gameModeText);
+        }
+
+        private void CalculateStreak(
+            LiveMatchPlayerViewModel player,
+            LiveMatchPlayerSnapshot source)
+        {
+            var results = source.RecentResults;
+            if (results == null || results.Count < 2)
+            {
+                player.HasStreak = false;
+                return;
+            }
+
+            // RecentResults[0] is the most recent match (see MatchService.LoadPlayerPerformanceAsync).
+            var mostRecent = results[0];
+            var count = 1;
+            for (var i = 1; i < results.Count; i++)
+            {
+                if (results[i] != mostRecent)
+                {
+                    break;
+                }
+
+                count++;
+            }
+
+            if (count >= 3)
+            {
+                player.StreakCount = count;
+                player.StreakIsWinning = mostRecent;
+                player.HasStreak = true;
+                var streakKey = mostRecent
+                    ? "Match.Live.Streak.Win"
+                    : "Match.Live.Streak.Loss";
+                player.StreakText = string.Format(
+                    Text(streakKey, mostRecent ? "{0} Win Streak" : "{0} Loss Streak"),
+                    count);
+            }
+            else
+            {
+                player.HasStreak = false;
+            }
         }
     }
 }
