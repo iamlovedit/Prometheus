@@ -72,12 +72,14 @@
 - MSI 卸载或执行 Major Upgrade 前必须关闭正在运行的 Prometheus；静默卸载不得因应用仍在运行而遗留程序文件或要求重启。
 - 推送 `v<major>.<minor>.<patch>` Tag 时创建或更新同名 GitHub Release。稳定版 Release 不得标记为 Draft 或 Prerelease。
 - 稳定版 Tag 是发布版本的唯一来源；流水线去除 `v` 前缀后通过 `RELEASE_VERSION` 注入 MSBuild，程序集、ZIP、SHA-256 文件和 MSI 必须使用同一版本。
+- GitHub Release 正文必须来自 `CHANGELOG.md` 中与 Tag 版本完全匹配的 `## [<version>] - <date>` 章节；创建 Release、重新运行发布流水线或在 `master` 更新 changelog 时均同步该章节。缺少对应章节或章节为空时必须终止发布。
 - 发布流水线不得依赖 Vercel 配置、R2 凭据、更新签名密钥或自建更新 API 地址。
 - 本地非发布构建使用 `Directory.Build.props` 中的默认版本，并允许通过测试配置覆盖 GitHub 仓库坐标，不得访问真实发布仓库完成单元测试。
 
 ## 验收标准
 
 - 推送稳定版 Tag 后，GitHub Release 中存在对应的 ZIP、ZIP SHA-256 校验文件和 MSI，且程序集和 MSI 内部版本与 Tag 去除 `v` 前缀后的版本一致。
+- GitHub Release 正文与 `CHANGELOG.md` 中对应版本章节一致；已有 Release 重新运行发布流水线后，标题、正文和资产均同步更新，`master` 中已发布版本的 changelog 变化也会自动同步标题和正文。
 - 客户端直接请求 GitHub Releases API，并通过响应的 `tag_name` 判断版本；更新检查链路不请求 Vercel、R2 或自建更新 API。
 - 远端版本高于本地版本且 Release Asset 完整时报告有更新；版本相同或更低时报告无更新。
 - Draft、Prerelease、非法 Tag、缺少或重复 ZIP、缺少可用 SHA-256 来源、重复校验文件、摘要来源互相冲突或非法下载地址均不得报告为可下载更新。

@@ -1,0 +1,66 @@
+name: Sync Release Notes
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "CHANGELOG.md"
+      - ".github/scripts/Get-ReleaseNotes.ps1"
+      - ".github/workflows/sync-release-notes.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync changelog sections to existing releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $changelog = Get-Content -LiteralPath CHANGELOG.md -Raw
+          $versionMatches = [regex]::Matches(
+            $changelog,
+            '(?m)^## \[(?<version>\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}\r?$')
+
+          if ($versionMatches.Count -eq 0) {
+            throw 'CHANGELOG.md does not contain any released version sections.'
+          }
+
+          foreach ($versionMatch in $versionMatches) {
+            $releaseVersion = $versionMatch.Groups['version'].Value
+            $releaseTag = "v$releaseVersion"
+
+            $nativeErrorPreference = $PSNativeCommandUseErrorActionPreference
+            $PSNativeCommandUseErrorActionPreference = $false
+            gh release view $releaseTag --repo $env:GITHUB_REPOSITORY *> $null
+            $releaseExists = $LASTEXITCODE -eq 0
+            $PSNativeCommandUseErrorActionPreference = $nativeErrorPreference
+
+            if (-not $releaseExists) {
+              Write-Host "Skipping $releaseTag because its GitHub Release does not exist."
+              continue
+            }
+
+            $releaseNotesPath = Join-Path $env:RUNNER_TEMP `
+              "release-notes-$releaseVersion.md"
+            & .github/scripts/Get-ReleaseNotes.ps1 `
+              -Version $releaseVersion `
+              -ChangelogPath CHANGELOG.md `
+              -OutputPath $releaseNotesPath
+
+            gh release edit $releaseTag `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "Prometheus $releaseVersion" `
+              --notes-file $releaseNotesPath
+            if ($LASTEXITCODE -ne 0) {
+              throw "Unable to synchronize GitHub Release $releaseTag."
+            }
+          }

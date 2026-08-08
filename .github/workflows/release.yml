@@ -32,6 +32,18 @@ jobs:
           $releaseVersion = $match.Groups['version'].Value
           "RELEASE_VERSION=$releaseVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Resolve release notes
+        shell: pwsh
+        run: |
+          $releaseNotesPath = Join-Path $env:RUNNER_TEMP `
+            "release-notes-$env:RELEASE_VERSION.md"
+          & .github/scripts/Get-ReleaseNotes.ps1 `
+            -Version $env:RELEASE_VERSION `
+            -ChangelogPath CHANGELOG.md `
+            -OutputPath $releaseNotesPath
+          "RELEASE_NOTES_PATH=$releaseNotesPath" |
+            Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Restore, build, and test
         run: |
           dotnet restore src/Prometheus.slnx `
@@ -158,13 +170,21 @@ jobs:
           if ($releaseExists) {
             gh release upload $env:VERSION $env:ZIP_PATH $env:ZIP_CHECKSUM_PATH $env:MSI_PATH `
               --repo $env:GITHUB_REPOSITORY --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "Unable to upload assets for GitHub Release $env:VERSION."
+            }
+
+            gh release edit $env:VERSION `
+              --repo $env:GITHUB_REPOSITORY `
+              --title "Prometheus $env:RELEASE_VERSION" `
+              --notes-file $env:RELEASE_NOTES_PATH
           }
           else {
             gh release create $env:VERSION $env:ZIP_PATH $env:ZIP_CHECKSUM_PATH $env:MSI_PATH `
               --repo $env:GITHUB_REPOSITORY `
               --verify-tag `
               --title "Prometheus $env:RELEASE_VERSION" `
-              --generate-notes
+              --notes-file $env:RELEASE_NOTES_PATH
           }
 
           if ($LASTEXITCODE -ne 0) {
