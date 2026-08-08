@@ -5,6 +5,7 @@ using Serilog;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Windows.Threading;
 
 namespace Prometheus.Views
 {
@@ -19,6 +20,8 @@ namespace Prometheus.Views
 
         private readonly IEventAggregator _eventAggregator;
         private bool _isExitRequested;
+        private bool _shutdownInProgress;
+        private bool _shutdownCompleted;
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -45,7 +48,7 @@ namespace Prometheus.Views
                 .Subscribe(ShowMainWindow);
         }
 
-        private void MainWindow_Closing(object sender, CancelEventArgs e)
+        private async void MainWindow_Closing(object sender, CancelEventArgs e)
         {
             if (!_isExitRequested)
             {
@@ -54,7 +57,34 @@ namespace Prometheus.Views
                 return;
             }
 
-            _eventAggregator.GetEvent<WindowClosingEvent>().Publish();
+            if (_shutdownCompleted)
+            {
+                return;
+            }
+
+            e.Cancel = true;
+            if (_shutdownInProgress)
+            {
+                return;
+            }
+
+            _shutdownInProgress = true;
+            var shutdownContext = new ApplicationShutdownContext();
+            try
+            {
+                _eventAggregator.GetEvent<WindowClosingEvent>().Publish(shutdownContext);
+                await shutdownContext.WaitForCompletionAsync();
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception, "Unable to complete application shutdown cleanly");
+            }
+            finally
+            {
+                _shutdownCompleted = true;
+                _shutdownInProgress = false;
+                _ = Dispatcher.BeginInvoke(new Action(Close), DispatcherPriority.Normal);
+            }
         }
 
         private void TrayIcon_MouseDoubleClick(object sender, System.Windows.RoutedEventArgs e)

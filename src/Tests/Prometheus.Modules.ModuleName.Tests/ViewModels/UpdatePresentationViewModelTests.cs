@@ -93,7 +93,7 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
-        public void SettingsBadge_FollowsKnownAvailableUpdateAcrossStateChanges()
+        public async Task SettingsBadge_FollowsKnownAvailableUpdateAcrossStateChanges()
         {
             AvailableUpdate availableUpdate = null;
             var updateService = new Mock<IUpdateService>();
@@ -116,7 +116,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             RaiseUpdateStateChanged(updateService, UpdateState.UpToDate, 0);
             Assert.False(viewModel.HasAvailableUpdate);
 
-            eventAggregator.GetEvent<WindowClosingEvent>().Publish();
+            var shutdownContext = new ApplicationShutdownContext();
+            eventAggregator.GetEvent<WindowClosingEvent>().Publish(shutdownContext);
+            await shutdownContext.WaitForCompletionAsync();
         }
 
         private static PreferenceViewModel CreatePreferenceViewModel(

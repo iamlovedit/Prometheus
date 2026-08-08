@@ -45,7 +45,13 @@ namespace Prometheus.Services
 
             lock (_sync)
             {
-                ObjectDisposedException.ThrowIf(_disposed, this);
+                // Background producers can race with logger shutdown. Once disposal wins the
+                // race, late events cannot be persisted and must not destabilize application exit.
+                if (_disposed)
+                {
+                    return;
+                }
+
                 _logger ??= CreateLogger();
                 _logger.Write(logEvent);
             }

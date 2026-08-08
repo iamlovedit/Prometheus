@@ -1,5 +1,7 @@
 using Prometheus.Services;
 using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Serilog.Formatting.Json;
 using System.Configuration;
 using System.Reflection;
@@ -80,6 +82,49 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 {
                     Directory.Delete(testDirectory, recursive: true);
                 }
+            }
+        }
+
+        [Fact]
+        public void ControlledFileSink_EmitAfterDispose_IsIgnored()
+        {
+            var testDirectory = Path.Combine(
+                Path.GetTempPath(),
+                "Prometheus.LoggingControlServiceTests",
+                Guid.NewGuid().ToString("N"));
+            var history = new LogHistoryService(20);
+            var control = new LoggingControlService(true, history, _ => { });
+            var captureSink = new CaptureSink();
+
+            using (var logger = new LoggerConfiguration()
+                       .WriteTo.Sink(captureSink)
+                       .CreateLogger())
+            {
+                logger.Information("Late shutdown event");
+            }
+
+            var sink = new LoggingControlledSink(
+                control,
+                new DeferredFileLogSink(
+                    Path.Combine(testDirectory, "Logs", "prometheus-.jsonl"),
+                    new JsonFormatter(renderMessage: true),
+                    RollingInterval.Day,
+                    retainedFileCountLimit: 2));
+            sink.Dispose();
+
+            var exception = Record.Exception(() => sink.Emit(captureSink.LogEvent));
+
+            Assert.Null(exception);
+            Assert.False(Directory.Exists(testDirectory));
+        }
+
+        private sealed class CaptureSink : ILogEventSink
+        {
+            public LogEvent LogEvent { get; private set; }
+
+            public void Emit(LogEvent logEvent)
+            {
+                LogEvent = logEvent;
             }
         }
     }

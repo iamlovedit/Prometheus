@@ -523,7 +523,13 @@ namespace Prometheus.ViewModels
             });
         }
 
-        private async void HandleWindowClosing()
+        private void HandleWindowClosing(ApplicationShutdownContext shutdownContext)
+        {
+            ArgumentNullException.ThrowIfNull(shutdownContext);
+            shutdownContext.Register(StopAsync());
+        }
+
+        private async Task StopAsync()
         {
             _lcuCompanionWindowController?.Stop();
             _matchService.SnapshotChanged -= HandleSnapshotChanged;
@@ -535,6 +541,7 @@ namespace Prometheus.ViewModels
             _eventAggregator.GetEvent<SearchSummonerEvent>().Unsubscribe(HandleSearchSummoner);
             _eventAggregator.GetEvent<TitleChangeEvent>().Unsubscribe(HandleTitleChange);
             _eventAggregator.GetEvent<LanguageSwitchedEvent>().Unsubscribe(HandleLanguageChanged);
+            _eventAggregator.GetEvent<WindowClosingEvent>().Unsubscribe(HandleWindowClosing);
             _quickMatchLobbyCts?.Cancel();
             try
             {

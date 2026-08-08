@@ -8,7 +8,7 @@ namespace Prometheus.Core.Events
 
     }
 
-    public class WindowClosingEvent : PubSubEvent
+    public class WindowClosingEvent : PubSubEvent<ApplicationShutdownContext>
     {
 
     }

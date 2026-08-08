@@ -15,20 +15,22 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
     public class MainWindowCompanionLifecycleTests
     {
         [Fact]
-        public void LoadedAndWindowClosing_ControlCompanionLifecycle()
+        public async Task LoadedAndWindowClosing_ControlCompanionLifecycle()
         {
             var eventAggregator = new EventAggregator();
             var matchService = new Mock<IMatchService>();
             var companion = new Mock<ILcuCompanionWindowController>();
             var resourceService = new Mock<IResourceService>();
             var quickMatchSettings = new Mock<IQuickMatchSettings>();
+            var stopCompletion = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
             matchService.SetupGet(service => service.Current)
                 .Returns(LiveMatchSnapshot.Empty);
             matchService.Setup(service => service.StartAsync(
                     It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
             matchService.Setup(service => service.StopAsync())
-                .Returns(Task.CompletedTask);
+                .Returns(stopCompletion.Task);
             resourceService.Setup(service => service.FindResource<string>(
                     It.IsAny<string>()))
                 .Returns((string key) => key);
@@ -55,9 +57,15 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
             companion.Verify(service => service.Start(), Times.Once);
 
-            eventAggregator.GetEvent<WindowClosingEvent>().Publish();
+            var shutdownContext = new ApplicationShutdownContext();
+            eventAggregator.GetEvent<WindowClosingEvent>().Publish(shutdownContext);
+            var shutdownTask = shutdownContext.WaitForCompletionAsync();
 
             companion.Verify(service => service.Stop(), Times.Once);
+            Assert.False(shutdownTask.IsCompleted);
+
+            stopCompletion.SetResult();
+            await shutdownTask;
         }
     }
 }
