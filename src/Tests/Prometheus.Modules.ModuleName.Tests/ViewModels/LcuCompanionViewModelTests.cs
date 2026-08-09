@@ -103,6 +103,62 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void Start_WhenGameflowLooksLikeAramButLobbyIsHextech_HidesRunes()
+        {
+            var snapshot = CreateRuneSnapshot(GameQueueIds.Aram);
+            snapshot.Lobby = new LobbySnapshot
+            {
+                GameConfig = new LobbyGameConfiguration
+                {
+                    QueueId = GameQueueIds.HextechAram,
+                    GameMode = "ARAM",
+                    MapId = 12
+                }
+            };
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var gameService = new Mock<IGameService>();
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                gameService.Object,
+                new Mock<IGameResourceManager>().Object);
+
+            viewModel.Start();
+
+            Assert.False(viewModel.IsRuneRecommendationVisible);
+            gameService.Verify(service => service.GetRuneRecommendationsAsync(
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public void Start_InKiwiGameflowQueue_HidesRunesAndDoesNotRequestRecommendations()
+        {
+            var snapshot = CreateRuneSnapshot(GameQueueIds.HextechAramGameflow);
+            snapshot.GameflowSession.GameData.GameMode = "KIWI";
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var gameService = new Mock<IGameService>();
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                gameService.Object,
+                new Mock<IGameResourceManager>().Object);
+
+            viewModel.Start();
+
+            Assert.False(viewModel.IsRuneRecommendationVisible);
+            gameService.Verify(service => service.GetRuneRecommendationsAsync(
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            viewModel.Stop();
+        }
+
+        [Fact]
         public async Task Start_WithSelectedChampion_LoadsValidatedRuneRecommendation()
         {
             var snapshot = CreateRuneSnapshot(GameQueueIds.RankedSoloDuo);
@@ -313,10 +369,12 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                     GameData = new GameflowGameData
                     {
                         QueueId = queueId,
-                        GameMode = queueId is GameQueueIds.Aram or GameQueueIds.HextechAram
+                        GameMode = queueId is GameQueueIds.Aram or
+                            GameQueueIds.HextechAram or GameQueueIds.HextechAramGameflow
                             ? "ARAM"
                             : "CLASSIC",
-                        MapId = queueId is GameQueueIds.Aram or GameQueueIds.HextechAram
+                        MapId = queueId is GameQueueIds.Aram or
+                            GameQueueIds.HextechAram or GameQueueIds.HextechAramGameflow
                             ? 12
                             : 11
                     }

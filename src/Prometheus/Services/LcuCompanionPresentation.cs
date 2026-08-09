@@ -16,10 +16,36 @@ namespace Prometheus.Desktop.Services
     {
         public static int GetQueueId(LiveMatchSnapshot snapshot)
         {
-            return snapshot?.GameflowSession?.GameData?.QueueId ??
-                   snapshot?.Lobby?.GameConfig?.QueueId ??
-                   snapshot?.Matchmaking?.Queue?.Id ??
-                   0;
+            var gameflowQueueId = snapshot?.GameflowSession?.GameData?.QueueId ?? 0;
+            var lobbyQueueId = snapshot?.Lobby?.GameConfig?.QueueId ?? 0;
+            var matchmakingQueueId = snapshot?.Matchmaking?.Queue?.Id ?? 0;
+
+            if (IsHextechAramQueue(gameflowQueueId))
+            {
+                return gameflowQueueId;
+            }
+
+            if (IsHextechAramQueue(lobbyQueueId))
+            {
+                return lobbyQueueId;
+            }
+
+            if (IsHextechAramQueue(matchmakingQueueId))
+            {
+                return matchmakingQueueId;
+            }
+
+            if (gameflowQueueId > 0)
+            {
+                return gameflowQueueId;
+            }
+
+            if (lobbyQueueId > 0)
+            {
+                return lobbyQueueId;
+            }
+
+            return matchmakingQueueId > 0 ? matchmakingQueueId : 0;
         }
 
         public static LcuCompanionMode GetMode(LiveMatchSnapshot snapshot)
@@ -30,7 +56,8 @@ namespace Prometheus.Desktop.Services
                 GameQueueIds.RankedSoloDuo => LcuCompanionMode.RankedSoloDuo,
                 GameQueueIds.RankedFlex => LcuCompanionMode.RankedFlex,
                 GameQueueIds.Aram => LcuCompanionMode.Aram,
-                GameQueueIds.HextechAram => LcuCompanionMode.HextechAram,
+                _ when IsHextechAramQueue(queueId) => LcuCompanionMode.HextechAram,
+                _ when IsHextechAram(snapshot) => LcuCompanionMode.HextechAram,
                 _ when IsAram(snapshot) => LcuCompanionMode.Aram,
                 _ => LcuCompanionMode.Matchmade
             };
@@ -40,7 +67,8 @@ namespace Prometheus.Desktop.Services
         {
             var gameData = snapshot?.GameflowSession?.GameData;
             if (gameData is not null &&
-                (gameData.QueueId is GameQueueIds.Aram or GameQueueIds.HextechAram ||
+                (gameData.QueueId == GameQueueIds.Aram ||
+                 IsHextechAramQueue(gameData.QueueId) ||
                  gameData.MapId == 12 ||
                  string.Equals(gameData.GameMode, "ARAM",
                      StringComparison.OrdinalIgnoreCase)))
@@ -50,7 +78,8 @@ namespace Prometheus.Desktop.Services
 
             var lobby = snapshot?.Lobby?.GameConfig;
             return lobby is not null &&
-                   (lobby.QueueId is GameQueueIds.Aram or GameQueueIds.HextechAram ||
+                   (lobby.QueueId == GameQueueIds.Aram ||
+                    IsHextechAramQueue(lobby.QueueId) ||
                     lobby.MapId == 12 ||
                     string.Equals(lobby.GameMode, "ARAM",
                         StringComparison.OrdinalIgnoreCase));
@@ -158,6 +187,30 @@ namespace Prometheus.Desktop.Services
                 .Where(championId => championId > 0)
                 .Distinct()
                 .ToArray() ?? [];
+        }
+
+        private static bool IsHextechAramQueue(int queueId)
+        {
+            return queueId is GameQueueIds.HextechAram or
+                GameQueueIds.HextechAramGameflow;
+        }
+
+        private static bool IsHextechAram(LiveMatchSnapshot snapshot)
+        {
+            var gameData = snapshot?.GameflowSession?.GameData;
+            if (gameData is not null &&
+                (IsHextechAramQueue(gameData.QueueId) ||
+                 string.Equals(gameData.GameMode, "KIWI",
+                     StringComparison.OrdinalIgnoreCase)))
+            {
+                return true;
+            }
+
+            var lobby = snapshot?.Lobby?.GameConfig;
+            return lobby is not null &&
+                   (IsHextechAramQueue(lobby.QueueId) ||
+                    string.Equals(lobby.GameMode, "KIWI",
+                        StringComparison.OrdinalIgnoreCase));
         }
     }
 }

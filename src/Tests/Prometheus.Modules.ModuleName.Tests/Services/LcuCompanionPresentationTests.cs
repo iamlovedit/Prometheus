@@ -11,12 +11,67 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         [InlineData(GameQueueIds.RankedFlex, LcuCompanionMode.RankedFlex)]
         [InlineData(GameQueueIds.Aram, LcuCompanionMode.Aram)]
         [InlineData(GameQueueIds.HextechAram, LcuCompanionMode.HextechAram)]
+        [InlineData(GameQueueIds.HextechAramGameflow, LcuCompanionMode.HextechAram)]
         [InlineData(400, LcuCompanionMode.Matchmade)]
         public void GetMode_MapsSupportedQueues(int queueId, LcuCompanionMode expected)
         {
             var snapshot = CreateSnapshot(queueId);
 
             Assert.Equal(expected, LcuCompanionPresentation.GetMode(snapshot));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(GameQueueIds.Aram)]
+        public void GetMode_WhenLobbyReportsHextechAram_PrefersExplicitHextechQueue(
+            int gameflowQueueId)
+        {
+            var snapshot = CreateSnapshot(gameflowQueueId);
+            snapshot.GameflowSession.GameData.GameMode = "ARAM";
+            snapshot.GameflowSession.GameData.MapId = 12;
+            snapshot.Lobby = new LobbySnapshot
+            {
+                GameConfig = new LobbyGameConfiguration
+                {
+                    QueueId = GameQueueIds.HextechAram,
+                    GameMode = "ARAM",
+                    MapId = 12
+                }
+            };
+
+            Assert.Equal(
+                GameQueueIds.HextechAram,
+                LcuCompanionPresentation.GetQueueId(snapshot));
+            Assert.Equal(
+                LcuCompanionMode.HextechAram,
+                LcuCompanionPresentation.GetMode(snapshot));
+        }
+
+        [Fact]
+        public void GetMode_WhenGameflowUsesKiwiQueue_MapsToHextechAram()
+        {
+            var snapshot = CreateSnapshot(GameQueueIds.HextechAramGameflow);
+            snapshot.GameflowSession.GameData.GameMode = "KIWI";
+            snapshot.GameflowSession.GameData.MapId = 12;
+
+            Assert.Equal(
+                GameQueueIds.HextechAramGameflow,
+                LcuCompanionPresentation.GetQueueId(snapshot));
+            Assert.Equal(
+                LcuCompanionMode.HextechAram,
+                LcuCompanionPresentation.GetMode(snapshot));
+        }
+
+        [Fact]
+        public void GetMode_WhenQueueIsUnknownButGameModeIsKiwi_MapsToHextechAram()
+        {
+            var snapshot = CreateSnapshot(9999);
+            snapshot.GameflowSession.GameData.GameMode = "KIWI";
+            snapshot.GameflowSession.GameData.MapId = 12;
+
+            Assert.Equal(
+                LcuCompanionMode.HextechAram,
+                LcuCompanionPresentation.GetMode(snapshot));
         }
 
         [Fact]

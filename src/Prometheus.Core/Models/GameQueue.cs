@@ -65,6 +65,8 @@ namespace Prometheus.Core.Models
 
         public const int HextechAram = 2400;
 
+        public const int HextechAramGameflow = 3270;
+
         public const int PracticeTool = 3140;
     }
 }
