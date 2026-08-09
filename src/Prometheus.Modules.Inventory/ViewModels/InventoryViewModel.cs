@@ -15,6 +15,8 @@ namespace Prometheus.Modules.Inventory.ViewModels
 {
     public class InventoryViewModel : RegionViewModelBase
     {
+        private const int MaximumConcurrentImageLoads = 8;
+
         private readonly IGameResourceManager _gameResourceManager;
         private readonly IResourceService _resourceService;
         private readonly Dictionary<int, List<SkinBasic>> _skinsCache;
@@ -88,28 +90,32 @@ namespace Prometheus.Modules.Inventory.ViewModels
 
         private async Task OnNavigatedToAsync()
         {
+            var championMetadataTask = _championsSummary is null
+                ? _gameResourceManager.GetChampionSummarysAsync()
+                : Task.FromResult<List<ChampionSummary>>(null);
+            var profileMetadataTask = _allIcons is null
+                ? _gameResourceManager.GetProfileIconsAsync()
+                : Task.FromResult<List<ProfileIcon>>(null);
+
+            await Task.WhenAll(championMetadataTask, profileMetadataTask);
+
             if (_championsSummary is null)
             {
-                var allChampions = await _gameResourceManager.GetChampionSummarysAsync();
+                var allChampions = await championMetadataTask;
                 if (allChampions != null)
                 {
-                    _championsSummary = [];
-                    foreach (var champion in allChampions)
-                    {
-                        if (champion.Id == -1)
-                        {
-                            continue;
-                        }
-                        champion.IconUri = await _gameResourceManager.GetChampoinIconByIdAsync(champion.Id);
-                        _championsSummary.Add(champion);
-                    }
+                    _championsSummary = allChampions
+                        .Where(champion => champion.Id != -1)
+                        .ToList();
                     Champions = CollectionViewSource.GetDefaultView(_championsSummary);
                     SelectedChampion = _championsSummary.FirstOrDefault();
+                    LoadChampionIconsAsync(_championsSummary)
+                        .Observe("Loading inventory champion icons");
                 }
             }
             if (_allIcons is null)
             {
-                _allIcons = await _gameResourceManager.GetProfileIconsAsync();
+                _allIcons = await profileMetadataTask;
                 if (_allIcons != null)
                 {
                     CalculatePageCount(_selectdCount);
@@ -453,26 +459,53 @@ namespace Prometheus.Modules.Inventory.ViewModels
 
         private async Task<List<ProfileIcon>> LoadProfileIconsAsync(int pageIndex, int pageSize)
         {
-            var result = new List<ProfileIcon>();
-            var icons = _allIcons.Skip((pageIndex - 1) * pageSize).Take(pageSize);
-            foreach (var icon in icons)
+            var icons = _allIcons
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .Where(icon => icon.Id != 0)
+                .ToArray();
+            var paths = await LoadBoundedAsync(
+                icons,
+                icon => _gameResourceManager.GetProfileIconByIdAsync(icon.Id));
+            for (var index = 0; index < icons.Length; index++)
             {
-                if (icon.Id == 0)
-                {
-                    continue;
-                }
-
-                icon.IconPath = await _gameResourceManager.GetProfileIconByIdAsync(icon.Id);
-
-                if (string.IsNullOrEmpty(icon.IconPath))
-                {
-                    continue;
-                }
-
-                result.Add(icon);
+                icons[index].IconPath = paths[index];
             }
-            await Task.Delay(500);
-            return result;
+
+            return icons.Where(icon => !string.IsNullOrEmpty(icon.IconPath)).ToList();
+        }
+
+        private async Task LoadChampionIconsAsync(
+            IReadOnlyList<ChampionSummary> champions)
+        {
+            var paths = await LoadBoundedAsync(
+                champions,
+                champion => _gameResourceManager.GetChampoinIconByIdAsync(champion.Id));
+            for (var index = 0; index < champions.Count; index++)
+            {
+                champions[index].IconUri = paths[index];
+            }
+        }
+
+        private static async Task<TResult[]> LoadBoundedAsync<TSource, TResult>(
+            IReadOnlyList<TSource> values,
+            Func<TSource, Task<TResult>> load)
+        {
+            using var gate = new SemaphoreSlim(
+                MaximumConcurrentImageLoads,
+                MaximumConcurrentImageLoads);
+            return await Task.WhenAll(values.Select(async value =>
+            {
+                await gate.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    return await load(value).ConfigureAwait(false);
+                }
+                finally
+                {
+                    gate.Release();
+                }
+            }));
         }
     }
 }

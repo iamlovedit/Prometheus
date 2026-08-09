@@ -165,7 +165,16 @@ namespace Prometheus.Services.Client
                 return LiveMatchSnapshot.Empty;
             }
 
-            var json = JsonConvert.SerializeObject(source, SnapshotCloneSettings);
+            return DeserializeForConsumer(SerializeForConsumer(source));
+        }
+
+        private static string SerializeForConsumer(LiveMatchSnapshot source)
+        {
+            return JsonConvert.SerializeObject(source, SnapshotCloneSettings);
+        }
+
+        private static LiveMatchSnapshot DeserializeForConsumer(string json)
+        {
             return JsonConvert.DeserializeObject<LiveMatchSnapshot>(json,
                 SnapshotCloneSettings) ?? LiveMatchSnapshot.Empty;
         }
@@ -3161,13 +3170,18 @@ namespace Prometheus.Services.Client
                     return;
                 }
 
+                // Serialize the immutable publication once. Each observer still receives
+                // an independent object graph, so a misbehaving consumer cannot mutate
+                // service state or another observer's snapshot.
+                var serializedSnapshot = SerializeForConsumer(next);
+
                 foreach (EventHandler<LiveMatchSnapshotChangedEventArgs> handler in
                          handlers.GetInvocationList())
                 {
                     try
                     {
                         var args = new LiveMatchSnapshotChangedEventArgs(
-                            CloneForConsumer(next));
+                            DeserializeForConsumer(serializedSnapshot));
                         handler(this, args);
                     }
                     catch (Exception exception)

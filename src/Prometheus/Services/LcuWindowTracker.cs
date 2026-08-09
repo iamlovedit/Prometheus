@@ -70,6 +70,8 @@ namespace Prometheus.Desktop.Services
         private readonly DispatcherTimer _timer;
         private bool _started;
         private bool _disposed;
+        private int _trackedProcessId;
+        private IntPtr _trackedWindowHandle;
 
         public LcuWindowTracker(ILeagueClient leagueClient)
         {
@@ -109,6 +111,7 @@ namespace Prometheus.Desktop.Services
 
             _started = false;
             _timer.Stop();
+            ResetTrackedWindow();
             Publish(LcuWindowState.Unavailable);
         }
 
@@ -141,13 +144,23 @@ namespace Prometheus.Desktop.Services
                 var processId = _leagueClient.ProcessId;
                 if (processId <= 0)
                 {
+                    ResetTrackedWindow();
                     Publish(LcuWindowState.Unavailable);
                     return;
                 }
 
-                var handle = FindMainWindow(processId);
+                var handle = _trackedWindowHandle;
+                if (_trackedProcessId != processId || handle == IntPtr.Zero ||
+                    !IsWindow(handle))
+                {
+                    handle = FindMainWindow(processId);
+                    _trackedProcessId = processId;
+                    _trackedWindowHandle = handle;
+                }
+
                 if (handle == IntPtr.Zero || !TryGetBounds(handle, out var bounds))
                 {
+                    _trackedWindowHandle = IntPtr.Zero;
                     Publish(LcuWindowState.Unavailable);
                     return;
                 }
@@ -183,6 +196,12 @@ namespace Prometheus.Desktop.Services
                 Log.Debug(exception, "Unable to inspect the League client window");
                 Publish(LcuWindowState.Unavailable);
             }
+        }
+
+        private void ResetTrackedWindow()
+        {
+            _trackedProcessId = 0;
+            _trackedWindowHandle = IntPtr.Zero;
         }
 
         private void Publish(LcuWindowState state)
@@ -257,6 +276,10 @@ namespace Prometheus.Desktop.Services
         private static extern bool EnumWindows(
             EnumWindowsCallback callback,
             IntPtr parameter);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindow(IntPtr handle);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

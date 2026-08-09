@@ -168,11 +168,73 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.False(File.Exists(Path.Combine(directory.Path, "8005.png")));
         }
 
-        private static Mock<IContainerExtension> CreateContainer(string directory)
+        [Fact]
+        public async Task GetChampionSummarysAsync_WhenCalledConcurrently_LoadsMetadataOnce()
+        {
+            var httpService = new Mock<IHttpService>();
+            var completion = new TaskCompletionSource<List<ChampionSummary>>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            httpService.Setup(service => service.GetAsync<List<ChampionSummary>>(
+                    "lol-game-data/assets/v1/champion-summary.json", null,
+                    It.IsAny<CancellationToken>()))
+                .Returns(completion.Task);
+            var manager = new GameResourceManager(httpService.Object,
+                new Mock<IContainerExtension>().Object);
+
+            var first = manager.GetChampionSummarysAsync();
+            var second = manager.GetChampionSummarysAsync();
+            completion.SetResult([new ChampionSummary { Id = 1, Name = "Annie" }]);
+
+            var results = await Task.WhenAll(first, second);
+
+            Assert.NotSame(results[0], results[1]);
+            Assert.NotSame(results[0][0], results[1][0]);
+            Assert.Equal(results[0][0].Id, results[1][0].Id);
+            httpService.Verify(service => service.GetAsync<List<ChampionSummary>>(
+                "lol-game-data/assets/v1/champion-summary.json", null,
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetChampionIconAsync_WhenCalledConcurrently_DownloadsFileOnce()
+        {
+            using var directory = new TemporaryDirectory();
+            var httpService = new Mock<IHttpService>();
+            var completion = new TaskCompletionSource<byte[]>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            const string iconUrl = "lol-game-data/assets/v1/champion-icons/1.png";
+            httpService.Setup(service => service.GetByteArrayResponseAsync(
+                    HttpMethod.Get, iconUrl, null, It.IsAny<CancellationToken>()))
+                .Returns(completion.Task);
+            var manager = new GameResourceManager(httpService.Object,
+                CreateContainer(directory.Path, ParameterNames.ChampoinIcon).Object);
+
+            var first = manager.GetChampoinIconByIdAsync(1);
+            var second = manager.GetChampoinIconByIdAsync(1);
+            completion.SetResult([1, 2, 3]);
+
+            var paths = await Task.WhenAll(first, second);
+
+            Assert.Equal(paths[0], paths[1]);
+            Assert.Equal(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(paths[0]));
+            httpService.Verify(service => service.GetByteArrayResponseAsync(
+                HttpMethod.Get, iconUrl, null, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        private static Mock<IContainerExtension> CreateContainer(
+            string directory,
+            params string[] directoryNames)
         {
             var container = new Mock<IContainerExtension>();
-            container.Setup(extension => extension.Resolve(typeof(string), ParameterNames.Perks))
-                .Returns(directory);
+            var names = directoryNames.Length == 0
+                ? [ParameterNames.Perks]
+                : directoryNames;
+            foreach (var directoryName in names)
+            {
+                container.Setup(extension => extension.Resolve(typeof(string), directoryName))
+                    .Returns(directory);
+            }
+
             return container;
         }
 

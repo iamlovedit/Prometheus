@@ -12,8 +12,12 @@ namespace Prometheus.Modules.Summoner.ViewModels
 {
     public class SelectBackgroundDialogViewModel : BindableBase, IDialogAware
     {
+        private const int MaximumConcurrentImageLoads = 8;
+
         private readonly Dictionary<int, List<SkinBasic>> _skinsCache;
         private readonly IGameResourceManager _gameResourceManager;
+        private int _dialogLoadVersion;
+        private int _skinLoadVersion;
         public SelectBackgroundDialogViewModel(IGameResourceManager gameResourceManager, IContainerExtension containerExtension)
         {
             _gameResourceManager = gameResourceManager;
@@ -31,7 +35,8 @@ namespace Prometheus.Modules.Summoner.ViewModels
 
         public void OnDialogClosed()
         {
-
+            _dialogLoadVersion++;
+            _skinLoadVersion++;
         }
 
         public void OnDialogOpened(IDialogParameters parameters)
@@ -41,24 +46,31 @@ namespace Prometheus.Modules.Summoner.ViewModels
 
         private async Task OnDialogOpenedAsync()
         {
+            var version = ++_dialogLoadVersion;
             var allChampions = await _gameResourceManager.GetChampionSummarysAsync();
-            if (allChampions is null)
+            if (allChampions is null || version != _dialogLoadVersion)
             {
                 return;
             }
 
-            var champions = new List<ChampionSummary>();
-            foreach (var champion in allChampions)
-            {
-                if (champion.Id == -1)
-                {
-                    continue;
-                }
-                champion.IconUri = await _gameResourceManager.GetChampoinIconByIdAsync(champion.Id);
-                champions.Add(champion);
-            }
+            var champions = allChampions
+                .Where(champion => champion.Id != -1)
+                .ToList();
             Champions = CollectionViewSource.GetDefaultView(champions);
             SelectedChampion = champions.FirstOrDefault();
+
+            var paths = await LoadBoundedAsync(
+                champions,
+                champion => _gameResourceManager.GetChampoinIconByIdAsync(champion.Id));
+            if (version != _dialogLoadVersion)
+            {
+                return;
+            }
+
+            for (var index = 0; index < champions.Count; index++)
+            {
+                champions[index].IconUri = paths[index];
+            }
         }
 
         private ICollectionView _champions;
@@ -117,6 +129,7 @@ namespace Prometheus.Modules.Summoner.ViewModels
 
         private async Task ExecuteSelectionChangedCommandAsync()
         {
+            var version = ++_skinLoadVersion;
             if (_selectedChampion is null)
             {
                 return;
@@ -129,12 +142,38 @@ namespace Prometheus.Modules.Summoner.ViewModels
             else
             {
                 var loadedSkins = await _gameResourceManager.GetSkinsByChampionIdAsync(id);
+                if (version != _skinLoadVersion || _selectedChampion?.Id != id)
+                {
+                    return;
+                }
+
                 Skins = loadedSkins;
                 if (loadedSkins is { Count: > 0 })
                 {
                     _skinsCache[id] = loadedSkins;
                 }
             }
+        }
+
+        private static async Task<TResult[]> LoadBoundedAsync<TSource, TResult>(
+            IReadOnlyList<TSource> values,
+            Func<TSource, Task<TResult>> load)
+        {
+            using var gate = new SemaphoreSlim(
+                MaximumConcurrentImageLoads,
+                MaximumConcurrentImageLoads);
+            return await Task.WhenAll(values.Select(async value =>
+            {
+                await gate.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    return await load(value).ConfigureAwait(false);
+                }
+                finally
+                {
+                    gate.Release();
+                }
+            }));
         }
 
 

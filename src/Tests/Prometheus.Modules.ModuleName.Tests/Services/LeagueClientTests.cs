@@ -2,6 +2,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Moq;
 using Prometheus.Services.Client;
+using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using Serilog.Core;
@@ -219,6 +220,43 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.Equal("lcu.websocket.event.received",
                 GetScalar<string>(logEvent, "EventName"));
             Assert.Equal("[1,2,3]", GetScalar<string>(logEvent, "Data"));
+        }
+
+        [Fact]
+        public void HandleMessageReceived_WhenLoggingIsDisabled_SkipsDiagnosticLogButDispatches()
+        {
+            var clientService = new Mock<IClientService>();
+            var loggingControl = new Mock<ILoggingControlService>();
+            loggingControl.SetupGet(service => service.IsEnabled).Returns(false);
+            var sink = new CollectingSink();
+            using var logger = new LoggerConfiguration()
+                .WriteTo.Sink(sink)
+                .CreateLogger();
+            var client = new LeagueClient(
+                clientService.Object,
+                logger,
+                loggingControl.Object);
+            var observed = false;
+            client.OnWebsocketEvent += _ => observed = true;
+            var payload = new JArray
+            {
+                8,
+                "OnJsonApiEvent",
+                new JObject
+                {
+                    ["eventType"] = "Update",
+                    ["uri"] = "/lol-gameflow/v1/session",
+                    ["data"] = new JObject
+                    {
+                        ["queueId"] = 420,
+                    },
+                },
+            };
+
+            client.HandleMessageReceived(payload.ToString(Formatting.None));
+
+            Assert.True(observed);
+            Assert.Empty(sink.Events);
         }
 
         private static T GetScalar<T>(LogEvent logEvent, string propertyName)

@@ -1,5 +1,6 @@
 using Newtonsoft.Json.Linq;
 using Prometheus.Core.Models;
+using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using System.Net.Security;
@@ -22,6 +23,7 @@ namespace Prometheus.Services.Client
         private static readonly TimeSpan CloseTimeout = TimeSpan.FromSeconds(1);
 
         private readonly IClientService _clientService;
+        private readonly ILoggingControlService _loggingControl;
         private readonly ILogger _logger;
         private readonly object _stateSync = new();
         private readonly object _connectionTransitionSync = new();
@@ -36,15 +38,18 @@ namespace Prometheus.Services.Client
         private bool _connected;
         private bool _stopping;
 
-        public LeagueClient(IClientService clientService)
-            : this(clientService, Log.Logger)
+        public LeagueClient(IClientService clientService,
+            ILoggingControlService loggingControl = null)
+            : this(clientService, Log.Logger, loggingControl)
         {
         }
 
-        internal LeagueClient(IClientService clientService, ILogger logger)
+        internal LeagueClient(IClientService clientService, ILogger logger,
+            ILoggingControlService loggingControl = null)
         {
             _clientService = clientService ?? throw new ArgumentNullException(nameof(clientService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _loggingControl = loggingControl;
         }
 
         public event Action OnConnected;
@@ -514,6 +519,14 @@ namespace Prometheus.Services.Client
 
         private void LogWebsocketEvent(OnWebsocketEventArgs eventArgs)
         {
+            // Sanitizing large LCU payloads requires cloning and traversing the entire
+            // JSON tree. Logging-disabled sessions must avoid that work as well as the
+            // sinks themselves.
+            if (_loggingControl is not null && !_loggingControl.IsEnabled)
+            {
+                return;
+            }
+
             var sanitizedData = WebsocketEventLogSanitizer.Sanitize(
                 (object)eventArgs.Data,
                 Token);

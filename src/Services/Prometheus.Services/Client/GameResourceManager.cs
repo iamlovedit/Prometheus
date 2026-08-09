@@ -5,38 +5,47 @@ using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using Serilog.Core;
+using System.Collections.Concurrent;
 
 namespace Prometheus.Services.Client
 {
     public class GameResourceManager : IGameResourceManager
     {
         private const int DefaultBackgroundSkinId = 157000;
+        private const int MaximumConcurrentSkinDownloads = 4;
 
         private readonly IHttpService _httpService;
         private readonly IContainerExtension _containerExtension;
-        private readonly Dictionary<int, List<Skin>> _skinsByChampion = [];
-        private List<Equipment> _equipments;
-        private List<Spell> _spells;
-        private List<Perk> _perks;
+        private readonly ConcurrentDictionary<string, Lazy<Task<object>>> _metadataLoads =
+            new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _fileLoads =
+            new(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<int, Lazy<Task<List<Skin>>>>
+            _skinLoadsByChampion = new();
 
         public GameResourceManager(IHttpService httpService, IContainerExtension containerExtension)
         {
             _httpService = httpService;
             _containerExtension = containerExtension;
         }
-        public async Task<List<Equipment>> GetEquipmentsAsync()
+        public Task<List<Equipment>> GetEquipmentsAsync()
         {
-            return await _httpService.GetAsync<List<Equipment>>("lol-game-data/assets/v1/items.json");
+            return GetMetadataAsync<List<Equipment>>(
+                "lol-game-data/assets/v1/items.json");
         }
 
-        public async Task<List<Perk>> GetPerksAsync()
+        public Task<List<Perk>> GetPerksAsync()
         {
-            return await _httpService.GetAsync<List<Perk>>("lol-game-data/assets/v1/perks.json");
+            return GetMetadataAsync<List<Perk>>(
+                "lol-game-data/assets/v1/perks.json");
         }
 
         public async Task<List<ChampionSummary>> GetChampionSummarysAsync()
         {
-            return await _httpService.GetAsync<List<ChampionSummary>>("lol-game-data/assets/v1/champion-summary.json");
+            var champions = await GetMetadataAsync<List<ChampionSummary>>(
+                    "lol-game-data/assets/v1/champion-summary.json")
+                .ConfigureAwait(false);
+            return champions?.Select(CloneChampionSummary).ToList();
         }
 
         public async Task<string> GetProfileIconByIdAsync(int id)
@@ -47,12 +56,17 @@ namespace Prometheus.Services.Client
             {
                 try
                 {
-                    var buffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, $"lol-game-data/assets/v1/profile-icons/{id}.jpg");
-                    await File.WriteAllBytesAsync(iconPath, buffer);
+                    var result = await EnsureDownloadedAsync(
+                        $"lol-game-data/assets/v1/profile-icons/{id}.jpg", iconPath);
+                    if (string.IsNullOrWhiteSpace(result))
+                    {
+                        return default;
+                    }
                 }
-                catch (Exception e)
+                catch (Exception exception)
                 {
-                    Log.Error(e.Message);
+                    Log.Warning(exception,
+                        "Unable to load profile icon {ProfileIconId}", id);
                     return default;
                 }
 
@@ -75,25 +89,45 @@ namespace Prometheus.Services.Client
             await _httpService.PostAsync("lol-summoner/v1/current-summoner/summoner-profile", body);
         }
 
-        public async Task<List<Spell>> GetSpellsAsync()
+        public Task<List<Spell>> GetSpellsAsync()
         {
-            return await _httpService.GetAsync<List<Spell>>("lol-game-data/assets/v1/summoner-spells.json");
+            return GetMetadataAsync<List<Spell>>(
+                "lol-game-data/assets/v1/summoner-spells.json");
         }
 
         public async Task<List<ProfileIcon>> GetProfileIconsAsync()
         {
-            return await _httpService.GetAsync<List<ProfileIcon>>("lol-game-data/assets/v1/profile-icons.json");
+            var icons = await GetMetadataAsync<List<ProfileIcon>>(
+                    "lol-game-data/assets/v1/profile-icons.json")
+                .ConfigureAwait(false);
+            return icons?.Select(icon => new ProfileIcon
+            {
+                Id = icon.Id,
+                IconPath = icon.IconPath
+            }).ToList();
         }
 
         public async Task<string> GetChampoinIconByIdAsync(int championId)
         {
             var directory = GetDirectory(ParameterNames.ChampoinIcon);
             var iconPath = Path.Combine(directory, $"{championId}.png");
-            if (!File.Exists(iconPath))
+            if (File.Exists(iconPath))
             {
-                await DownloadAsync($"lol-game-data/assets/v1/champion-icons/{championId}.png", iconPath);
+                return iconPath;
             }
-            return iconPath;
+
+            try
+            {
+                return await EnsureDownloadedAsync(
+                        $"lol-game-data/assets/v1/champion-icons/{championId}.png", iconPath)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                Log.Warning(exception,
+                    "Unable to load champion icon {ChampionId}", championId);
+                return default;
+            }
         }
 
         public async Task<string> GetEquipmentIconByIdAsync(int equipmentId)
@@ -102,26 +136,23 @@ namespace Prometheus.Services.Client
             var iconPath = Path.Combine(directory, $"{equipmentId}.png");
             if (!File.Exists(iconPath))
             {
-                if (_equipments is null)
-                {
-                    _equipments = await GetEquipmentsAsync();
-                }
-                var equipment = _equipments.FirstOrDefault(e => e.Id == equipmentId);
+                var equipments = await GetEquipmentsAsync();
+                var equipment = equipments?.FirstOrDefault(e => e.Id == equipmentId);
 
                 if (equipment is null)
                 {
                     iconPath = Path.Combine(directory, "gp_ui_placeholder.png");
                     if (!File.Exists(iconPath))
                     {
-                        await DownloadAsync("lol-game-data/assets/ASSETS/Items/Icons2D/gp_ui_placeholder.png", iconPath);
-                        return iconPath;
+                        return await EnsureDownloadedAsync(
+                            "lol-game-data/assets/ASSETS/Items/Icons2D/gp_ui_placeholder.png",
+                            iconPath);
                     }
                     return iconPath;
                 }
                 else
                 {
-                    await DownloadAsync(equipment.IconPath, iconPath);
-                    return iconPath;
+                    return await EnsureDownloadedAsync(equipment.IconPath, iconPath);
                 }
             }
             return iconPath;
@@ -133,25 +164,22 @@ namespace Prometheus.Services.Client
             var iconPath = Path.Combine(directory, $"{spellId}.png");
             if (!File.Exists(iconPath))
             {
-                if (_spells is null)
-                {
-                    _spells = await GetSpellsAsync();
-                }
-                var spell = _spells.FirstOrDefault(s => s.Id == spellId);
+                var spells = await GetSpellsAsync();
+                var spell = spells?.FirstOrDefault(s => s.Id == spellId);
                 if (spell is null)
                 {
                     iconPath = Path.Combine(directory, "summoner_empty.png");
                     if (!File.Exists(iconPath))
                     {
-                        await DownloadAsync("lol-game-data/assets/data/spells/icons2d/summoner_empty.png", iconPath);
-                        return iconPath;
+                        return await EnsureDownloadedAsync(
+                            "lol-game-data/assets/data/spells/icons2d/summoner_empty.png",
+                            iconPath);
                     }
                     return iconPath;
                 }
                 else
                 {
-                    await DownloadAsync(spell.IconPath, iconPath);
-                    return iconPath;
+                    return await EnsureDownloadedAsync(spell.IconPath, iconPath);
                 }
             }
             return iconPath;
@@ -178,8 +206,7 @@ namespace Prometheus.Services.Client
                 var skin = skins.FirstOrDefault(item => item.Id == skinId);
                 if (skin is not null)
                 {
-                    await DownloadAsync(skin.SplashPath, skinPath);
-                    return skinPath;
+                    return await EnsureDownloadedAsync(skin.SplashPath, skinPath);
                 }
 
                 if (skinId != DefaultBackgroundSkinId)
@@ -215,27 +242,22 @@ namespace Prometheus.Services.Client
 
             try
             {
-                if (_perks is null)
+                var perks = await GetPerksAsync().ConfigureAwait(false);
+                if (perks is null || perks.Count == 0)
                 {
-                    var perks = await GetPerksAsync().ConfigureAwait(false);
-                    if (perks is null || perks.Count == 0)
-                    {
-                        Log.Warning("Unable to load perk metadata for perk {PerkId}", perkId);
-                        return default;
-                    }
-
-                    _perks = perks;
+                    Log.Warning("Unable to load perk metadata for perk {PerkId}", perkId);
+                    return default;
                 }
 
-                var perk = _perks.FirstOrDefault(p => p.Id == perkId);
+                var perk = perks.FirstOrDefault(p => p.Id == perkId);
                 if (string.IsNullOrWhiteSpace(perk?.IconPath))
                 {
                     Log.Warning("LCU perk metadata does not contain perk {PerkId}", perkId);
                     return default;
                 }
 
-                await DownloadAsync(perk.IconPath, iconPath).ConfigureAwait(false);
-                return iconPath;
+                return await EnsureDownloadedAsync(perk.IconPath, iconPath)
+                    .ConfigureAwait(false);
             }
             catch (Exception exception)
             {
@@ -254,10 +276,88 @@ namespace Prometheus.Services.Client
             return directory;
         }
 
-        private async Task DownloadAsync(string url, string filePath)
+        private async Task<T> GetMetadataAsync<T>(string endpoint)
+            where T : class, new()
         {
-            var buffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, url);
-            await File.WriteAllBytesAsync(filePath, buffer);
+            var lazy = _metadataLoads.GetOrAdd(endpoint, key =>
+                new Lazy<Task<object>>(
+                    async () => await _httpService.GetAsync<T>(key).ConfigureAwait(false),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+            try
+            {
+                var result = await lazy.Value.ConfigureAwait(false) as T;
+                if (result is null)
+                {
+                    _metadataLoads.TryRemove(
+                        new KeyValuePair<string, Lazy<Task<object>>>(endpoint, lazy));
+                }
+
+                return result;
+            }
+            catch
+            {
+                _metadataLoads.TryRemove(
+                    new KeyValuePair<string, Lazy<Task<object>>>(endpoint, lazy));
+                throw;
+            }
+        }
+
+        private static ChampionSummary CloneChampionSummary(ChampionSummary source)
+        {
+            return new ChampionSummary
+            {
+                Id = source.Id,
+                Name = source.Name,
+                Alias = source.Alias,
+                SquarePortraitPath = source.SquarePortraitPath,
+                Roles = source.Roles?.ToList(),
+                IconUri = source.IconUri
+            };
+        }
+
+        private Task<string> EnsureDownloadedAsync(string url, string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                return Task.FromResult(filePath);
+            }
+
+            return AwaitDownloadAsync(url, filePath);
+        }
+
+        private async Task<string> AwaitDownloadAsync(string url, string filePath)
+        {
+            var lazy = _fileLoads.GetOrAdd(filePath, _ =>
+                new Lazy<Task<string>>(
+                    () => DownloadFileCoreAsync(url, filePath),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+            try
+            {
+                return await lazy.Value.ConfigureAwait(false);
+            }
+            finally
+            {
+                _fileLoads.TryRemove(
+                    new KeyValuePair<string, Lazy<Task<string>>>(filePath, lazy));
+            }
+        }
+
+        private async Task<string> DownloadFileCoreAsync(string url, string filePath)
+        {
+            if (File.Exists(filePath))
+            {
+                return filePath;
+            }
+
+            var buffer = await _httpService.GetByteArrayResponseAsync(HttpMethod.Get, url)
+                .ConfigureAwait(false);
+            if (buffer is null || buffer.Length == 0)
+            {
+                return default;
+            }
+
+            await File.WriteAllBytesAsync(filePath, buffer).ConfigureAwait(false);
+            return filePath;
         }
 
         public async Task<List<SkinBasic>> GetSkinsByChampionIdAsync(int championId)
@@ -270,22 +370,32 @@ namespace Prometheus.Services.Client
             try
             {
                 var championSkins = await GetChampionSkinsAsync(championId);
-                var skins = new List<SkinBasic>();
-                foreach (var skin in championSkins)
+                using var gate = new SemaphoreSlim(
+                    MaximumConcurrentSkinDownloads,
+                    MaximumConcurrentSkinDownloads);
+                var skins = await Task.WhenAll(championSkins.Select(async skin =>
                 {
-                    var uri = await GetBackgroundSkinByIdAsync(skin.Id);
-                    if (!string.IsNullOrEmpty(uri))
+                    await gate.WaitAsync().ConfigureAwait(false);
+                    try
                     {
-                        skins.Add(new SkinBasic()
-                        {
-                            Id = skin.Id,
-                            Name = skin.Name,
-                            Uri = uri
-                        });
+                        var uri = await GetBackgroundSkinByIdAsync(skin.Id)
+                            .ConfigureAwait(false);
+                        return string.IsNullOrEmpty(uri)
+                            ? null
+                            : new SkinBasic
+                            {
+                                Id = skin.Id,
+                                Name = skin.Name,
+                                Uri = uri
+                            };
                     }
-                }
+                    finally
+                    {
+                        gate.Release();
+                    }
+                })).ConfigureAwait(false);
 
-                return skins;
+                return skins.Where(skin => skin is not null).ToList();
             }
             catch (Exception exception)
             {
@@ -296,21 +406,43 @@ namespace Prometheus.Services.Client
 
         private async Task<List<Skin>> GetChampionSkinsAsync(int championId)
         {
-            if (_skinsByChampion.TryGetValue(championId, out var skins))
+            var lazy = _skinLoadsByChampion.GetOrAdd(championId, id =>
+                new Lazy<Task<List<Skin>>>(
+                    () => LoadChampionSkinsAsync(id),
+                    LazyThreadSafetyMode.ExecutionAndPublication));
+            try
             {
+                var skins = await lazy.Value.ConfigureAwait(false);
+                if (skins is null)
+                {
+                    _skinLoadsByChampion.TryRemove(
+                        new KeyValuePair<int, Lazy<Task<List<Skin>>>>(
+                            championId, lazy));
+                    return [];
+                }
+
                 return skins;
             }
+            catch
+            {
+                _skinLoadsByChampion.TryRemove(
+                    new KeyValuePair<int, Lazy<Task<List<Skin>>>>(
+                        championId, lazy));
+                throw;
+            }
+        }
 
+        private async Task<List<Skin>> LoadChampionSkinsAsync(int championId)
+        {
             var champion = await _httpService.GetAsync<ChampionSkins>(
-                $"lol-game-data/assets/v1/champions/{championId}.json");
+                    $"lol-game-data/assets/v1/champions/{championId}.json")
+                .ConfigureAwait(false);
             if (champion is null)
             {
-                return [];
+                return null;
             }
 
-            skins = champion.Skins ?? [];
-            _skinsByChampion[championId] = skins;
-            return skins;
+            return champion.Skins ?? [];
         }
     }
 }
