@@ -558,6 +558,7 @@
     <sys:String x:Key="Companion.Runes.Loading">Loading rune recommendations</sys:String>
     <sys:String x:Key="Companion.Runes.Unavailable">Rune recommendations are unavailable</sys:String>
     <sys:String x:Key="Companion.Runes.Outdated">Recommendation does not match this client version</sys:String>
+    <sys:String x:Key="Companion.Runes.ChampionUnavailable">Unable to resolve champion name</sys:String>
     <sys:String x:Key="Companion.Runes.Ready">Ready to apply to League Client</sys:String>
     <sys:String x:Key="Companion.Runes.Applied">Recommended rune page applied</sys:String>
     <sys:String x:Key="Companion.Runes.Apply">Apply to League Client</sys:String>

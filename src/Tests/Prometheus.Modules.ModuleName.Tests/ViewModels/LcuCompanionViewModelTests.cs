@@ -168,6 +168,96 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             viewModel.Stop();
         }
 
+        [Fact]
+        public async Task Start_WhenChampionNamesInitiallyUnavailable_RetriesBeforeApplying()
+        {
+            var snapshot = CreateRuneSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var recommendation = CreateRecommendationSet();
+            var gameService = new Mock<IGameService>();
+            gameService.Setup(service => service.GetRuneRecommendationsAsync(
+                    103,
+                    "mid",
+                    false,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recommendation);
+            var appliedPageName = new TaskCompletionSource<string>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            gameService.Setup(service => service.ApplyRuneRecommendationAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<RuneRecommendationOption>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback((string pageName,
+                    RuneRecommendationOption _,
+                    CancellationToken __) => appliedPageName.TrySetResult(pageName))
+                .ReturnsAsync(new RunePageApplyResult
+                {
+                    Status = RunePageApplyStatus.Applied,
+                    RunePageId = 42
+                });
+            var resourceManager = CreateRuneResourceManager(recommendation);
+            resourceManager.SetupSequence(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync((List<ChampionSummary>)null)
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 103, Name = "Ahri" }
+                ]);
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                gameService.Object,
+                resourceManager.Object);
+
+            viewModel.Start();
+            await WaitUntilAsync(() => viewModel.HasRuneRecommendation);
+
+            Assert.Equal("Ahri · Mid", viewModel.RuneChampionText);
+            Assert.True(viewModel.ApplyRuneCommand.CanExecute());
+            resourceManager.Verify(
+                service => service.GetChampionSummarysAsync(),
+                Times.Exactly(2));
+            viewModel.ApplyRuneCommand.Execute();
+            Assert.Equal(
+                "Ahri - Most popular runes [Prometheus]",
+                await appliedPageName.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public async Task Start_WhenChampionNameCannotBeResolved_DisablesRuneApplication()
+        {
+            var snapshot = CreateRuneSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var recommendation = CreateRecommendationSet();
+            var gameService = new Mock<IGameService>();
+            gameService.Setup(service => service.GetRuneRecommendationsAsync(
+                    103,
+                    "mid",
+                    false,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recommendation);
+            var resourceManager = CreateRuneResourceManager(recommendation);
+            resourceManager.Setup(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync((List<ChampionSummary>)null);
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                gameService.Object,
+                resourceManager.Object);
+
+            viewModel.Start();
+            await WaitUntilAsync(() => viewModel.HasRuneRecommendation);
+
+            Assert.Equal("#103 · Mid", viewModel.RuneChampionText);
+            Assert.False(viewModel.ApplyRuneCommand.CanExecute());
+            Assert.Equal("Unable to resolve champion name", viewModel.RuneStatusText);
+            gameService.Verify(service => service.ApplyRuneRecommendationAsync(
+                It.IsAny<string>(),
+                It.IsAny<RuneRecommendationOption>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            viewModel.Stop();
+        }
+
         private static LcuCompanionViewModel CreateViewModel(
             IMatchService matchService,
             IGameService gameService,
@@ -191,6 +281,25 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 automationSettings.Object,
                 gameResourceManager,
                 resourceService.Object);
+        }
+
+        private static Mock<IGameResourceManager> CreateRuneResourceManager(
+            RuneRecommendationSet recommendation)
+        {
+            var resourceManager = new Mock<IGameResourceManager>();
+            resourceManager.Setup(service => service.GetPerksAsync())
+                .ReturnsAsync(recommendation.Popular.SelectedPerkIds
+                    .Distinct()
+                    .Select(perkId => new Perk
+                    {
+                        Id = perkId,
+                        Name = $"Perk {perkId}"
+                    })
+                    .ToList());
+            resourceManager.Setup(service => service.GetPerkIconByIdAsync(
+                    It.IsAny<int>()))
+                .ReturnsAsync((int perkId) => $"{perkId}.png");
+            return resourceManager;
         }
 
         private static LiveMatchSnapshot CreateRuneSnapshot(int queueId)

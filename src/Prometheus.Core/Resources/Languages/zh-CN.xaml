@@ -557,6 +557,7 @@
     <sys:String x:Key="Companion.Runes.Loading">正在加载符文推荐</sys:String>
     <sys:String x:Key="Companion.Runes.Unavailable">暂时无法获取符文推荐</sys:String>
     <sys:String x:Key="Companion.Runes.Outdated">推荐符文与当前客户端版本不匹配</sys:String>
+    <sys:String x:Key="Companion.Runes.ChampionUnavailable">暂时无法获取英雄名称</sys:String>
     <sys:String x:Key="Companion.Runes.Ready">可以应用到英雄联盟客户端</sys:String>
     <sys:String x:Key="Companion.Runes.Applied">推荐符文页已应用</sys:String>
     <sys:String x:Key="Companion.Runes.Apply">一键应用到客户端</sys:String>

@@ -84,6 +84,9 @@ namespace Prometheus.ViewModels
 
     public sealed class LcuCompanionViewModel : BindableBase
     {
+        private const int ChampionNameLoadAttempts = 4;
+        private const int ChampionNameRetryDelayMilliseconds = 150;
+
         private readonly IEventAggregator _eventAggregator;
         private readonly IMatchService _matchService;
         private readonly IGameService _gameService;
@@ -104,6 +107,7 @@ namespace Prometheus.ViewModels
         private RuneRecommendationKind _selectedRuneKind = RuneRecommendationKind.Popular;
         private string _runeRequestKey = string.Empty;
         private string _runeChampionName = string.Empty;
+        private bool _isRuneChampionNameResolved;
         private string _appliedRuneSignature = string.Empty;
         private bool _started;
 
@@ -544,8 +548,7 @@ namespace Prometheus.ViewModels
 
             try
             {
-                _championNamesTask ??= LoadChampionNamesAsync();
-                var names = await _championNamesTask.ConfigureAwait(false);
+                var names = await GetChampionNamesAsync().ConfigureAwait(false);
                 var resources = await Task.WhenAll(championCards.Select(async card =>
                 {
                     string icon = string.Empty;
@@ -594,11 +597,90 @@ namespace Prometheus.ViewModels
             var champions = await _gameResourceManager.GetChampionSummarysAsync()
                 .ConfigureAwait(false) ?? [];
             return champions
-                .Where(champion => champion is not null && champion.Id > 0)
+                .Where(champion => champion is not null &&
+                    champion.Id > 0 &&
+                    !string.IsNullOrWhiteSpace(champion.Name))
                 .GroupBy(champion => champion.Id)
                 .ToDictionary(
                     group => group.Key,
-                    group => group.First().Name ?? $"#{group.Key}");
+                    group => group.First().Name.Trim());
+        }
+
+        private async Task<IReadOnlyDictionary<int, string>> GetChampionNamesAsync(
+            int requiredChampionId = 0)
+        {
+            var task = Volatile.Read(ref _championNamesTask);
+            if (task is null)
+            {
+                var createdTask = LoadChampionNamesAsync();
+                task = Interlocked.CompareExchange(
+                    ref _championNamesTask,
+                    createdTask,
+                    null) ?? createdTask;
+            }
+
+            try
+            {
+                var names = await task.ConfigureAwait(false);
+                if (names.Count == 0 ||
+                    (requiredChampionId > 0 && !names.ContainsKey(requiredChampionId)))
+                {
+                    _ = Interlocked.CompareExchange(ref _championNamesTask, null, task);
+                }
+
+                return names;
+            }
+            catch
+            {
+                _ = Interlocked.CompareExchange(ref _championNamesTask, null, task);
+                throw;
+            }
+        }
+
+        private async Task<string> ResolveChampionNameAsync(
+            int championId,
+            CancellationToken cancellationToken)
+        {
+            for (var attempt = 0; attempt < ChampionNameLoadAttempts; attempt++)
+            {
+                if (attempt > 0)
+                {
+                    await Task.Delay(
+                            ChampionNameRetryDelayMilliseconds * attempt,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                try
+                {
+                    var names = await GetChampionNamesAsync(championId)
+                        .ConfigureAwait(false);
+                    if (names.TryGetValue(championId, out var name) &&
+                        IsResolvedChampionName(name, championId))
+                    {
+                        return name;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    Log.Debug(exception,
+                        "Unable to resolve champion name {ChampionId} on attempt {Attempt}",
+                        championId,
+                        attempt + 1);
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsResolvedChampionName(string name, int championId)
+        {
+            return !string.IsNullOrWhiteSpace(name) &&
+                !string.Equals(name, $"#{championId}", StringComparison.Ordinal);
         }
 
         private void UpdateRuneRecommendation(LiveMatchSnapshot snapshot)
@@ -657,6 +739,7 @@ namespace Prometheus.ViewModels
             _selectedRuneRecommendation = null;
             _runeResources = new Dictionary<int, (string Name, string Icon)>();
             _runeChampionName = $"#{championId}";
+            _isRuneChampionNameResolved = false;
             _selectedRuneKind = RuneRecommendationKind.Popular;
             _appliedRuneSignature = string.Empty;
             Replace(RunePerks, []);
@@ -752,11 +835,13 @@ namespace Prometheus.ViewModels
                         icon);
                 }
 
-                _championNamesTask ??= LoadChampionNamesAsync();
-                var championNames = await _championNamesTask.ConfigureAwait(false);
-                var championName = championNames.TryGetValue(championId, out var name)
-                    ? name
-                    : $"#{championId}";
+                var championName = await ResolveChampionNameAsync(
+                        championId,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                var isChampionNameResolved = IsResolvedChampionName(
+                    championName,
+                    championId);
                 Dispatch(() =>
                 {
                     if (!CanCommitRuneResult(requestKey, generation))
@@ -766,7 +851,10 @@ namespace Prometheus.ViewModels
 
                     _runeRecommendations = recommendations;
                     _runeResources = resources;
-                    _runeChampionName = championName;
+                    _runeChampionName = isChampionNameResolved
+                        ? championName
+                        : $"#{championId}";
+                    _isRuneChampionNameResolved = isChampionNameResolved;
                     IsRuneRecommendationLoading = false;
                     RefreshRunePresentation();
                 });
@@ -875,6 +963,8 @@ namespace Prometheus.ViewModels
                 StringComparison.Ordinal);
             RuneStatusText = !IsRuneRecommendationValid
                 ? Text("Companion.Runes.Outdated", "Recommendation does not match this client version")
+                : !_isRuneChampionNameResolved
+                    ? Text("Companion.Runes.ChampionUnavailable", "Unable to resolve champion name")
                 : isApplied
                     ? Text("Companion.Runes.Applied", "Rune page applied")
                     : Text("Companion.Runes.Ready", "Ready to apply");
@@ -896,6 +986,7 @@ namespace Prometheus.ViewModels
                 _snapshot.ConnectionState == ConnectionState.Connected &&
                 IsRuneRecommendationVisible &&
                 IsRuneRecommendationValid &&
+                _isRuneChampionNameResolved &&
                 !IsRuneRecommendationLoading &&
                 !IsApplyingRune &&
                 _selectedRuneRecommendation is not null;
@@ -1058,6 +1149,8 @@ namespace Prometheus.ViewModels
             _runeRecommendations = null;
             _selectedRuneRecommendation = null;
             _runeResources = new Dictionary<int, (string Name, string Icon)>();
+            _runeChampionName = string.Empty;
+            _isRuneChampionNameResolved = false;
             _appliedRuneSignature = string.Empty;
             IsRuneRecommendationLoading = false;
             HasRuneRecommendation = false;
@@ -1136,6 +1229,12 @@ namespace Prometheus.ViewModels
 
         private string GetManagedRunePageName()
         {
+            if (!_isRuneChampionNameResolved)
+            {
+                throw new InvalidOperationException(
+                    "A managed rune page cannot be named before the champion name is resolved.");
+            }
+
             var recommendationName = _selectedRuneKind == RuneRecommendationKind.WinRate
                 ? Text("Companion.Runes.PageName.WinRate", "Highest win rate runes")
                 : Text("Companion.Runes.PageName.Popular", "Most popular runes");
