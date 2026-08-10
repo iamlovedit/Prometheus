@@ -1,0 +1,86 @@
+<UserControl
+    x:Class="Prometheus.Modules.Match.Views.Components.MatchHeaderView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="clr-namespace:Prometheus.Modules.Match.ViewModels"
+    d:DataContext="{d:DesignInstance Type=viewmodels:MatchViewModel}"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MatchViewResources.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Border Padding="16,0" Style="{StaticResource LiveCard}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock
+                    FontSize="22"
+                    FontWeight="Bold"
+                    Text="{Binding PageTitle}" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Style="{StaticResource LiveCaption}"
+                    Text="{Binding MatchContextText}" />
+            </StackPanel>
+            <StackPanel
+                Grid.Column="1"
+                Margin="20,0"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <Border
+                    Padding="10,5"
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    CornerRadius="12">
+                    <TextBlock FontWeight="SemiBold" Text="{Binding PhaseText}" />
+                </Border>
+                <Border
+                    Margin="8,0,0,0"
+                    Padding="10,5"
+                    Background="{DynamicResource SecondaryRegionBrush}"
+                    CornerRadius="12">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse
+                            Width="7"
+                            Height="7"
+                            Margin="0,0,7,0"
+                            VerticalAlignment="Center"
+                            Fill="{DynamicResource InfoBrush}" />
+                        <TextBlock FontWeight="SemiBold" Text="{Binding DataStatusText}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            <StackPanel
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Orientation="Horizontal">
+                <TextBlock
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource LiveCaption}"
+                    Text="{Binding UpdatedText}" />
+                <Button
+                    Command="{Binding RefreshCommand}"
+                    Content="{DynamicResource Match.Live.Refresh}"
+                    Style="{DynamicResource ButtonPrimary}" />
+                <Button
+                    Height="32"
+                    MinWidth="96"
+                    Margin="8,0,0,0"
+                    Command="{Binding PlayAgainCommand}"
+                    Content="{Binding PlayAgainButtonText}"
+                    Style="{DynamicResource ButtonPrimary}"
+                    ToolTip="{Binding PlayAgainToolTip}"
+                    Visibility="{Binding IsPlayAgainVisible, Converter={StaticResource Boolean2VisibilityConverter}}" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>
