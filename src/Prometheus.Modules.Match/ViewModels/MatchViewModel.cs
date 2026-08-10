@@ -7,6 +7,7 @@ using Prometheus.Core.Logging;
 using Prometheus.Core.Models;
 using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
+using Prometheus.Modules.Match.Controls;
 using Prometheus.Services.Interfaces.Client;
 using Serilog;
 using Serilog.Events;
@@ -74,6 +75,12 @@ namespace Prometheus.Modules.Match.ViewModels
 
             MyTeam = [];
             TheirTeam = [];
+            PostGameMyTeamSlices = [];
+            PostGameTheirTeamSlices = [];
+            PostGameKillParticipationSlices = [];
+            PostGameDamageShareSlices = [];
+            PostGameGoldShareSlices = [];
+            PostGamePlayers = [];
             RefreshCommand = new DelegateCommand(ExecuteRefresh);
             OpenPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(OpenPlayer);
             SelectPlayerCommand = new DelegateCommand<LiveMatchPlayerViewModel>(
@@ -83,6 +90,8 @@ namespace Prometheus.Modules.Match.ViewModels
                 () => CreatePlayAgainLobbyAsync().Observe(
                     "Creating a play-again matchmade lobby"),
                 CanPlayAgain);
+            SelectPostGameMetricCommand = new DelegateCommand<string>(
+                SelectPostGameMetric);
 
             Subscribe();
             ApplySnapshot(_matchService.Current ?? LiveMatchSnapshot.Empty, true);
@@ -91,6 +100,18 @@ namespace Prometheus.Modules.Match.ViewModels
         public ObservableCollection<LiveMatchPlayerViewModel> MyTeam { get; }
 
         public ObservableCollection<LiveMatchPlayerViewModel> TheirTeam { get; }
+
+        public ObservableCollection<DoughnutSlice> PostGameMyTeamSlices { get; }
+
+        public ObservableCollection<DoughnutSlice> PostGameTheirTeamSlices { get; }
+
+        public ObservableCollection<DoughnutSlice> PostGameKillParticipationSlices { get; }
+
+        public ObservableCollection<DoughnutSlice> PostGameDamageShareSlices { get; }
+
+        public ObservableCollection<DoughnutSlice> PostGameGoldShareSlices { get; }
+
+        public ObservableCollection<PostGamePlayerRowViewModel> PostGamePlayers { get; }
 
         public DelegateCommand RefreshCommand { get; }
 
@@ -101,6 +122,8 @@ namespace Prometheus.Modules.Match.ViewModels
         public DelegateCommand CloseDetailsCommand { get; }
 
         public DelegateCommand PlayAgainCommand { get; }
+
+        public DelegateCommand<string> SelectPostGameMetricCommand { get; }
 
         private bool _isPlayAgainVisible;
         public bool IsPlayAgainVisible
@@ -190,6 +213,170 @@ namespace Prometheus.Modules.Match.ViewModels
             get => _showEmptyState;
             private set => SetProperty(ref _showEmptyState, value);
         }
+
+        private bool _isPostGameVisible;
+        public bool IsPostGameVisible
+        {
+            get => _isPostGameVisible;
+            private set => SetProperty(ref _isPostGameVisible, value);
+        }
+
+        private bool _isPostGameLoading;
+        public bool IsPostGameLoading
+        {
+            get => _isPostGameLoading;
+            private set => SetProperty(ref _isPostGameLoading, value);
+        }
+
+        private bool _isPostGameVictory;
+        public bool IsPostGameVictory
+        {
+            get => _isPostGameVictory;
+            private set => SetProperty(ref _isPostGameVictory, value);
+        }
+
+        private string _pageTitle;
+        public string PageTitle
+        {
+            get => _pageTitle;
+            private set => SetProperty(ref _pageTitle, value);
+        }
+
+        private string _postGameResultText;
+        public string PostGameResultText
+        {
+            get => _postGameResultText;
+            private set => SetProperty(ref _postGameResultText, value);
+        }
+
+        private string _postGameDescription;
+        public string PostGameDescription
+        {
+            get => _postGameDescription;
+            private set => SetProperty(ref _postGameDescription, value);
+        }
+
+        private string _postGameKills;
+        public string PostGameKills
+        {
+            get => _postGameKills;
+            private set => SetProperty(ref _postGameKills, value);
+        }
+
+        private string _postGameDeaths;
+        public string PostGameDeaths
+        {
+            get => _postGameDeaths;
+            private set => SetProperty(ref _postGameDeaths, value);
+        }
+
+        private string _postGameAssists;
+        public string PostGameAssists
+        {
+            get => _postGameAssists;
+            private set => SetProperty(ref _postGameAssists, value);
+        }
+
+        private string _postGameModeText;
+        public string PostGameModeText
+        {
+            get => _postGameModeText;
+            private set => SetProperty(ref _postGameModeText, value);
+        }
+
+        private string _postGameDurationText;
+        public string PostGameDurationText
+        {
+            get => _postGameDurationText;
+            private set => SetProperty(ref _postGameDurationText, value);
+        }
+
+        private string _postGameGameIdText;
+        public string PostGameGameIdText
+        {
+            get => _postGameGameIdText;
+            private set => SetProperty(ref _postGameGameIdText, value);
+        }
+
+        private bool _hasPostGameTeamDetails;
+        public bool HasPostGameTeamDetails
+        {
+            get => _hasPostGameTeamDetails;
+            private set => SetProperty(ref _hasPostGameTeamDetails, value);
+        }
+
+        private string _postGameLocalChampionIcon;
+        public string PostGameLocalChampionIcon
+        {
+            get => _postGameLocalChampionIcon;
+            private set => SetProperty(ref _postGameLocalChampionIcon, value);
+        }
+
+        private string _postGameLocalChampionFallbackText;
+        public string PostGameLocalChampionFallbackText
+        {
+            get => _postGameLocalChampionFallbackText;
+            private set => SetProperty(ref _postGameLocalChampionFallbackText, value);
+        }
+
+        private string _postGameLocalKdaText;
+        public string PostGameLocalKdaText
+        {
+            get => _postGameLocalKdaText;
+            private set => SetProperty(ref _postGameLocalKdaText, value);
+        }
+
+        private string _postGameKillParticipationText;
+        public string PostGameKillParticipationText
+        {
+            get => _postGameKillParticipationText;
+            private set => SetProperty(ref _postGameKillParticipationText, value);
+        }
+
+        private string _postGameDamageShareText;
+        public string PostGameDamageShareText
+        {
+            get => _postGameDamageShareText;
+            private set => SetProperty(ref _postGameDamageShareText, value);
+        }
+
+        private string _postGameGoldShareText;
+        public string PostGameGoldShareText
+        {
+            get => _postGameGoldShareText;
+            private set => SetProperty(ref _postGameGoldShareText, value);
+        }
+
+        private string _postGameMetricLabel;
+        public string PostGameMetricLabel
+        {
+            get => _postGameMetricLabel;
+            private set => SetProperty(ref _postGameMetricLabel, value);
+        }
+
+        private string _postGameMyTeamTotalText;
+        public string PostGameMyTeamTotalText
+        {
+            get => _postGameMyTeamTotalText;
+            private set => SetProperty(ref _postGameMyTeamTotalText, value);
+        }
+
+        private string _postGameTheirTeamTotalText;
+        public string PostGameTheirTeamTotalText
+        {
+            get => _postGameTheirTeamTotalText;
+            private set => SetProperty(ref _postGameTheirTeamTotalText, value);
+        }
+
+        private PostGameMetric _selectedPostGameMetric = PostGameMetric.ChampionDamage;
+        public bool IsPostGameDamageMetric =>
+            _selectedPostGameMetric == PostGameMetric.ChampionDamage;
+
+        public bool IsPostGameGoldMetric =>
+            _selectedPostGameMetric == PostGameMetric.GoldEarned;
+
+        public bool IsPostGameDamageTakenMetric =>
+            _selectedPostGameMetric == PostGameMetric.DamageTaken;
 
         private string _matchContextText;
         public string MatchContextText
@@ -359,7 +546,8 @@ namespace Prometheus.Modules.Match.ViewModels
                 : FindSelectedPlayer(previousSelection, myTeam, theirTeam);
 
             HasRoster = myTeam.Length > 0 || theirTeam.Length > 0;
-            ShowEmptyState = !HasRoster;
+            UpdatePostGamePresentation(snapshot);
+            ShowEmptyState = !HasRoster && !IsPostGameVisible;
             MatchContextText = BuildMatchContext(snapshot);
             PhaseText = GetPhaseText(snapshot);
             EmptyTitle = Text("Match.Live.Empty.Title", "No live roster");
@@ -371,7 +559,11 @@ namespace Prometheus.Modules.Match.ViewModels
                     snapshot.UpdatedAt.ToLocalTime().ToString("HH:mm:ss"));
             MyTeamStatusText = GetTeamStatusText(myTeam, roster?.IsResolving == true);
             TheirTeamStatusText = GetTeamStatusText(theirTeam, roster?.IsResolving == true);
-            DataStatusText = GetDataStatusText(snapshot, myTeam.Concat(theirTeam).ToArray());
+            DataStatusText = IsPostGameVisible
+                ? IsPostGameLoading
+                    ? Text("Match.Live.PostGame.Loading.Short", "Generating report")
+                    : Text("Match.Live.PostGame.Ready", "Report ready")
+                : GetDataStatusText(snapshot, myTeam.Concat(theirTeam).ToArray());
         }
 
         private LiveMatchPlayerViewModel CreatePlayer(
@@ -619,6 +811,7 @@ namespace Prometheus.Modules.Match.ViewModels
         {
             var parts = new[]
             {
+                snapshot.PostGame?.GameMode,
                 snapshot.GameflowSession?.GameData?.GameMode,
                 snapshot.GameflowSession?.Map?.Name,
                 snapshot.Matchmaking?.Queue?.Name
@@ -743,6 +936,367 @@ namespace Prometheus.Modules.Match.ViewModels
 
             return string.Format(Text("Match.Live.Data.FullCount",
                 "Complete {0}/{1}"), loaded, total);
+        }
+
+        private void UpdatePostGamePresentation(LiveMatchSnapshot snapshot)
+        {
+            var postGamePhase = IsPostGamePhase(snapshot.GameflowPhase);
+            var postGame = snapshot.PostGame;
+            IsPostGameVisible = postGamePhase ||
+                (snapshot.GameflowPhase == GameflowPhase.None && postGame is not null);
+            IsPostGameLoading = IsPostGameVisible && postGame?.LocalPlayer is null;
+            PageTitle = IsPostGameVisible
+                ? Text("Match.Live.PostGame.Title", "Match result")
+                : Text("Match.Live.Title", "Live match");
+
+            if (!IsPostGameVisible)
+            {
+                ClearPostGameTeamPresentation();
+                IsPostGameVictory = false;
+                PostGameResultText = string.Empty;
+                PostGameDescription = string.Empty;
+                PostGameKills = string.Empty;
+                PostGameDeaths = string.Empty;
+                PostGameAssists = string.Empty;
+                PostGameModeText = string.Empty;
+                PostGameDurationText = string.Empty;
+                PostGameGameIdText = string.Empty;
+                return;
+            }
+
+            if (IsPostGameLoading)
+            {
+                ClearPostGameTeamPresentation();
+                IsPostGameVictory = false;
+                PostGameResultText = Text("Match.Live.PostGame.Loading",
+                    "Generating match report");
+                PostGameDescription = Text("Match.Live.PostGame.Loading.Description",
+                    "The League Client is preparing this match's result.");
+                PostGameKills = "--";
+                PostGameDeaths = "--";
+                PostGameAssists = "--";
+                PostGameModeText = "--";
+                PostGameDurationText = "--";
+                PostGameGameIdText = string.Empty;
+                return;
+            }
+
+            var player = postGame.LocalPlayer;
+            IsPostGameVictory = player.Won;
+            PostGameResultText = Text(player.Won
+                ? "Match.Live.PostGame.Victory"
+                : "Match.Live.PostGame.Defeat", player.Won ? "Victory" : "Defeat");
+            PostGameDescription = Text("Match.Live.PostGame.Description",
+                "Your match report is ready.");
+            PostGameKills = player.Kills.ToString();
+            PostGameDeaths = player.Deaths.ToString();
+            PostGameAssists = player.Assists.ToString();
+            PostGameModeText = string.IsNullOrWhiteSpace(postGame.GameMode)
+                ? GetQueueDisplayName(postGame.QueueId)
+                : postGame.GameMode;
+            var duration = TimeSpan.FromSeconds(Math.Max(0, postGame.GameLength));
+            PostGameDurationText = postGame.GameLength <= 0
+                ? "--"
+                : duration.TotalHours >= 1
+                    ? duration.ToString(@"h\:mm\:ss")
+                    : duration.ToString(@"mm\:ss");
+            PostGameGameIdText = postGame.GameId > 0
+                ? string.Format(Text("Match.Live.PostGame.GameId", "Game {0}"),
+                    postGame.GameId)
+                : string.Empty;
+            BuildPostGameTeamPresentation(postGame);
+        }
+
+        private void SelectPostGameMetric(string metricName)
+        {
+            if (!Enum.TryParse(metricName, out PostGameMetric metric) ||
+                metric == _selectedPostGameMetric)
+            {
+                return;
+            }
+
+            _selectedPostGameMetric = metric;
+            RaisePropertyChanged(nameof(IsPostGameDamageMetric));
+            RaisePropertyChanged(nameof(IsPostGameGoldMetric));
+            RaisePropertyChanged(nameof(IsPostGameDamageTakenMetric));
+            if (_snapshot.PostGame is not null)
+            {
+                BuildPostGameTeamPresentation(_snapshot.PostGame);
+            }
+        }
+
+        private void BuildPostGameTeamPresentation(PostGameSnapshot postGame)
+        {
+            var localPlayer = postGame.LocalPlayer;
+            var teams = (postGame.Teams ?? [])
+                .Where(team => team is not null)
+                .ToArray();
+            var myTeam = teams.FirstOrDefault(team =>
+                (team.Players ?? []).Any(player => MatchesLocalPlayer(
+                    player, localPlayer)));
+            myTeam ??= localPlayer is null
+                ? null
+                : teams.FirstOrDefault(team => team.Won == localPlayer.Won);
+            var theirTeam = teams.FirstOrDefault(team =>
+                !ReferenceEquals(team, myTeam));
+            var myPlayers = (myTeam?.Players ?? [])
+                .Where(player => player is not null)
+                .Take(TeamSize)
+                .ToArray();
+            var theirPlayers = (theirTeam?.Players ?? [])
+                .Where(player => player is not null)
+                .Take(TeamSize)
+                .ToArray();
+            var teamLocalPlayer = myPlayers.FirstOrDefault(player =>
+                MatchesLocalPlayer(player, localPlayer));
+            var displayLocalPlayer = teamLocalPlayer ?? localPlayer;
+
+            HasPostGameTeamDetails = myPlayers.Length > 0 || theirPlayers.Length > 0;
+            PostGameLocalChampionIcon = FirstNotEmpty(
+                displayLocalPlayer?.ChampionIcon,
+                localPlayer?.ChampionIcon);
+            PostGameLocalChampionFallbackText = FirstNotEmpty(
+                displayLocalPlayer?.ChampionName,
+                localPlayer?.ChampionName,
+                displayLocalPlayer?.ChampionId > 0
+                    ? $"#{displayLocalPlayer.ChampionId}"
+                    : "--");
+            PostGameLocalKdaText = displayLocalPlayer is null
+                ? "--"
+                : $"{displayLocalPlayer.Kills} / {displayLocalPlayer.Deaths} / " +
+                  $"{displayLocalPlayer.Assists} · KDA " +
+                  $"{CalculateKda(displayLocalPlayer):0.0}";
+
+            BuildPostGameSummaryRings(displayLocalPlayer, myPlayers);
+            BuildPostGameMetricSlices(myPlayers, theirPlayers);
+            var rows = BuildPostGamePlayerRows(myPlayers, true)
+                .Concat(BuildPostGamePlayerRows(theirPlayers, false));
+            Replace(PostGamePlayers, rows);
+        }
+
+        private void BuildPostGameSummaryRings(
+            PostGamePlayerSnapshot localPlayer,
+            IReadOnlyCollection<PostGamePlayerSnapshot> myTeam)
+        {
+            var teamKills = myTeam.Sum(player => Math.Max(0, player.Kills));
+            var teamDamage = myTeam.Sum(player =>
+                Math.Max(0, player.Stats?.TotalDamageDealtToChampions ?? 0));
+            var teamGold = myTeam.Sum(player =>
+                Math.Max(0, player.Stats?.GoldEarned ?? 0));
+            var killParticipation = localPlayer is null || teamKills <= 0
+                ? (double?)null
+                : (localPlayer.Kills + localPlayer.Assists) * 100d / teamKills;
+            var damageShare = localPlayer?.Stats is null || teamDamage <= 0
+                ? (double?)null
+                : localPlayer.Stats.TotalDamageDealtToChampions * 100d / teamDamage;
+            var goldShare = localPlayer?.Stats is null || teamGold <= 0
+                ? (double?)null
+                : localPlayer.Stats.GoldEarned * 100d / teamGold;
+
+            SetPostGameProgress(PostGameKillParticipationSlices,
+                killParticipation, 0, out var killParticipationText);
+            SetPostGameProgress(PostGameDamageShareSlices,
+                damageShare, 1, out var damageShareText);
+            SetPostGameProgress(PostGameGoldShareSlices,
+                goldShare, 2, out var goldShareText);
+            PostGameKillParticipationText = killParticipationText;
+            PostGameDamageShareText = damageShareText;
+            PostGameGoldShareText = goldShareText;
+        }
+
+        private void BuildPostGameMetricSlices(
+            IReadOnlyCollection<PostGamePlayerSnapshot> myTeam,
+            IReadOnlyCollection<PostGamePlayerSnapshot> theirTeam)
+        {
+            PostGameMetricLabel = _selectedPostGameMetric switch
+            {
+                PostGameMetric.GoldEarned =>
+                    Text("Match.Live.PostGame.Metric.Gold", "Gold earned"),
+                PostGameMetric.DamageTaken =>
+                    Text("Match.Live.PostGame.Metric.DamageTaken", "Damage taken"),
+                _ => Text("Match.Live.PostGame.Metric.ChampionDamage",
+                    "Champion damage")
+            };
+            var mySlices = CreatePostGameSlices(myTeam);
+            var theirSlices = CreatePostGameSlices(theirTeam);
+            Replace(PostGameMyTeamSlices, mySlices);
+            Replace(PostGameTheirTeamSlices, theirSlices);
+            PostGameMyTeamTotalText = FormatPostGameValue(
+                mySlices.Sum(slice => slice.Value));
+            PostGameTheirTeamTotalText = FormatPostGameValue(
+                theirSlices.Sum(slice => slice.Value));
+        }
+
+        private DoughnutSlice[] CreatePostGameSlices(
+            IReadOnlyCollection<PostGamePlayerSnapshot> players)
+        {
+            var values = players
+                .Select((player, index) => new
+                {
+                    Player = player,
+                    Index = index,
+                    Value = GetPostGameMetricValue(player)
+                })
+                .Where(item => item.Value > 0)
+                .ToArray();
+            var total = values.Sum(item => item.Value);
+            return values.Select(item => new DoughnutSlice
+            {
+                DisplayName = GetPostGamePlayerName(item.Player, item.Index),
+                Value = item.Value,
+                ValueText = FormatPostGameValue(item.Value),
+                PercentageText = total <= 0
+                    ? "--"
+                    : $"{item.Value * 100d / total:0}%",
+                PaletteIndex = item.Index,
+                IsLocalPlayer = item.Player.IsLocalPlayer ||
+                    MatchesLocalPlayer(item.Player, _snapshot.PostGame?.LocalPlayer)
+            }).ToArray();
+        }
+
+        private IEnumerable<PostGamePlayerRowViewModel> BuildPostGamePlayerRows(
+            IReadOnlyCollection<PostGamePlayerSnapshot> players,
+            bool isMyTeam)
+        {
+            var teamDamage = players.Sum(player =>
+                Math.Max(0, player.Stats?.TotalDamageDealtToChampions ?? 0));
+            return players.Select((player, index) => new PostGamePlayerRowViewModel
+            {
+                ChampionIcon = player.ChampionIcon ?? string.Empty,
+                ChampionFallbackText = FirstNotEmpty(player.ChampionName,
+                    player.ChampionId > 0 ? $"#{player.ChampionId}" : "--"),
+                DisplayName = GetPostGamePlayerName(player, index),
+                KdaText = $"{player.Kills} / {player.Deaths} / {player.Assists}",
+                GoldText = FormatPostGameValue(player.Stats?.GoldEarned ?? 0),
+                CreepScoreText = ((player.Stats?.MinionsKilled ?? 0) +
+                    (player.Stats?.NeutralMinionsKilled ?? 0)).ToString(),
+                ChampionDamageText = FormatPostGameValue(
+                    player.Stats?.TotalDamageDealtToChampions ?? 0),
+                DamageTakenText = FormatPostGameValue(
+                    player.Stats?.TotalDamageTaken ?? 0),
+                VisionScoreText = (player.Stats?.VisionScore ?? 0).ToString(),
+                TeamShareText = teamDamage <= 0
+                    ? "--"
+                    : $"{(player.Stats?.TotalDamageDealtToChampions ?? 0) *
+                        100d / teamDamage:0}%",
+                IsMyTeam = isMyTeam,
+                IsLocalPlayer = player.IsLocalPlayer ||
+                    MatchesLocalPlayer(player, _snapshot.PostGame?.LocalPlayer)
+            });
+        }
+
+        private double GetPostGameMetricValue(PostGamePlayerSnapshot player)
+        {
+            return _selectedPostGameMetric switch
+            {
+                PostGameMetric.GoldEarned => player.Stats?.GoldEarned ?? 0,
+                PostGameMetric.DamageTaken => player.Stats?.TotalDamageTaken ?? 0,
+                _ => player.Stats?.TotalDamageDealtToChampions ?? 0
+            };
+        }
+
+        private void ClearPostGameTeamPresentation()
+        {
+            HasPostGameTeamDetails = false;
+            PostGameLocalChampionIcon = string.Empty;
+            PostGameLocalChampionFallbackText = string.Empty;
+            PostGameLocalKdaText = string.Empty;
+            PostGameKillParticipationText = "--";
+            PostGameDamageShareText = "--";
+            PostGameGoldShareText = "--";
+            PostGameMetricLabel = string.Empty;
+            PostGameMyTeamTotalText = "--";
+            PostGameTheirTeamTotalText = "--";
+            PostGameMyTeamSlices.Clear();
+            PostGameTheirTeamSlices.Clear();
+            PostGameKillParticipationSlices.Clear();
+            PostGameDamageShareSlices.Clear();
+            PostGameGoldShareSlices.Clear();
+            PostGamePlayers.Clear();
+        }
+
+        private static void SetPostGameProgress(
+            ObservableCollection<DoughnutSlice> target,
+            double? percentage,
+            int paletteIndex,
+            out string percentageText)
+        {
+            target.Clear();
+            if (percentage is null)
+            {
+                percentageText = "--";
+                return;
+            }
+
+            var normalized = Math.Clamp(percentage.Value, 0d, 100d);
+            percentageText = $"{normalized:0}%";
+            if (normalized > 0)
+            {
+                target.Add(new DoughnutSlice
+                {
+                    Value = normalized,
+                    PercentageText = percentageText,
+                    PaletteIndex = paletteIndex
+                });
+            }
+        }
+
+        private static bool MatchesLocalPlayer(
+            PostGamePlayerSnapshot player,
+            PostGamePlayerSnapshot localPlayer)
+        {
+            if (player is null || localPlayer is null)
+            {
+                return false;
+            }
+
+            if (player.IsLocalPlayer)
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(player.Puuid) &&
+                string.Equals(player.Puuid, localPlayer.Puuid,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (player.SummonerId > 0 &&
+                player.SummonerId == localPlayer.SummonerId)
+            {
+                return true;
+            }
+
+            return player.ChampionId == localPlayer.ChampionId &&
+                !string.IsNullOrWhiteSpace(player.SummonerName) &&
+                string.Equals(player.SummonerName, localPlayer.SummonerName,
+                    StringComparison.OrdinalIgnoreCase);
+        }
+
+        private string GetPostGamePlayerName(PostGamePlayerSnapshot player, int index)
+        {
+            if (MatchesLocalPlayer(player, _snapshot.PostGame?.LocalPlayer))
+            {
+                return Text("Match.Live.PostGame.You", "You");
+            }
+
+            return FirstNotEmpty(player.SummonerName, player.ChampionName,
+                string.Format(Text("Match.Live.PostGame.Player", "Player {0}"),
+                    index + 1));
+        }
+
+        private static double CalculateKda(PostGamePlayerSnapshot player)
+        {
+            return (player.Kills + player.Assists) /
+                (double)Math.Max(1, player.Deaths);
+        }
+
+        private static string FormatPostGameValue(double value)
+        {
+            return value >= 1000d
+                ? $"{value / 1000d:0.#}k"
+                : $"{value:0}";
         }
 
         private void UpdatePlayAgainContext(LiveMatchSnapshot snapshot)

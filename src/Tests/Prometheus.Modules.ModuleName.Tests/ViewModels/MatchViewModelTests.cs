@@ -287,6 +287,102 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 context.ViewModel.PlayAgainToolTip);
         }
 
+        [Fact]
+        public void PostGameSnapshot_ProjectsSettlementSummaryInsteadOfEmptyRoster()
+        {
+            using var context = new TestContext(CreatePostGameSnapshot(
+                version: 12,
+                queueId: GameQueueIds.RankedSoloDuo));
+
+            Assert.True(context.ViewModel.IsPostGameVisible);
+            Assert.False(context.ViewModel.IsPostGameLoading);
+            Assert.False(context.ViewModel.ShowEmptyState);
+            Assert.Equal("Match result", context.ViewModel.PageTitle);
+            Assert.Equal("Victory", context.ViewModel.PostGameResultText);
+            Assert.Equal("12", context.ViewModel.PostGameKills);
+            Assert.Equal("4", context.ViewModel.PostGameDeaths);
+            Assert.Equal("9", context.ViewModel.PostGameAssists);
+            Assert.Equal("CLASSIC", context.ViewModel.PostGameModeText);
+            Assert.Equal("25:07", context.ViewModel.PostGameDurationText);
+            Assert.Equal("Game 987654", context.ViewModel.PostGameGameIdText);
+            Assert.Equal("Report ready", context.ViewModel.DataStatusText);
+        }
+
+        [Fact]
+        public void PostGamePhase_WhenReportIsNotReady_ShowsGeneratingState()
+        {
+            using var context = new TestContext(new LiveMatchSnapshot
+            {
+                Version = 13,
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.EndOfGame,
+                DataQuality = DataQuality.Partial
+            });
+
+            Assert.True(context.ViewModel.IsPostGameVisible);
+            Assert.True(context.ViewModel.IsPostGameLoading);
+            Assert.False(context.ViewModel.ShowEmptyState);
+            Assert.Equal("Generating match report",
+                context.ViewModel.PostGameResultText);
+            Assert.Equal("Generating report", context.ViewModel.DataStatusText);
+        }
+
+        [Fact]
+        public void PostGameSnapshot_ProjectsDoughnutsSummaryAndTenPlayerDetails()
+        {
+            using var context = new TestContext(CreatePostGameSnapshot(
+                version: 14,
+                queueId: GameQueueIds.RankedSoloDuo));
+
+            Assert.True(context.ViewModel.HasPostGameTeamDetails);
+            Assert.Equal(5, context.ViewModel.PostGameMyTeamSlices.Count);
+            Assert.Equal(5, context.ViewModel.PostGameTheirTeamSlices.Count);
+            Assert.Equal(10, context.ViewModel.PostGamePlayers.Count);
+            Assert.Equal("68%", context.ViewModel.PostGameKillParticipationText);
+            Assert.Equal("24%", context.ViewModel.PostGameDamageShareText);
+            Assert.Equal("24%", context.ViewModel.PostGameGoldShareText);
+            Assert.Equal("Champion damage", context.ViewModel.PostGameMetricLabel);
+            Assert.Equal("118k", context.ViewModel.PostGameMyTeamTotalText);
+            Assert.Equal("104k", context.ViewModel.PostGameTheirTeamTotalText);
+            Assert.Equal("You", context.ViewModel.PostGameMyTeamSlices[1].DisplayName);
+            Assert.Equal("24%", context.ViewModel.PostGameMyTeamSlices[1].PercentageText);
+            Assert.True(context.ViewModel.PostGamePlayers[1].IsLocalPlayer);
+
+            context.ViewModel.SelectPostGameMetricCommand.Execute("GoldEarned");
+
+            Assert.True(context.ViewModel.IsPostGameGoldMetric);
+            Assert.False(context.ViewModel.IsPostGameDamageMetric);
+            Assert.Equal("Gold earned", context.ViewModel.PostGameMetricLabel);
+            Assert.Equal("64.2k", context.ViewModel.PostGameMyTeamTotalText);
+            Assert.Equal("59.8k", context.ViewModel.PostGameTheirTeamTotalText);
+            Assert.Equal(15400, context.ViewModel.PostGameMyTeamSlices[1].Value);
+
+            context.ViewModel.SelectPostGameMetricCommand.Execute("DamageTaken");
+
+            Assert.True(context.ViewModel.IsPostGameDamageTakenMetric);
+            Assert.Equal("132.5k", context.ViewModel.PostGameMyTeamTotalText);
+            Assert.Equal("147.2k", context.ViewModel.PostGameTheirTeamTotalText);
+        }
+
+        [Fact]
+        public void PostGameSnapshot_WithoutTeamPlayers_KeepsLocalSummaryAndHidesCharts()
+        {
+            var snapshot = CreatePostGameSnapshot(
+                version: 15,
+                queueId: GameQueueIds.RankedSoloDuo);
+            snapshot.PostGame.Teams = [];
+
+            using var context = new TestContext(snapshot);
+
+            Assert.True(context.ViewModel.IsPostGameVisible);
+            Assert.False(context.ViewModel.HasPostGameTeamDetails);
+            Assert.Empty(context.ViewModel.PostGameMyTeamSlices);
+            Assert.Empty(context.ViewModel.PostGameTheirTeamSlices);
+            Assert.Empty(context.ViewModel.PostGamePlayers);
+            Assert.Equal("12 / 4 / 9 · KDA 5.3",
+                context.ViewModel.PostGameLocalKdaText);
+        }
+
         [Theory]
         [InlineData(GameQueueIds.RankedSoloDuo)]
         [InlineData(GameQueueIds.RankedFlex)]
@@ -491,6 +587,34 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
 
         private static LiveMatchSnapshot CreatePostGameSnapshot(long version, int queueId)
         {
+            var localPlayer = CreatePostGamePlayer(
+                "Local", 22, 12, 4, 9, 15400, 206, 28600, 18200, 7,
+                isLocalPlayer: true, won: true);
+            var myTeam = new List<PostGamePlayerSnapshot>
+            {
+                CreatePostGamePlayer("AllyMid", 1, 10, 3, 12, 16100, 224,
+                    31800, 19700, 8, won: true),
+                localPlayer,
+                CreatePostGamePlayer("AllyJungle", 2, 4, 5, 15, 13200, 151,
+                    22100, 31600, 6, won: true),
+                CreatePostGamePlayer("AllyTop", 3, 3, 6, 10, 12100, 132,
+                    19700, 38900, 5, won: true),
+                CreatePostGamePlayer("AllySupport", 4, 2, 6, 18, 7400, 29,
+                    15800, 24100, 12, won: true)
+            };
+            var theirTeam = new List<PostGamePlayerSnapshot>
+            {
+                CreatePostGamePlayer("EnemyMid", 5, 9, 6, 8, 14800, 215,
+                    27100, 22900, 6),
+                CreatePostGamePlayer("EnemyBottom", 6, 8, 7, 7, 14300, 198,
+                    24500, 20100, 5),
+                CreatePostGamePlayer("EnemyJungle", 7, 3, 6, 12, 12800, 144,
+                    21000, 35400, 7),
+                CreatePostGamePlayer("EnemyTop", 8, 3, 6, 9, 11600, 119,
+                    17900, 42100, 4),
+                CreatePostGamePlayer("EnemySupport", 9, 1, 6, 13, 6300, 25,
+                    13500, 26700, 11)
+            };
             return new LiveMatchSnapshot
             {
                 Version = version,
@@ -501,8 +625,63 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 PostGame = new PostGameSnapshot
                 {
                     GameId = 987654,
+                    GameLength = 1507,
                     QueueId = queueId,
-                    GameMode = "CLASSIC"
+                    GameMode = "CLASSIC",
+                    LocalPlayer = localPlayer,
+                    Teams =
+                    [
+                        new PostGameTeamSnapshot
+                        {
+                            Team = "TEAM_ONE",
+                            Won = true,
+                            Players = myTeam
+                        },
+                        new PostGameTeamSnapshot
+                        {
+                            Team = "TEAM_TWO",
+                            Won = false,
+                            Players = theirTeam
+                        }
+                    ]
+                }
+            };
+        }
+
+        private static PostGamePlayerSnapshot CreatePostGamePlayer(
+            string name,
+            int championId,
+            int kills,
+            int deaths,
+            int assists,
+            int gold,
+            int creepScore,
+            int championDamage,
+            int damageTaken,
+            int visionScore,
+            bool isLocalPlayer = false,
+            bool won = false)
+        {
+            return new PostGamePlayerSnapshot
+            {
+                ChampionId = championId,
+                ChampionName = $"Champion{championId}",
+                ChampionIcon = $"champion-{championId}",
+                SummonerName = name,
+                Puuid = $"{name.ToLowerInvariant()}-puuid",
+                SummonerId = championId + 1000,
+                IsLocalPlayer = isLocalPlayer,
+                Stats = new PostGamePlayerStatsSnapshot
+                {
+                    ChampionsKilled = kills,
+                    Deaths = deaths,
+                    Assists = assists,
+                    GoldEarned = gold,
+                    MinionsKilled = creepScore,
+                    TotalDamageDealtToChampions = championDamage,
+                    TotalDamageTaken = damageTaken,
+                    VisionScore = visionScore,
+                    Win = won ? 1 : 0
                 }
             };
         }

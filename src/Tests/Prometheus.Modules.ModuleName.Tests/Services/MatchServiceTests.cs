@@ -1,4 +1,5 @@
 using Moq;
+using Newtonsoft.Json;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
@@ -12,6 +13,76 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
 {
     public class MatchServiceTests
     {
+        [Fact]
+        public void PostGameSnapshot_DeserializesLcuNestedStatsShape()
+        {
+            const string json = """
+                {
+                  "gameId": 13579,
+                  "gameLength": 1800,
+                  "gameMode": "CLASSIC",
+                  "queueId": 420,
+                  "localPlayer": {
+                    "championId": 22,
+                    "puuid": "local-puuid",
+                    "isLocalPlayer": true,
+                    "stats": {
+                      "CHAMPIONS_KILLED": 8,
+                      "NUM_DEATHS": 3,
+                      "ASSISTS": 11,
+                      "GOLD_EARNED": 15400,
+                      "MINIONS_KILLED": 180,
+                      "NEUTRAL_MINIONS_KILLED": 26,
+                      "TOTAL_DAMAGE_DEALT_TO_CHAMPIONS": 28600,
+                      "TOTAL_DAMAGE_TAKEN": 18200,
+                      "VISION_SCORE": 7,
+                      "WIN": 1
+                    }
+                  },
+                  "teams": [
+                    {
+                      "fullId": "TEAM_ONE",
+                      "isWinningTeam": true,
+                      "players": [
+                        {
+                          "championId": 22,
+                          "puuid": "local-puuid",
+                          "isLocalPlayer": true,
+                          "stats": {
+                            "CHAMPIONS_KILLED": 8,
+                            "NUM_DEATHS": 3,
+                            "ASSISTS": 11,
+                            "GOLD_EARNED": 15400,
+                            "TOTAL_DAMAGE_DEALT_TO_CHAMPIONS": 28600,
+                            "TOTAL_DAMAGE_TAKEN": 18200,
+                            "VISION_SCORE": 7,
+                            "WIN": 1
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """;
+
+            var snapshot = JsonConvert.DeserializeObject<PostGameSnapshot>(json);
+
+            Assert.NotNull(snapshot);
+            Assert.Equal(8, snapshot.LocalPlayer.Kills);
+            Assert.Equal(3, snapshot.LocalPlayer.Deaths);
+            Assert.Equal(11, snapshot.LocalPlayer.Assists);
+            Assert.True(snapshot.LocalPlayer.Won);
+            var team = Assert.Single(snapshot.Teams);
+            Assert.Equal("TEAM_ONE", team.Team);
+            Assert.True(team.Won);
+            var teamPlayer = Assert.Single(team.Players);
+            Assert.True(teamPlayer.IsLocalPlayer);
+            Assert.Equal(15400, teamPlayer.Stats.GoldEarned);
+            Assert.Equal(28600, teamPlayer.Stats.TotalDamageDealtToChampions);
+            Assert.Equal(18200, teamPlayer.Stats.TotalDamageTaken);
+            Assert.Equal(7, teamPlayer.Stats.VisionScore);
+        }
+
         [Fact]
         public async Task InitialConnectionUnavailable_PublishesDisconnected()
         {
@@ -186,6 +257,75 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.False(string.IsNullOrWhiteSpace(
                 GetScalar<string>(logEvent, "SafeStackTrace")));
             Assert.DoesNotContain("https://127.0.0.1/private", logEvent.RenderMessage());
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task EndOfGame_WhenReportLags_RetriesAndRetainsItUntilNextLobby()
+        {
+            var context = CreateContext();
+            await context.Service.StartAsync();
+            var report = new PostGameSnapshot
+            {
+                GameId = 24680,
+                QueueId = GameQueueIds.RankedSoloDuo,
+                LocalPlayer = new PostGamePlayerSnapshot
+                {
+                    ChampionId = 22,
+                    Stats = new PostGamePlayerStatsSnapshot { Win = 1 }
+                }
+            };
+            context.GameResourceManager.Setup(manager =>
+                    manager.GetChampoinIconByIdAsync(22))
+                .ReturnsAsync("champion-22");
+            context.GameService.SetupSequence(service =>
+                    service.GetPostGameSnapshotAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync((PostGameSnapshot)null)
+                .ReturnsAsync(report);
+            var reportPublished = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.Service.SnapshotChanged += (_, args) =>
+            {
+                if (args.Snapshot.PostGame?.GameId == report.GameId &&
+                    args.Snapshot.PostGame.LocalPlayer?.ChampionIcon == "champion-22")
+                {
+                    reportPublished.TrySetResult(true);
+                }
+            };
+
+            context.Subscriptions["/lol-gameflow/v1/gameflow-phase"](
+                new OnWebsocketEventArgs
+                {
+                    Data = "EndOfGame",
+                    EventType = "Update",
+                    Uri = "/lol-gameflow/v1/gameflow-phase"
+                });
+
+            await reportPublished.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.Equal(report.GameId, context.Service.Current.PostGame?.GameId);
+            Assert.Equal("champion-22",
+                context.Service.Current.PostGame?.LocalPlayer?.ChampionIcon);
+            context.GameService.Verify(service => service.GetPostGameSnapshotAsync(
+                It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+            context.Subscriptions["/lol-gameflow/v1/gameflow-phase"](
+                new OnWebsocketEventArgs
+                {
+                    Data = "None",
+                    EventType = "Update",
+                    Uri = "/lol-gameflow/v1/gameflow-phase"
+                });
+            Assert.Equal(report.GameId, context.Service.Current.PostGame?.GameId);
+
+            context.Subscriptions["/lol-gameflow/v1/gameflow-phase"](
+                new OnWebsocketEventArgs
+                {
+                    Data = "Lobby",
+                    EventType = "Update",
+                    Uri = "/lol-gameflow/v1/gameflow-phase"
+                });
+            Assert.Null(context.Service.Current.PostGame);
 
             await context.Service.StopAsync();
         }

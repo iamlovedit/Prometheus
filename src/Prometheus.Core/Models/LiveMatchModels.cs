@@ -1,4 +1,6 @@
 
+using Newtonsoft.Json;
+
 namespace Prometheus.Core.Models
 {
     /// <summary>
@@ -591,21 +593,102 @@ namespace Prometheus.Core.Models
 
     public class PostGamePlayerSnapshot
     {
+        private int _kills;
+        private int _deaths;
+        private int _assists;
+        private bool _won;
+
         public int ChampionId { get; set; }
 
-        public int Kills { get; set; }
+        public string ChampionName { get; set; } = string.Empty;
 
+        public string ChampionIcon { get; set; } = string.Empty;
+
+        public string SummonerName { get; set; } = string.Empty;
+
+        public string Puuid { get; set; } = string.Empty;
+
+        public long SummonerId { get; set; }
+
+        public int TeamId { get; set; }
+
+        public int Level { get; set; }
+
+        public bool IsLocalPlayer { get; set; }
+
+        public PostGamePlayerStatsSnapshot Stats { get; set; }
+
+        /// <summary>
+        /// Normalized aliases for consumers. Current LCU builds return these
+        /// values inside the upper-case <c>stats</c> object, while keeping the
+        /// setters also supports older/direct payloads and test fixtures.
+        /// </summary>
+        public int Kills
+        {
+            get => Stats?.ChampionsKilled ?? _kills;
+            set => _kills = value;
+        }
+
+        public int Deaths
+        {
+            get => Stats?.Deaths ?? _deaths;
+            set => _deaths = value;
+        }
+
+        public int Assists
+        {
+            get => Stats?.Assists ?? _assists;
+            set => _assists = value;
+        }
+
+        public bool Won
+        {
+            get => Stats is null ? _won : Stats.Win > 0;
+            set => _won = value;
+        }
+    }
+
+    public class PostGamePlayerStatsSnapshot
+    {
+        [JsonProperty("CHAMPIONS_KILLED")]
+        public int ChampionsKilled { get; set; }
+
+        [JsonProperty("NUM_DEATHS")]
         public int Deaths { get; set; }
 
+        [JsonProperty("ASSISTS")]
         public int Assists { get; set; }
 
-        public bool Won { get; set; }
+        [JsonProperty("WIN")]
+        public int Win { get; set; }
+
+        [JsonProperty("GOLD_EARNED")]
+        public int GoldEarned { get; set; }
+
+        [JsonProperty("MINIONS_KILLED")]
+        public int MinionsKilled { get; set; }
+
+        [JsonProperty("NEUTRAL_MINIONS_KILLED")]
+        public int NeutralMinionsKilled { get; set; }
+
+        [JsonProperty("TOTAL_DAMAGE_DEALT_TO_CHAMPIONS")]
+        public int TotalDamageDealtToChampions { get; set; }
+
+        [JsonProperty("TOTAL_DAMAGE_TAKEN")]
+        public int TotalDamageTaken { get; set; }
+
+        [JsonProperty("VISION_SCORE")]
+        public int VisionScore { get; set; }
     }
 
     public class PostGameTeamSnapshot
     {
+        [JsonProperty("fullId")]
         public string Team { get; set; } = string.Empty;
 
+        [JsonProperty("isWinningTeam")]
         public bool Won { get; set; }
+
+        public List<PostGamePlayerSnapshot> Players { get; set; } = [];
     }
 }

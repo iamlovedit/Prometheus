@@ -781,7 +781,7 @@ namespace Prometheus.Services.Client
                 var championSelectTask = FetchAsync("champion-select",
                     () => _gameService.GetChampionSelectSnapshotAsync(token), token);
                 var postGameTask = IsPostGamePhase(context.Phase)
-                    ? FetchAsync("post-game", () => _gameService.GetPostGameSnapshotAsync(token), token)
+                    ? FetchPostGameAsync(context, token)
                     : Task.FromResult(FetchResult<PostGameSnapshot>.Unavailable());
 
                 await Task.WhenAll(sessionTask, lobbyTask, matchmakingTask,
@@ -863,7 +863,8 @@ namespace Prometheus.Services.Client
                         next.ChampionSelect = championSelect.Value;
                     }
 
-                    if (IsPostGamePhase(context.Phase) && !postGame.Failed)
+                    if (IsPostGamePhase(context.Phase) && !postGame.Failed &&
+                        postGame.Value is not null)
                     {
                         next.PostGame = postGame.Value;
                     }
@@ -877,6 +878,10 @@ namespace Prometheus.Services.Client
                     ApplyRosterDataQuality(next);
                     return next;
                 }, errorLogContext);
+                if (postGame.Value is not null)
+                {
+                    SchedulePostGameChampionIconEnrichment(postGame.Value);
+                }
                 ScheduleRosterRefresh(forceRosterReload);
                 TriggerAutomation(context);
             }
@@ -3328,7 +3333,6 @@ namespace Prometheus.Services.Client
                     next.Matchmaking = null;
                     next.ReadyCheck = null;
                     next.ChampionSelect = null;
-                    next.PostGame = null;
                     break;
                 case GameflowPhase.Lobby:
                     next.Matchmaking = null;
@@ -3503,6 +3507,135 @@ namespace Prometheus.Services.Client
             catch (Exception exception)
             {
                 return FetchResult<T>.Failure(FormatError(name, exception), exception);
+            }
+        }
+
+        private async Task<FetchResult<PostGameSnapshot>> FetchPostGameAsync(
+            PhaseContext context, CancellationToken cancellationToken)
+        {
+            // The end-of-game endpoint can lag slightly behind the phase event.
+            // Keep this bounded and phase-cancellable so one early 404/null does
+            // not leave the result page empty for the rest of the lifecycle.
+            var delays = context.Phase == GameflowPhase.EndOfGame
+                ? new[] { TimeSpan.Zero, TimeSpan.FromMilliseconds(300),
+                    TimeSpan.FromMilliseconds(700), TimeSpan.FromMilliseconds(1400) }
+                : new[] { TimeSpan.Zero };
+            FetchResult<PostGameSnapshot> result = null;
+            foreach (var delay in delays)
+            {
+                if (delay > TimeSpan.Zero)
+                {
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (!IsCurrentPhase(context))
+                {
+                    return FetchResult<PostGameSnapshot>.Unavailable();
+                }
+
+                result = await FetchAsync("post-game",
+                    () => _gameService.GetPostGameSnapshotAsync(cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+                if (result.Value is not null)
+                {
+                    return result;
+                }
+            }
+
+            return result ?? FetchResult<PostGameSnapshot>.Unavailable();
+        }
+
+        private void SchedulePostGameChampionIconEnrichment(PostGameSnapshot postGame)
+        {
+            CancellationToken lifetimeToken;
+            lock (_stateSync)
+            {
+                if (!_started || _lifetimeCts is null)
+                {
+                    return;
+                }
+
+                lifetimeToken = _lifetimeCts.Token;
+            }
+
+            _ = EnrichPostGameChampionIconsSafelyAsync(postGame, lifetimeToken);
+        }
+
+        private async Task EnrichPostGameChampionIconsSafelyAsync(
+            PostGameSnapshot postGame, CancellationToken cancellationToken)
+        {
+            var players = (postGame.Teams ?? [])
+                .Where(team => team is not null)
+                .SelectMany(team => team.Players ?? [])
+                .Where(player => player is not null)
+                .Concat(postGame.LocalPlayer is null
+                    ? []
+                    : [postGame.LocalPlayer])
+                .ToArray();
+            var championIds = players
+                .Where(player => player.ChampionId > 0 &&
+                    string.IsNullOrWhiteSpace(player.ChampionIcon))
+                .Select(player => player.ChampionId)
+                .Distinct()
+                .ToArray();
+            if (championIds.Length == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var iconTasks = championIds.ToDictionary(
+                    championId => championId,
+                    GetRecentChampionIconAsync);
+                await Task.WhenAll(iconTasks.Values).ConfigureAwait(false);
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var icons = iconTasks.ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value.Result ?? string.Empty);
+                PublishSnapshot(snapshot =>
+                {
+                    if (snapshot.PostGame is null ||
+                        (postGame.GameId > 0 &&
+                         snapshot.PostGame.GameId != postGame.GameId))
+                    {
+                        return snapshot;
+                    }
+
+                    var next = CloneForConsumer(snapshot);
+                    ApplyPostGameChampionIcons(next.PostGame, icons);
+                    return next;
+                });
+            }
+            catch (Exception exception)
+            {
+                _logger.Debug(exception,
+                    "Unable to enrich post-game champion icons for game {GameId}",
+                    postGame.GameId);
+            }
+        }
+
+        private static void ApplyPostGameChampionIcons(PostGameSnapshot postGame,
+            IReadOnlyDictionary<int, string> icons)
+        {
+            var players = (postGame.Teams ?? [])
+                .Where(team => team is not null)
+                .SelectMany(team => team.Players ?? [])
+                .Where(player => player is not null)
+                .Concat(postGame.LocalPlayer is null
+                    ? []
+                    : [postGame.LocalPlayer]);
+            foreach (var player in players)
+            {
+                if (string.IsNullOrWhiteSpace(player.ChampionIcon) &&
+                    icons.TryGetValue(player.ChampionId, out var icon))
+                {
+                    player.ChampionIcon = icon ?? string.Empty;
+                }
             }
         }
 
