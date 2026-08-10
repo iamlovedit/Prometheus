@@ -12,7 +12,7 @@ namespace Prometheus.Services.Client
         private readonly IProfilePresentationSettings _settings;
 
         private bool _started;
-        private bool _applyStarted;
+        private bool _wasConnected;
 
         public ProfilePresentationStartupService(
             IMatchService matchService,
@@ -26,7 +26,6 @@ namespace Prometheus.Services.Client
 
         public void Start()
         {
-            var shouldObserveConnection = false;
             lock (_syncRoot)
             {
                 if (_started)
@@ -35,17 +34,11 @@ namespace Prometheus.Services.Client
                 }
 
                 _started = true;
-                if (!_applyStarted)
-                {
-                    _matchService.SnapshotChanged += HandleSnapshotChanged;
-                    shouldObserveConnection = true;
-                }
+                _wasConnected = false;
+                _matchService.SnapshotChanged += HandleSnapshotChanged;
             }
 
-            if (shouldObserveConnection)
-            {
-                TryApply(_matchService.Current);
-            }
+            ObserveConnection(_matchService.Current);
         }
 
         public void Stop()
@@ -58,34 +51,36 @@ namespace Prometheus.Services.Client
                 }
 
                 _started = false;
+                _wasConnected = false;
                 _matchService.SnapshotChanged -= HandleSnapshotChanged;
             }
         }
 
         private void HandleSnapshotChanged(object sender, LiveMatchSnapshotChangedEventArgs args)
         {
-            TryApply(args.Snapshot);
+            ObserveConnection(args.Snapshot);
         }
 
-        private void TryApply(LiveMatchSnapshot snapshot)
+        private void ObserveConnection(LiveMatchSnapshot snapshot)
         {
-            if (snapshot?.ConnectionState != ConnectionState.Connected)
-            {
-                return;
-            }
+            var isConnected = snapshot?.ConnectionState == ConnectionState.Connected;
+            var shouldApply = false;
 
             lock (_syncRoot)
             {
-                if (!_started || _applyStarted)
+                if (!_started)
                 {
                     return;
                 }
 
-                _applyStarted = true;
-                _matchService.SnapshotChanged -= HandleSnapshotChanged;
+                shouldApply = isConnected && !_wasConnected;
+                _wasConnected = isConnected;
             }
 
-            _ = ApplySavedSettingsAsync();
+            if (shouldApply)
+            {
+                _ = ApplySavedSettingsAsync();
+            }
         }
 
         private async Task ApplySavedSettingsAsync()
@@ -127,7 +122,7 @@ namespace Prometheus.Services.Client
             catch (Exception exception)
             {
                 Log.Warning(exception,
-                    "Unable to apply saved League profile {SettingName} at startup",
+                    "Unable to apply saved League profile {SettingName} after connection",
                     settingName);
             }
         }

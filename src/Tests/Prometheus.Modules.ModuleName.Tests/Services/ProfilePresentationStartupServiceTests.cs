@@ -94,12 +94,76 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             service.Stop();
         }
 
+        [Fact]
+        public async Task ReconnectedSnapshot_ReappliesSavedValuesOnce()
+        {
+            var matchService = new Mock<IMatchService>();
+            var gameService = new Mock<IGameService>();
+            var settings = new Mock<IProfilePresentationSettings>();
+            var firstApplyCompleted = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var secondApplyCompleted = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var applyCount = 0;
+
+            matchService.SetupGet(service => service.Current)
+                .Returns(new LiveMatchSnapshot
+                {
+                    ConnectionState = ConnectionState.Connecting
+                });
+            settings.SetupGet(value => value.StatusMessage).Returns("Hello");
+            gameService.Setup(service => service.SetStatusAsync("Hello"))
+                .Returns(Task.CompletedTask)
+                .Callback(() =>
+                {
+                    var currentApplyCount = Interlocked.Increment(ref applyCount);
+                    if (currentApplyCount == 1)
+                    {
+                        firstApplyCompleted.TrySetResult(true);
+                    }
+                    else if (currentApplyCount == 2)
+                    {
+                        secondApplyCompleted.TrySetResult(true);
+                    }
+                });
+
+            var service = new ProfilePresentationStartupService(
+                matchService.Object,
+                gameService.Object,
+                settings.Object);
+
+            service.Start();
+            RaiseConnectionState(matchService, ConnectionState.Connected);
+            await firstApplyCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            RaiseConnectionState(matchService, ConnectionState.Connected);
+
+            gameService.Verify(
+                value => value.SetStatusAsync("Hello"), Times.Once);
+
+            RaiseConnectionState(matchService, ConnectionState.Reconnecting);
+            RaiseConnectionState(matchService, ConnectionState.Connected);
+            await secondApplyCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            RaiseConnectionState(matchService, ConnectionState.Connected);
+
+            gameService.Verify(
+                value => value.SetStatusAsync("Hello"), Times.Exactly(2));
+
+            service.Stop();
+        }
+
         private static void RaiseConnected(Mock<IMatchService> matchService)
+        {
+            RaiseConnectionState(matchService, ConnectionState.Connected);
+        }
+
+        private static void RaiseConnectionState(
+            Mock<IMatchService> matchService,
+            ConnectionState connectionState)
         {
             matchService.Raise(service => service.SnapshotChanged += null,
                 new LiveMatchSnapshotChangedEventArgs(new LiveMatchSnapshot
                 {
-                    ConnectionState = ConnectionState.Connected
+                    ConnectionState = connectionState
                 }));
         }
     }
