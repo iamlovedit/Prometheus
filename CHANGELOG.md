@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-08-14
+
+### 改进
+
+- 统一主页、系统托盘、实时对局、结算页、历史战绩和英雄选择伴随窗口的游戏模式识别逻辑，减少不同页面之间的模式名称差异。
+- 更新实时对局与英雄选择伴随窗口截图，并新增对局结算页截图。
+
+### 修复
+
+- 修复 gameflow、lobby 和 matchmaking 返回不同队列信息时，海克斯大乱斗可能被误判为普通极地大乱斗的问题。
+- 修复内部海克斯大乱斗队列被误用于快速匹配持久化或“再来一局”的风险，只允许公开支持的队列用于创建房间。
+- 修复大乱斗自动换英雄未及时响应 lobby 或 matchmaking 更新的问题，并在短暂失败后允许一次受控重试。
+- 修复部分对局结算与历史战绩页面的模式名称显示不一致问题。
+
+### 升级说明
+
+- 通过 GitHub Release 下载 `Prometheus-1.0.6-win-x64.msi` 或便携 ZIP 手动升级。
+- 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
+
 ## [1.0.5] - 2026-08-10
 
 ### 新增
@@ -53,5 +72,6 @@
 - 通过 GitHub Release 下载 `Prometheus-1.0.4-win-x64.msi` 或便携 ZIP 手动升级。
 - 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
 
+[1.0.6]: https://github.com/iamlovedit/Prometheus/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/iamlovedit/Prometheus/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/iamlovedit/Prometheus/compare/v1.0.3...v1.0.4
