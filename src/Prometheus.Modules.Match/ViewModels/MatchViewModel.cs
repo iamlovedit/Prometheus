@@ -991,9 +991,7 @@ namespace Prometheus.Modules.Match.ViewModels
             PostGameKills = player.Kills.ToString();
             PostGameDeaths = player.Deaths.ToString();
             PostGameAssists = player.Assists.ToString();
-            PostGameModeText = string.IsNullOrWhiteSpace(postGame.GameMode)
-                ? GetQueueDisplayName(postGame.QueueId)
-                : postGame.GameMode;
+            PostGameModeText = GetPostGameModeDisplayName(postGame);
             var duration = TimeSpan.FromSeconds(Math.Max(0, postGame.GameLength));
             PostGameDurationText = postGame.GameLength <= 0
                 ? "--"
@@ -1537,28 +1535,52 @@ namespace Prometheus.Modules.Match.ViewModels
                     : snapshot.Matchmaking?.Queue?.Id ?? 0;
         }
 
-        private string GetQueueDisplayName(int queueId)
+        private string GetQueueDisplayName(
+            int queueId,
+            string gameMode = null,
+            int mapId = 0)
         {
-            return queueId switch
+            return GameModeResolver.Classify(queueId, gameMode, mapId) switch
             {
-                GameQueueIds.RankedSoloDuo =>
+                GameModeKind.RankedSoloDuo =>
                     Text("HomePage.QuickMatch.SoloDuo", "Ranked Solo/Duo"),
-                GameQueueIds.RankedFlex =>
+                GameModeKind.RankedFlex =>
                     Text("HomePage.QuickMatch.Flex", "Ranked Flex"),
-                GameQueueIds.Aram =>
+                GameModeKind.Aram =>
                     Text("HomePage.QuickMatch.Aram", "ARAM"),
-                GameQueueIds.HextechAram =>
+                GameModeKind.HextechAram =>
                     Text("HomePage.QuickMatch.HextechAram", "ARAM Mayhem"),
                 _ => Text("Match.Live.PlayAgain.UnknownMode", "this mode")
             };
         }
 
+        private string GetPostGameModeDisplayName(PostGameSnapshot postGame)
+        {
+            // Preserve the mode string returned by the client for ordinary
+            // completed matches (for example, CLASSIC).  The resolver is
+            // still authoritative for the modes whose identifiers vary
+            // between snapshots, especially Hextech ARAM.
+            if (GameModeResolver.IsHextechAram(
+                    postGame.QueueId,
+                    postGame.GameMode))
+            {
+                return Text("HomePage.QuickMatch.HextechAram", "ARAM Mayhem");
+            }
+
+            if (!string.IsNullOrWhiteSpace(postGame.GameMode))
+            {
+                return postGame.GameMode;
+            }
+
+            return GetQueueDisplayName(
+                postGame.QueueId,
+                postGame.GameMode,
+                postGame.MapId);
+        }
+
         private static bool IsSupportedQuickMatchQueue(int queueId)
         {
-            return queueId is GameQueueIds.RankedSoloDuo or
-                GameQueueIds.RankedFlex or
-                GameQueueIds.Aram or
-                GameQueueIds.HextechAram;
+            return GameModeResolver.IsQuickMatchQueue(queueId);
         }
 
         private static bool IsPostGamePhase(GameflowPhase phase)

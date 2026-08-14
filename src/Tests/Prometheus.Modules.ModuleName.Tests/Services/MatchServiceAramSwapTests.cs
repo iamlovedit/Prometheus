@@ -29,6 +29,93 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             await context.Service.StopAsync();
         }
 
+        [Theory]
+        [InlineData("CLASSIC", GameQueueIds.HextechAram, 0)]
+        [InlineData("KIWI", GameQueueIds.HextechAramGameflow, 0)]
+        [InlineData("KIWI", 0, 0)]
+        public async Task AramBenchSwap_InHextechAram_SwapsPreferredChampion(
+            string gameMode,
+            int queueId,
+            int mapId)
+        {
+            var context = CreateContext(
+                CreateGameflowSession(gameMode, queueId, mapId),
+                CreateChampionSelect(99, [22]),
+                [22]);
+
+            await context.Service.StartAsync();
+            var championId = await context.SwapRequested.Task.WaitAsync(
+                TimeSpan.FromSeconds(2));
+
+            Assert.Equal(22, championId);
+            context.GameService.Verify(service =>
+                service.SwapAramBenchChampionAsync(
+                    22, It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task AramBenchSwap_WhenHextechQueueArrivesFromLobby_ReevaluatesAutomation()
+        {
+            var context = CreateContext(
+                CreateGameflowSession("CLASSIC", 0, 0),
+                CreateChampionSelect(99, [22]),
+                [22]);
+
+            await context.Service.StartAsync();
+            var handler = context.Subscriptions["/lol-lobby/v2/lobby"];
+            handler(new OnWebsocketEventArgs
+            {
+                Data = new LobbySnapshot
+                {
+                    GameConfig = new LobbyGameConfiguration
+                    {
+                        QueueId = GameQueueIds.HextechAramGameflow,
+                        GameMode = "KIWI"
+                    }
+                },
+                EventType = "Update",
+                Uri = "/lol-lobby/v2/lobby"
+            });
+
+            var championId = await context.SwapRequested.Task.WaitAsync(
+                TimeSpan.FromSeconds(2));
+
+            Assert.Equal(22, championId);
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task AramBenchSwap_WhenHextechQueueArrivesFromMatchmaking_ReevaluatesAutomation()
+        {
+            var context = CreateContext(
+                CreateGameflowSession("CLASSIC", 0, 0),
+                CreateChampionSelect(99, [22]),
+                [22]);
+
+            await context.Service.StartAsync();
+            var handler = context.Subscriptions["/lol-matchmaking/v1/search"];
+            handler(new OnWebsocketEventArgs
+            {
+                Data = new MatchmakingSnapshot
+                {
+                    Queue = new MatchmakingQueue
+                    {
+                        Id = GameQueueIds.HextechAramGameflow
+                    }
+                },
+                EventType = "Update",
+                Uri = "/lol-matchmaking/v1/search"
+            });
+
+            var championId = await context.SwapRequested.Task.WaitAsync(
+                TimeSpan.FromSeconds(2));
+
+            Assert.Equal(22, championId);
+            await context.Service.StopAsync();
+        }
+
         [Fact]
         public async Task AramBenchSwap_WhenCurrentChampionIsPreferred_DoesNotSwap()
         {
@@ -95,6 +182,54 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             context.GameService.Verify(service =>
                 service.SwapAramBenchChampionAsync(
                     22, It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task AramBenchSwap_AfterRetriesFail_AllowsSameBenchStateToRetryLater()
+        {
+            var championSelect = CreateChampionSelect(99, [22]);
+            var context = CreateContext(
+                CreateGameflowSession("ARAM", GameQueueIds.Aram, 12),
+                championSelect,
+                [22]);
+            var attempts = 0;
+            var retriesExhausted = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var retried = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            context.GameService.Setup(service =>
+                    service.SwapAramBenchChampionAsync(
+                        22, It.IsAny<CancellationToken>()))
+                .Callback(() =>
+                {
+                    var attempt = Interlocked.Increment(ref attempts);
+                    if (attempt == 3)
+                    {
+                        retriesExhausted.TrySetResult();
+                    }
+                    else if (attempt == 4)
+                    {
+                        retried.TrySetResult();
+                    }
+                })
+                .ThrowsAsync(new HttpRequestException("LCU temporarily unavailable"));
+
+            await context.Service.StartAsync();
+            await retriesExhausted.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            await Task.Delay(100);
+
+            var handler = context.Subscriptions["/lol-champ-select/v1/session"];
+            handler(new OnWebsocketEventArgs
+            {
+                Data = championSelect,
+                EventType = "Update",
+                Uri = "/lol-champ-select/v1/session"
+            });
+
+            await retried.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.True(Volatile.Read(ref attempts) >= 4);
 
             await context.Service.StopAsync();
         }

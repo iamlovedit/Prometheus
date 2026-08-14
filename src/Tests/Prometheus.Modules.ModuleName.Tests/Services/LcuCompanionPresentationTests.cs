@@ -75,6 +75,23 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public void GetAramAutomationTarget_WhenQueueIsUnknownButGameModeIsKiwi_SelectsBenchChampion()
+        {
+            var snapshot = CreateSnapshot(9999, currentChampionId: 22);
+            snapshot.GameflowSession.GameData.GameMode = "KIWI";
+            snapshot.ChampionSelect.BenchEnabled = true;
+            snapshot.ChampionSelect.BenchChampions =
+            [
+                new ChampionSelectBenchChampionSnapshot { ChampionId = 99 }
+            ];
+
+            var result = LcuCompanionPresentation.GetAramAutomationTarget(
+                snapshot, [99]);
+
+            Assert.Equal(99, result);
+        }
+
+        [Fact]
         public void GetAramAutomationTarget_WhenCurrentChampionIsPreferred_ReturnsCurrent()
         {
             var snapshot = CreateSnapshot(GameQueueIds.Aram, currentChampionId: 22);

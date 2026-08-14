@@ -98,6 +98,8 @@ namespace Prometheus.Services.Client
         private long _lastAutoAcceptInstance = -1;
         private long _lastAutoReconnectInstance = -1;
         private string _lastAramBenchSwapState = string.Empty;
+        private string _aramBenchSwapFailedState = string.Empty;
+        private bool _aramBenchSwapFailureRetryConsumed;
         private string _lastChampionSelectAutomationState = string.Empty;
         private string _initializedConnection = string.Empty;
         private CancellationTokenSource _rosterCts;
@@ -393,6 +395,8 @@ namespace Prometheus.Services.Client
                     _aramBenchSwapAutomationCts = null;
                     _championSelectAutomationCts = null;
                     _lastAramBenchSwapState = string.Empty;
+                    _aramBenchSwapFailedState = string.Empty;
+                    _aramBenchSwapFailureRetryConsumed = false;
                     _lastChampionSelectAutomationState = string.Empty;
                     _phaseVersion++;
                     _initializedConnection = string.Empty;
@@ -628,6 +632,8 @@ namespace Prometheus.Services.Client
                 _phaseInstance++;
                 _initializedConnection = string.Empty;
                 _lastAramBenchSwapState = string.Empty;
+                _aramBenchSwapFailedState = string.Empty;
+                _aramBenchSwapFailureRetryConsumed = false;
             }
 
             phaseCts?.Cancel();
@@ -716,6 +722,7 @@ namespace Prometheus.Services.Client
                 snapshot.Lobby = value;
                 return snapshot;
             });
+            TriggerAutomation(GetCurrentPhaseContext());
         }
 
         private void HandleMatchmakingEvent(OnWebsocketEventArgs args)
@@ -726,6 +733,7 @@ namespace Prometheus.Services.Client
                 snapshot.Matchmaking = value;
                 return snapshot;
             });
+            TriggerAutomation(GetCurrentPhaseContext());
         }
 
         private void HandleReadyCheckEvent(OnWebsocketEventArgs args)
@@ -2160,7 +2168,9 @@ namespace Prometheus.Services.Client
                     context.Token.IsCancellationRequested ||
                     !AutomationSettings.AutoSwapAramBench ||
                     string.Equals(_lastAramBenchSwapState, stateSignature,
-                        StringComparison.Ordinal))
+                        StringComparison.Ordinal) ||
+                    (string.Equals(_aramBenchSwapFailedState, stateSignature,
+                        StringComparison.Ordinal) && _aramBenchSwapFailureRetryConsumed))
                 {
                     return;
                 }
@@ -2278,6 +2288,7 @@ namespace Prometheus.Services.Client
                         stopwatch.ElapsedMilliseconds,
                         "Automatic ARAM champion swap failed.",
                         lastError);
+                    AllowAramBenchSwapRetry(stateSignature);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -2291,6 +2302,28 @@ namespace Prometheus.Services.Client
                     attemptCount,
                     stopwatch.ElapsedMilliseconds,
                     "Automatic ARAM champion swap was cancelled.");
+            }
+        }
+
+        private void AllowAramBenchSwapRetry(string stateSignature)
+        {
+            lock (_stateSync)
+            {
+                if (string.Equals(_lastAramBenchSwapState, stateSignature,
+                        StringComparison.Ordinal))
+                {
+                    if (string.Equals(_aramBenchSwapFailedState, stateSignature,
+                            StringComparison.Ordinal))
+                    {
+                        _aramBenchSwapFailureRetryConsumed = true;
+                    }
+                    else
+                    {
+                        _aramBenchSwapFailedState = stateSignature;
+                        _aramBenchSwapFailureRetryConsumed = false;
+                        _lastAramBenchSwapState = string.Empty;
+                    }
+                }
             }
         }
 
@@ -2347,20 +2380,7 @@ namespace Prometheus.Services.Client
 
         private static bool IsAramSession(LiveMatchSnapshot snapshot)
         {
-            var gameData = snapshot?.GameflowSession?.GameData;
-            if (gameData is not null &&
-                (gameData.QueueId == 450 || gameData.MapId == 12 ||
-                 string.Equals(gameData.GameMode, "ARAM",
-                     StringComparison.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-
-            var lobbyConfig = snapshot?.Lobby?.GameConfig;
-            return lobbyConfig is not null &&
-                   (lobbyConfig.MapId == 12 ||
-                    string.Equals(lobbyConfig.GameMode, "ARAM",
-                        StringComparison.OrdinalIgnoreCase));
+            return GameModeResolver.IsAram(snapshot);
         }
 
         private static string BuildAramBenchSwapState(
@@ -2370,6 +2390,8 @@ namespace Prometheus.Services.Client
         {
             var championSelect = snapshot?.ChampionSelect;
             var gameData = snapshot?.GameflowSession?.GameData;
+            var lobbyConfig = snapshot?.Lobby?.GameConfig;
+            var matchmakingQueueId = snapshot?.Matchmaking?.Queue?.Id ?? 0;
             var localChampionId = championSelect?.MyTeam?.FirstOrDefault(member =>
                     member?.CellId == championSelect.LocalPlayerCellId)?.ChampionId ?? 0;
             var builder = new StringBuilder()
@@ -2377,6 +2399,10 @@ namespace Prometheus.Services.Client
                 .Append(gameData?.QueueId ?? 0).Append('|')
                 .Append(gameData?.MapId ?? 0).Append('|')
                 .Append(gameData?.GameMode).Append('|')
+                .Append(lobbyConfig?.QueueId ?? 0).Append('|')
+                .Append(lobbyConfig?.MapId ?? 0).Append('|')
+                .Append(lobbyConfig?.GameMode).Append('|')
+                .Append(matchmakingQueueId).Append('|')
                 .Append(championSelect?.BenchEnabled ?? false).Append('|')
                 .Append(localChampionId).Append('|');
 
@@ -2404,6 +2430,8 @@ namespace Prometheus.Services.Client
                 if (resetState)
                 {
                     _lastAramBenchSwapState = string.Empty;
+                    _aramBenchSwapFailedState = string.Empty;
+                    _aramBenchSwapFailureRetryConsumed = false;
                 }
             }
 

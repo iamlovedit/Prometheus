@@ -925,21 +925,18 @@ namespace Prometheus.ViewModels
 
         private static string GetQuickMatchQueueNameResourceKey(int queueId)
         {
-            return queueId switch
+            return GameModeResolver.Classify(queueId) switch
             {
-                GameQueueIds.RankedFlex => "HomePage.QuickMatch.Flex",
-                GameQueueIds.Aram => "HomePage.QuickMatch.Aram",
-                GameQueueIds.HextechAram => "HomePage.QuickMatch.HextechAram",
+                GameModeKind.RankedFlex => "HomePage.QuickMatch.Flex",
+                GameModeKind.Aram => "HomePage.QuickMatch.Aram",
+                GameModeKind.HextechAram => "HomePage.QuickMatch.HextechAram",
                 _ => "HomePage.QuickMatch.SoloDuo"
             };
         }
 
         private static int NormalizeQuickMatchQueueId(int queueId)
         {
-            return queueId is GameQueueIds.RankedSoloDuo or
-                GameQueueIds.RankedFlex or
-                GameQueueIds.Aram or
-                GameQueueIds.HextechAram
+            return GameModeResolver.IsQuickMatchQueue(queueId)
                     ? queueId
                     : GameQueueIds.RankedSoloDuo;
         }

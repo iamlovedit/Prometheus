@@ -16,73 +16,24 @@ namespace Prometheus.Desktop.Services
     {
         public static int GetQueueId(LiveMatchSnapshot snapshot)
         {
-            var gameflowQueueId = snapshot?.GameflowSession?.GameData?.QueueId ?? 0;
-            var lobbyQueueId = snapshot?.Lobby?.GameConfig?.QueueId ?? 0;
-            var matchmakingQueueId = snapshot?.Matchmaking?.Queue?.Id ?? 0;
-
-            if (IsHextechAramQueue(gameflowQueueId))
-            {
-                return gameflowQueueId;
-            }
-
-            if (IsHextechAramQueue(lobbyQueueId))
-            {
-                return lobbyQueueId;
-            }
-
-            if (IsHextechAramQueue(matchmakingQueueId))
-            {
-                return matchmakingQueueId;
-            }
-
-            if (gameflowQueueId > 0)
-            {
-                return gameflowQueueId;
-            }
-
-            if (lobbyQueueId > 0)
-            {
-                return lobbyQueueId;
-            }
-
-            return matchmakingQueueId > 0 ? matchmakingQueueId : 0;
+            return GameModeResolver.ResolveQueueId(snapshot);
         }
 
         public static LcuCompanionMode GetMode(LiveMatchSnapshot snapshot)
         {
-            var queueId = GetQueueId(snapshot);
-            return queueId switch
+            return GameModeResolver.Classify(snapshot) switch
             {
-                GameQueueIds.RankedSoloDuo => LcuCompanionMode.RankedSoloDuo,
-                GameQueueIds.RankedFlex => LcuCompanionMode.RankedFlex,
-                GameQueueIds.Aram => LcuCompanionMode.Aram,
-                _ when IsHextechAramQueue(queueId) => LcuCompanionMode.HextechAram,
-                _ when IsHextechAram(snapshot) => LcuCompanionMode.HextechAram,
-                _ when IsAram(snapshot) => LcuCompanionMode.Aram,
+                GameModeKind.RankedSoloDuo => LcuCompanionMode.RankedSoloDuo,
+                GameModeKind.RankedFlex => LcuCompanionMode.RankedFlex,
+                GameModeKind.Aram => LcuCompanionMode.Aram,
+                GameModeKind.HextechAram => LcuCompanionMode.HextechAram,
                 _ => LcuCompanionMode.Matchmade
             };
         }
 
         public static bool IsAram(LiveMatchSnapshot snapshot)
         {
-            var gameData = snapshot?.GameflowSession?.GameData;
-            if (gameData is not null &&
-                (gameData.QueueId == GameQueueIds.Aram ||
-                 IsHextechAramQueue(gameData.QueueId) ||
-                 gameData.MapId == 12 ||
-                 string.Equals(gameData.GameMode, "ARAM",
-                     StringComparison.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-
-            var lobby = snapshot?.Lobby?.GameConfig;
-            return lobby is not null &&
-                   (lobby.QueueId == GameQueueIds.Aram ||
-                    IsHextechAramQueue(lobby.QueueId) ||
-                    lobby.MapId == 12 ||
-                    string.Equals(lobby.GameMode, "ARAM",
-                        StringComparison.OrdinalIgnoreCase));
+            return GameModeResolver.IsAram(snapshot);
         }
 
         public static int GetLocalChampionId(LiveMatchSnapshot snapshot)
@@ -189,28 +140,5 @@ namespace Prometheus.Desktop.Services
                 .ToArray() ?? [];
         }
 
-        private static bool IsHextechAramQueue(int queueId)
-        {
-            return queueId is GameQueueIds.HextechAram or
-                GameQueueIds.HextechAramGameflow;
-        }
-
-        private static bool IsHextechAram(LiveMatchSnapshot snapshot)
-        {
-            var gameData = snapshot?.GameflowSession?.GameData;
-            if (gameData is not null &&
-                (IsHextechAramQueue(gameData.QueueId) ||
-                 string.Equals(gameData.GameMode, "KIWI",
-                     StringComparison.OrdinalIgnoreCase)))
-            {
-                return true;
-            }
-
-            var lobby = snapshot?.Lobby?.GameConfig;
-            return lobby is not null &&
-                   (IsHextechAramQueue(lobby.QueueId) ||
-                    string.Equals(lobby.GameMode, "KIWI",
-                        StringComparison.OrdinalIgnoreCase));
-        }
     }
 }

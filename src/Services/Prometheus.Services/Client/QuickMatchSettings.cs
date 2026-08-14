@@ -6,14 +6,6 @@ namespace Prometheus.Services.Client
 {
     public sealed class QuickMatchSettings : IQuickMatchSettings
     {
-        private static readonly HashSet<int> SupportedQueueIds =
-        [
-            GameQueueIds.RankedSoloDuo,
-            GameQueueIds.RankedFlex,
-            GameQueueIds.Aram,
-            GameQueueIds.HextechAram
-        ];
-
         private readonly object _syncRoot = new();
         private readonly string _settingsPath;
         private int _queueId = GameQueueIds.RankedSoloDuo;
@@ -50,7 +42,7 @@ namespace Prometheus.Services.Client
 
         public bool SaveQueueId(int queueId)
         {
-            if (!SupportedQueueIds.Contains(queueId))
+            if (!GameModeResolver.IsQuickMatchQueue(queueId))
             {
                 throw new ArgumentOutOfRangeException(
                     nameof(queueId), queueId, "Unsupported quick-match queue id.");
@@ -90,7 +82,7 @@ namespace Prometheus.Services.Client
 
                 var json = File.ReadAllText(_settingsPath);
                 var settings = JsonSerializer.Deserialize<PersistedSettings>(json);
-                if (settings is null || !SupportedQueueIds.Contains(settings.QueueId))
+                if (settings is null || !GameModeResolver.IsQuickMatchQueue(settings.QueueId))
                 {
                     Reset();
                     return;

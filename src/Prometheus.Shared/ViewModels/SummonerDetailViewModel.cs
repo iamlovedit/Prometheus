@@ -521,9 +521,7 @@ namespace Prometheus.Shared.ViewModels
         private static bool IsAramMatch(object item)
         {
             return item is Match match &&
-                   (match.QueueId is GameQueueIds.Aram or GameQueueIds.HextechAram ||
-                    string.Equals(match.GameMode, "ARAM",
-                        StringComparison.OrdinalIgnoreCase));
+                GameModeResolver.IsAram(match.QueueId, match.GameMode, match.MapId);
         }
 
         private static bool IsNormalMatch(object item)
