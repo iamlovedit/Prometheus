@@ -166,6 +166,103 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public async Task GameflowSelectionPuuid_WhenTeamMemberPuuidMissing_LoadsPlayer()
+        {
+            var context = CreateContext();
+            context.Phase = "InProgress";
+            context.GameflowSession = CreateRealShapeGameflowSession("InProgress");
+            var enemyMember = context.GameflowSession.GameData.TeamOne[0];
+            var enemyPuuid = enemyMember.Puuid;
+            enemyMember.Puuid = string.Empty;
+            var enemySelection = Assert.Single(
+                context.GameflowSession.GameData.PlayerChampionSelections,
+                selection => selection.Puuid == enemyPuuid);
+            enemySelection.CellId = enemyMember.TeamParticipantId;
+
+            await context.Service.StartAsync();
+            var snapshot = await WaitForSnapshotAsync(context.Service, value =>
+                value.Roster?.TheirTeam.Any(player =>
+                    player.Puuid == enemyPuuid &&
+                    player.DataState == LiveMatchPlayerDataState.Loaded) == true);
+
+            var enemy = Assert.Single(snapshot.Roster.TheirTeam,
+                player => player.Puuid == enemyPuuid);
+            Assert.False(enemy.IsHidden);
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                enemyPuuid, It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task GameflowPublicRiotId_WhenPuuidMissing_ResolvesAndLoadsPlayer()
+        {
+            var context = CreateContext();
+            context.Phase = "InProgress";
+            context.GameflowSession = CreateRealShapeGameflowSession("InProgress");
+            var enemyMember = context.GameflowSession.GameData.TeamOne[0];
+            var originalPuuid = enemyMember.Puuid;
+            enemyMember.Puuid = string.Empty;
+            enemyMember.SummonerName = "Visible Enemy#CN1";
+            var enemySelection = Assert.Single(
+                context.GameflowSession.GameData.PlayerChampionSelections,
+                selection => selection.Puuid == originalPuuid);
+            enemySelection.Puuid = string.Empty;
+            context.SummonerService.Setup(service => service.SearchSummonerByName(
+                    "Visible Enemy#CN1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateSummoner("resolved-enemy"));
+
+            await context.Service.StartAsync();
+            var snapshot = await WaitForSnapshotAsync(context.Service, value =>
+                value.Roster?.TheirTeam.Any(player =>
+                    player.Puuid == "resolved-enemy" &&
+                    player.DataState == LiveMatchPlayerDataState.Loaded) == true);
+
+            var enemy = Assert.Single(snapshot.Roster.TheirTeam,
+                player => player.Puuid == "resolved-enemy");
+            Assert.False(enemy.IsHidden);
+            Assert.Equal("resolved-enemy", enemy.Summoner.Puuid);
+            context.SummonerService.Verify(service => service.SearchSummonerByName(
+                "Visible Enemy#CN1", It.IsAny<CancellationToken>()), Times.Once);
+            context.SummonerService.Verify(service => service.SearchSummonerByPuuid(
+                "resolved-enemy", It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
+        public async Task GameflowIncompletePublicName_WhenPuuidMissing_RemainsUnavailable()
+        {
+            var context = CreateContext();
+            context.Phase = "InProgress";
+            context.GameflowSession = CreateRealShapeGameflowSession("InProgress");
+            var enemyMember = context.GameflowSession.GameData.TeamOne[0];
+            var originalPuuid = enemyMember.Puuid;
+            enemyMember.Puuid = string.Empty;
+            enemyMember.SummonerName = "Visible Enemy";
+            var enemySelection = Assert.Single(
+                context.GameflowSession.GameData.PlayerChampionSelections,
+                selection => selection.Puuid == originalPuuid);
+            enemySelection.Puuid = string.Empty;
+
+            await context.Service.StartAsync();
+            var snapshot = await WaitForSnapshotAsync(context.Service, value =>
+                value.Roster?.SourcePhase == GameflowPhase.InProgress &&
+                value.Roster.TheirTeam.Any(player =>
+                    player.DisplayName == "Visible Enemy" &&
+                    player.DataState == LiveMatchPlayerDataState.Unavailable));
+
+            var enemy = Assert.Single(snapshot.Roster.TheirTeam,
+                player => player.DisplayName == "Visible Enemy");
+            Assert.False(enemy.IsHidden);
+            Assert.Equal(string.Empty, enemy.Puuid);
+            context.SummonerService.Verify(service => service.SearchSummonerByName(
+                It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
+            await context.Service.StopAsync();
+        }
+
+        [Fact]
         public async Task ChampionSelectThenGameStartThenInProgress_LoadsAlliesThenEnemiesOnce()
         {
             var context = CreateContext();

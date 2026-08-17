@@ -1196,7 +1196,15 @@ namespace Prometheus.Services.Client
                 await _playerLoadGate.WaitAsync(cancellationToken).ConfigureAwait(false);
                 gateEntered = true;
 
-                var performance = await GetPlayerPerformanceAsync(player.Puuid,
+                var puuid = await ResolvePlayerPuuidAsync(player, cancellationToken)
+                    .ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(puuid))
+                {
+                    throw new InvalidOperationException(
+                        "The public player identity is unavailable.");
+                }
+
+                var performance = await GetPlayerPerformanceAsync(puuid,
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 PublishPlayerUpdate(generation, cancellationToken, isMyTeam, index,
@@ -1287,6 +1295,25 @@ namespace Prometheus.Services.Client
                     LazyThreadSafetyMode.ExecutionAndPublication));
             return AwaitCachedPlayerPerformanceAsync(key, lazy)
                 .WaitAsync(cancellationToken);
+        }
+
+        private async Task<string> ResolvePlayerPuuidAsync(
+            LiveMatchPlayerSnapshot player, CancellationToken cancellationToken)
+        {
+            if (!string.IsNullOrWhiteSpace(player?.Puuid))
+            {
+                return player.Puuid;
+            }
+
+            if (!TryGetCompleteRiotId(player?.DisplayName, out var riotId))
+            {
+                return string.Empty;
+            }
+
+            var summoner = await _summonerService.SearchSummonerByName(
+                    riotId, cancellationToken)
+                .ConfigureAwait(false);
+            return summoner?.Puuid ?? string.Empty;
         }
 
         private async Task<PlayerPerformanceData> AwaitCachedPlayerPerformanceAsync(
@@ -1587,6 +1614,7 @@ namespace Prometheus.Services.Client
         private static LiveMatchPlayerSnapshot ApplyPerformance(
             LiveMatchPlayerSnapshot player, PlayerPerformanceData performance)
         {
+            player.Puuid = FirstNotEmpty(player.Puuid, performance.Summoner?.Puuid);
             player.Summoner = performance.Summoner;
             player.SoloRank = performance.SoloRank;
             player.RecentWins = performance.Wins;
@@ -1679,10 +1707,11 @@ namespace Prometheus.Services.Client
             SummonerAccount currentSummoner)
         {
             member ??= new GameflowTeamMember();
-            var puuid = member.Puuid ?? string.Empty;
+            var puuid = FirstNotEmpty(member.Puuid, selection?.Puuid);
             var displayName = member.SummonerName ?? string.Empty;
             var hidden = string.IsNullOrWhiteSpace(puuid) &&
                 string.IsNullOrWhiteSpace(displayName);
+            var hasPublicRiotId = TryGetCompleteRiotId(displayName, out _);
             return new LiveMatchPlayerSnapshot
             {
                 Slot = index,
@@ -1703,9 +1732,9 @@ namespace Prometheus.Services.Client
                 IsHidden = hidden,
                 DataState = hidden
                     ? LiveMatchPlayerDataState.Hidden
-                    : string.IsNullOrWhiteSpace(puuid)
-                        ? LiveMatchPlayerDataState.Unavailable
-                        : LiveMatchPlayerDataState.Loading
+                    : !string.IsNullOrWhiteSpace(puuid) || hasPublicRiotId
+                        ? LiveMatchPlayerDataState.Loading
+                        : LiveMatchPlayerDataState.Unavailable
             };
         }
 
@@ -1832,7 +1861,8 @@ namespace Prometheus.Services.Client
             builder.Append('|');
             foreach (var selection in selections ?? [])
             {
-                builder.Append(selection?.Puuid).Append(',')
+                builder.Append(selection?.CellId ?? 0).Append(',')
+                    .Append(selection?.Puuid).Append(',')
                     .Append(selection?.ChampionId ?? 0).Append(',')
                     .Append(selection?.Spell1Id ?? 0).Append(',')
                     .Append(selection?.Spell2Id ?? 0).Append(';');
@@ -1877,14 +1907,42 @@ namespace Prometheus.Services.Client
             GameflowGameData gameData, GameflowTeamMember member)
         {
             var puuid = NormalizePuuid(member?.Puuid);
-            if (string.IsNullOrWhiteSpace(puuid))
+            var selections = gameData?.PlayerChampionSelections ?? [];
+            if (!string.IsNullOrWhiteSpace(puuid))
             {
-                return null;
+                return selections.FirstOrDefault(selection =>
+                    string.Equals(NormalizePuuid(selection?.Puuid), puuid,
+                        StringComparison.Ordinal));
             }
 
-            return (gameData?.PlayerChampionSelections ?? []).FirstOrDefault(selection =>
-                string.Equals(NormalizePuuid(selection?.Puuid), puuid,
-                    StringComparison.Ordinal));
+            if ((member?.CellId ?? 0) != 0)
+            {
+                var byCellId = selections.FirstOrDefault(selection =>
+                    SelectionMatchesMember(selection, member, member.CellId));
+                if (byCellId is not null)
+                {
+                    return byCellId;
+                }
+            }
+
+            if ((member?.TeamParticipantId ?? 0) != 0)
+            {
+                return selections.FirstOrDefault(selection =>
+                    SelectionMatchesMember(
+                        selection, member, member.TeamParticipantId));
+            }
+
+            return null;
+        }
+
+        private static bool SelectionMatchesMember(GameflowPlayerSelection selection,
+            GameflowTeamMember member, long expectedCellId)
+        {
+            return selection is not null && member is not null &&
+                selection.CellId == expectedCellId &&
+                !string.IsNullOrWhiteSpace(selection.Puuid) &&
+                (selection.ChampionId <= 0 || member.ChampionId <= 0 ||
+                 selection.ChampionId == member.ChampionId);
         }
 
         private static bool ContainsAccount(IEnumerable<GameflowTeamMember> team,
@@ -1971,6 +2029,15 @@ namespace Prometheus.Services.Client
             return string.IsNullOrWhiteSpace(tagLine)
                 ? gameName
                 : $"{gameName}#{tagLine}";
+        }
+
+        private static bool TryGetCompleteRiotId(string value, out string riotId)
+        {
+            riotId = value?.Trim() ?? string.Empty;
+            var separator = riotId.LastIndexOf('#');
+            return separator > 0 && separator < riotId.Length - 1 &&
+                !string.IsNullOrWhiteSpace(riotId[..separator]) &&
+                !string.IsNullOrWhiteSpace(riotId[(separator + 1)..]);
         }
 
         private static string FormatSummonerName(SummonerAccount summoner,
