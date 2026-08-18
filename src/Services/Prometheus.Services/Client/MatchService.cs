@@ -52,6 +52,14 @@ namespace Prometheus.Services.Client
         private static readonly TimeSpan[] AramBenchSwapRetryDelays =
             [TimeSpan.Zero, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(900)];
 
+        private static readonly TimeSpan[] AramBenchReadinessRefreshDelays =
+        [
+            TimeSpan.FromMilliseconds(250),
+            TimeSpan.FromMilliseconds(750),
+            TimeSpan.FromMilliseconds(1500),
+            TimeSpan.FromMilliseconds(2500)
+        ];
+
         private static readonly TimeSpan[] ChampionSelectActionRetryDelays =
             [TimeSpan.Zero, TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(750)];
         private static readonly JsonSerializerSettings SnapshotCloneSettings = new()
@@ -2227,6 +2235,9 @@ namespace Prometheus.Services.Client
                 context, snapshot, preferredChampionIds);
             var targetChampionId = FindPreferredAramBenchChampion(
                 snapshot, preferredChampionIds);
+            var shouldRefreshUntilReady = targetChampionId <= 0 &&
+                                          ShouldRefreshAramBenchUntilReady(
+                                              snapshot, preferredChampionIds);
 
             CancellationTokenSource previousCts = null;
             lock (_stateSync)
@@ -2257,10 +2268,82 @@ namespace Prometheus.Services.Client
                         targetChampionId,
                         token);
                 }
+                else if (shouldRefreshUntilReady)
+                {
+                    _aramBenchSwapAutomationCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(context.Token);
+                    var token = _aramBenchSwapAutomationCts.Token;
+                    _aramBenchSwapAutomationTask = RefreshAramBenchUntilReadyAsync(
+                        context,
+                        stateSignature,
+                        token);
+                }
             }
 
             previousCts?.Cancel();
             previousCts?.Dispose();
+        }
+
+        private async Task RefreshAramBenchUntilReadyAsync(
+            PhaseContext context,
+            string stateSignature,
+            CancellationToken cancellationToken)
+        {
+            foreach (var delay in AramBenchReadinessRefreshDelays)
+            {
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                if (!IsCurrentAramBenchReadinessState(context, stateSignature) ||
+                    !_leagueClient.Connected || !_httpService.IsInitialized)
+                {
+                    return;
+                }
+
+                ChampionSelectSnapshot championSelect;
+                try
+                {
+                    championSelect = await _gameService.GetChampionSelectSnapshotAsync(
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    _logger.Debug(
+                        "Unable to refresh ARAM champion-select readiness. ErrorType={ErrorType}",
+                        exception.GetType().Name);
+                    continue;
+                }
+
+                if (championSelect is null ||
+                    !IsCurrentAramBenchReadinessState(context, stateSignature))
+                {
+                    continue;
+                }
+
+                NormalizeChampionSelect(championSelect);
+                PublishResourceUpdate(snapshot =>
+                {
+                    snapshot.ChampionSelect = championSelect;
+                    return snapshot;
+                });
+
+                var preferredChampionIds = AutomationSettings.PreferredAramChampionIds?
+                    .Where(championId => championId > 0)
+                    .Distinct()
+                    .ToArray() ?? [];
+                var refreshedStateSignature = BuildAramBenchSwapState(
+                    context, GetCurrentSnapshot(), preferredChampionIds);
+                if (string.Equals(stateSignature, refreshedStateSignature,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                StartAutoAramBenchSwap(context);
+                return;
+            }
         }
 
         private async Task RunAramBenchSwapAsync(
@@ -2416,6 +2499,47 @@ namespace Prometheus.Services.Client
                        BuildAramBenchSwapState(context, snapshot, preferredChampionIds),
                        StringComparison.Ordinal) &&
                    FindPreferredAramBenchChampion(snapshot, preferredChampionIds) == championId;
+        }
+
+        private bool IsCurrentAramBenchReadinessState(
+            PhaseContext context,
+            string stateSignature)
+        {
+            if (!IsCurrentPhase(context) ||
+                context.Phase != GameflowPhase.ChampSelect ||
+                !AutomationSettings.AutoSwapAramBench)
+            {
+                return false;
+            }
+
+            var snapshot = GetCurrentSnapshot();
+            var preferredChampionIds = AutomationSettings.PreferredAramChampionIds?
+                .Where(championId => championId > 0)
+                .Distinct()
+                .ToArray() ?? [];
+            return string.Equals(
+                       stateSignature,
+                       BuildAramBenchSwapState(context, snapshot, preferredChampionIds),
+                       StringComparison.Ordinal) &&
+                   FindPreferredAramBenchChampion(snapshot, preferredChampionIds) <= 0 &&
+                   ShouldRefreshAramBenchUntilReady(snapshot, preferredChampionIds);
+        }
+
+        private static bool ShouldRefreshAramBenchUntilReady(
+            LiveMatchSnapshot snapshot,
+            IReadOnlyList<int> preferredChampionIds)
+        {
+            if (snapshot is null || preferredChampionIds is null ||
+                preferredChampionIds.Count == 0 || !IsAramSession(snapshot))
+            {
+                return false;
+            }
+
+            var championSelect = snapshot.ChampionSelect;
+            var currentChampionId = championSelect?.MyTeam?.FirstOrDefault(member =>
+                    member?.CellId == championSelect.LocalPlayerCellId)?.ChampionId ?? 0;
+            return currentChampionId <= 0 ||
+                   !preferredChampionIds.Contains(currentChampionId);
         }
 
         private static int FindPreferredAramBenchChampion(

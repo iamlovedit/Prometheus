@@ -29,6 +29,35 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             await context.Service.StopAsync();
         }
 
+        [Fact]
+        public async Task AramBenchSwap_WhenInitialChampionSelectIsIncomplete_RefreshesUntilReady()
+        {
+            var incompleteChampionSelect = CreateChampionSelect(0, []);
+            var readyChampionSelect = CreateChampionSelect(99, [22]);
+            var context = CreateContext(
+                CreateGameflowSession("ARAM", GameQueueIds.Aram, 12),
+                incompleteChampionSelect,
+                [22]);
+            context.GameService.SetupSequence(service =>
+                    service.GetChampionSelectSnapshotAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(incompleteChampionSelect)
+                .ReturnsAsync(readyChampionSelect);
+
+            await context.Service.StartAsync();
+            var championId = await context.SwapRequested.Task.WaitAsync(
+                TimeSpan.FromSeconds(2));
+
+            Assert.Equal(22, championId);
+            context.GameService.Verify(service =>
+                service.GetChampionSelectSnapshotAsync(It.IsAny<CancellationToken>()),
+                Times.AtLeast(2));
+            context.GameService.Verify(service =>
+                service.SwapAramBenchChampionAsync(
+                    22, It.IsAny<CancellationToken>()), Times.Once);
+
+            await context.Service.StopAsync();
+        }
+
         [Theory]
         [InlineData("CLASSIC", GameQueueIds.HextechAram, 0)]
         [InlineData("KIWI", GameQueueIds.HextechAramGameflow, 0)]
@@ -125,11 +154,14 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 [22, 103]);
 
             await context.Service.StartAsync();
-            await Task.Delay(100);
+            await Task.Delay(350);
 
             context.GameService.Verify(service =>
                 service.SwapAramBenchChampionAsync(
                     It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+            context.GameService.Verify(service =>
+                service.GetChampionSelectSnapshotAsync(It.IsAny<CancellationToken>()),
+                Times.Once);
 
             await context.Service.StopAsync();
         }
