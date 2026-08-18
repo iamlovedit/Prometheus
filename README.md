@@ -129,6 +129,8 @@ Prometheus 是一款面向 Windows 的英雄联盟第三方桌面助手，通过
 
 ![实时对局](./doc/images/Match.png)
 
+![对局结算](./doc/images/Post_Match.png)
+
 ### 🪟 英雄选择伴随窗口
 
 进入英雄选择阶段时，Prometheus 可以在英雄联盟客户端侧边显示一个紧凑的伴随窗口：
