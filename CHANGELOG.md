@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-08-18
+
+### 改进
+
+- 改进实时对局中的玩家身份解析：优先使用 PUUID，并在缺失时尝试从英雄选择数据或 Riot ID 补全信息。
+- 统一实时对局快照的发布和消费，使用不可变副本传递错误状态、阶段刷新和结算数据，提升断线、部分数据失败及异步刷新时的稳定性。
+- 改进 ARAM 自动换英雄，在阶段或快照刷新后及时重新评估备战席状态，同时保留取消、阶段隔离和有限重试行为。
+
+### 修复
+
+- 修复无法解析玩家身份时继续使用不完整数据的风险，保持功能处于安全不可用状态并避免影响其他对局信息。
+
+### 升级说明
+
+- 通过 GitHub Release 下载 `Prometheus-1.0.7-win-x64.msi` 或便携 ZIP 手动升级。
+- 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
+
 ## [1.0.6] - 2026-08-14
 
 ### 改进
@@ -72,6 +89,7 @@
 - 通过 GitHub Release 下载 `Prometheus-1.0.4-win-x64.msi` 或便携 ZIP 手动升级。
 - 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
 
+[1.0.7]: https://github.com/iamlovedit/Prometheus/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/iamlovedit/Prometheus/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/iamlovedit/Prometheus/compare/v1.0.4...v1.0.5
 [1.0.4]: https://github.com/iamlovedit/Prometheus/compare/v1.0.3...v1.0.4
