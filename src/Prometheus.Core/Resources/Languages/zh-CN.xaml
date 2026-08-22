@@ -21,6 +21,9 @@
     <sys:String x:Key="Tray.Exit">退出 Prometheus</sys:String>
     <sys:String x:Key="Setting.Title">设置</sys:String>
     <sys:String x:Key="Setting.Description">管理 Prometheus 的外观、游戏辅助和诊断信息</sys:String>
+    <sys:String x:Key="Setting.GitHub.Open">GitHub 项目 ↗</sys:String>
+    <sys:String x:Key="Setting.GitHub.ToolTip">使用默认浏览器打开 Prometheus 项目仓库</sys:String>
+    <sys:String x:Key="Setting.GitHub.OpenFailed">无法打开 GitHub，请检查系统默认浏览器设置。</sys:String>
     <sys:String x:Key="Setting.Personalization">个性化</sys:String>
     <sys:String x:Key="Setting.Personalization.Description">调整界面语言和主题外观</sys:String>
     <sys:String x:Key="Setting.Language">语言</sys:String>

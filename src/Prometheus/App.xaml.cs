@@ -57,6 +57,7 @@ namespace Prometheus
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.RegisterSingleton<IHttpService, HttpService>();
+            containerRegistry.RegisterSingleton<IExternalLinkService, ExternalLinkService>();
             containerRegistry.RegisterSingleton<IClientListener, ClientListener>();
             containerRegistry.RegisterSingleton<IResourceService, ResourceService>();
             containerRegistry.RegisterSingleton<IClientService, ClientService>();

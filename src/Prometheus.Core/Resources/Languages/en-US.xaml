@@ -21,6 +21,9 @@
     <sys:String x:Key="Tray.Exit">Exit Prometheus</sys:String>
     <sys:String x:Key="Setting.Title">Settings</sys:String>
     <sys:String x:Key="Setting.Description">Manage Prometheus appearance, game assistance, and diagnostics</sys:String>
+    <sys:String x:Key="Setting.GitHub.Open">GitHub project ↗</sys:String>
+    <sys:String x:Key="Setting.GitHub.ToolTip">Open the Prometheus repository in your default browser</sys:String>
+    <sys:String x:Key="Setting.GitHub.OpenFailed">Unable to open GitHub. Check the default browser settings.</sys:String>
     <sys:String x:Key="Setting.Personalization">Personalization</sys:String>
     <sys:String x:Key="Setting.Personalization.Description">Adjust the interface language and visual theme</sys:String>
     <sys:String x:Key="Setting.Language">Language</sys:String>

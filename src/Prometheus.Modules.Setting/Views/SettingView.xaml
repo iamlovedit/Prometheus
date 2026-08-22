@@ -31,12 +31,22 @@
                         <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Setting.Title}" />
                         <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Setting.Description}" />
                     </StackPanel>
-                    <Button
+                    <StackPanel
                         Grid.Column="1"
                         VerticalAlignment="Center"
-                        Command="{Binding OpenDiagnosticsCommand}"
-                        Content="{DynamicResource Setting.Diagnostics.Open}"
-                        Style="{DynamicResource ButtonIcon}" />
+                        Orientation="Horizontal">
+                        <Button
+                            Margin="0,0,8,0"
+                            AutomationProperties.Name="{DynamicResource Setting.GitHub.Open}"
+                            Command="{Binding OpenGitHubCommand}"
+                            Content="{DynamicResource Setting.GitHub.Open}"
+                            Style="{DynamicResource ButtonIcon}"
+                            ToolTip="{DynamicResource Setting.GitHub.ToolTip}" />
+                        <Button
+                            Command="{Binding OpenDiagnosticsCommand}"
+                            Content="{DynamicResource Setting.Diagnostics.Open}"
+                            Style="{DynamicResource ButtonIcon}" />
+                    </StackPanel>
                 </Grid>
 
                 <Grid Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityConverter}}">
