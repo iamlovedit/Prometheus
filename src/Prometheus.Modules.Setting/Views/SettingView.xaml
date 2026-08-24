@@ -13,6 +13,11 @@
     d:DesignWidth="1080"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
+    <UserControl.Resources>
+        <Geometry x:Key="GitHubGeometry">
+            M12,0.297 C5.37,0.297 0,5.67 0,12.297 C0,17.6 3.438,22.097 8.205,23.682 C8.805,23.795 9.025,23.424 9.025,23.105 C9.025,22.82 9.015,22.065 9.01,21.065 C5.672,21.789 4.968,19.455 4.968,19.455 C4.422,18.068 3.635,17.699 3.635,17.699 C2.546,16.954 3.718,16.97 3.718,16.97 C4.923,17.054 5.557,18.207 5.557,18.207 C6.627,20.042 8.366,19.512 9.052,19.205 C9.16,18.429 9.47,17.9 9.814,17.6 C7.149,17.3 4.348,16.268 4.348,11.67 C4.348,10.36 4.813,9.29 5.583,8.45 C5.448,8.147 5.043,6.927 5.688,5.274 C5.688,5.274 6.693,4.952 8.988,6.504 C9.948,6.237 10.968,6.105 11.988,6.099 C13.008,6.105 14.028,6.237 14.988,6.504 C17.268,4.952 18.273,5.274 18.273,5.274 C18.918,6.927 18.513,8.147 18.393,8.45 C19.158,9.29 19.623,10.36 19.623,11.67 C19.623,16.28 16.818,17.295 14.148,17.59 C14.568,17.95 14.958,18.686 14.958,19.81 C14.958,21.416 14.943,22.706 14.943,23.096 C14.943,23.411 15.153,23.786 15.768,23.666 C20.565,22.092 24,17.592 24,12.297 C24,5.67 18.627,0.297 12,0.297 Z
+        </Geometry>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="76" />
@@ -22,7 +27,12 @@
 
         <Border Style="{DynamicResource PageHeaderCard}">
             <Grid>
-                <Grid Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityReConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityReConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition />
                         <ColumnDefinition Width="Auto" />
@@ -31,25 +41,15 @@
                         <TextBlock Style="{DynamicResource PageTitle}" Text="{DynamicResource Setting.Title}" />
                         <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Setting.Description}" />
                     </StackPanel>
-                    <StackPanel
+                    <Button
                         Grid.Column="1"
                         VerticalAlignment="Center"
-                        Orientation="Horizontal">
-                        <Button
-                            Margin="0,0,8,0"
-                            AutomationProperties.Name="{DynamicResource Setting.GitHub.Open}"
-                            Command="{Binding OpenGitHubCommand}"
-                            Content="{DynamicResource Setting.GitHub.Open}"
-                            Style="{DynamicResource ButtonIcon}"
-                            ToolTip="{DynamicResource Setting.GitHub.ToolTip}" />
-                        <Button
-                            Command="{Binding OpenDiagnosticsCommand}"
-                            Content="{DynamicResource Setting.Diagnostics.Open}"
-                            Style="{DynamicResource ButtonIcon}" />
-                    </StackPanel>
+                        Command="{Binding OpenDiagnosticsCommand}"
+                        Content="{DynamicResource Setting.Diagnostics.Open}"
+                        Style="{DynamicResource ButtonIcon}" />
                 </Grid>
 
-                <Grid Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityConverter}}">
+                <Grid Grid.Column="0" Visibility="{Binding IsDiagnosticsOpen, Converter={StaticResource Boolean2VisibilityConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition />
@@ -70,6 +70,21 @@
                         <TextBlock Style="{DynamicResource PageDescription}" Text="{DynamicResource Setting.Diagnostics.Description}" />
                     </StackPanel>
                 </Grid>
+
+                <Button
+                    Grid.Column="1"
+                    Width="36"
+                    Height="36"
+                    Margin="8,0,0,0"
+                    Padding="0"
+                    VerticalAlignment="Center"
+                    hc:IconElement.Geometry="{StaticResource GitHubGeometry}"
+                    hc:IconElement.Height="20"
+                    hc:IconElement.Width="20"
+                    AutomationProperties.Name="{DynamicResource Setting.GitHub.Open}"
+                    Command="{Binding OpenGitHubCommand}"
+                    Style="{DynamicResource ButtonIcon}"
+                    ToolTip="{DynamicResource Setting.GitHub.ToolTip}" />
             </Grid>
         </Border>
 
