@@ -132,6 +132,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             logHistory.Setup(service => service.GetSnapshot())
                 .Returns(Array.Empty<LogEntry>());
             var loggingControl = new Mock<ILoggingControlService>();
+            var preferenceSettings = new Mock<IApplicationPreferenceSettings>();
+            preferenceSettings.SetupGet(settings => settings.LanguageIndex).Returns(0);
+            preferenceSettings.SetupGet(settings => settings.ThemeIndex).Returns(0);
 
             return new PreferenceViewModel(
                 new EventAggregator(),
@@ -140,7 +143,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 matchService.Object,
                 logHistory.Object,
                 loggingControl.Object,
-                updateService);
+                updateService,
+                preferenceSettings.Object);
         }
 
         private static MainWindowViewModel CreateMainWindowViewModel(

@@ -39,6 +39,9 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             resourceService.Setup(service => service.FindResource<string>(It.IsAny<string>()))
                 .Returns((string key) => key);
             var updateService = new Mock<IUpdateService>();
+            var preferenceSettings = new Mock<IApplicationPreferenceSettings>();
+            preferenceSettings.SetupGet(settings => settings.LanguageIndex).Returns(0);
+            preferenceSettings.SetupGet(settings => settings.ThemeIndex).Returns(0);
             var viewModel = new PreferenceViewModel(
                 new EventAggregator(),
                 resourceService.Object,
@@ -46,7 +49,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 matchService.Object,
                 logHistory.Object,
                 loggingControl.Object,
-                updateService.Object);
+                updateService.Object,
+                preferenceSettings.Object);
 
             Assert.False(viewModel.LoggingEnabled);
             Assert.Equal(0, viewModel.LogCount);

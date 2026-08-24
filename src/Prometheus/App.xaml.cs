@@ -26,6 +26,7 @@ using Prometheus.Properties;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
+using System.Configuration;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -48,6 +49,7 @@ namespace Prometheus
 
         private LogHistoryService _logHistory;
         private LoggingControlService _loggingControl;
+        private IApplicationPreferenceSettings _applicationPreferenceSettings;
 
         protected override Window CreateShell()
         {
@@ -82,6 +84,7 @@ namespace Prometheus
             containerRegistry.RegisterSingleton<IUpdateService, UpdateService>();
             containerRegistry.RegisterInstance<ILogHistoryService>(_logHistory);
             containerRegistry.RegisterInstance<ILoggingControlService>(_loggingControl);
+            containerRegistry.RegisterInstance(_applicationPreferenceSettings);
             containerRegistry.RegisterForNavigation<MatchHistoryView>(RegionNames.MatchHistoryView);
             containerRegistry.RegisterForNavigation<SummonerDetailView>(RegionNames.SummonerDetailView);
             containerRegistry.RegisterDialogWindow<DialogWindow>();
@@ -150,9 +153,11 @@ namespace Prometheus
                     LogFileRetentionPeriod,
                     DateTimeOffset.UtcNow);
 
+                _applicationPreferenceSettings = new ApplicationPreferenceSettings();
+                InitializeLoggingPreference(_applicationPreferenceSettings);
                 _logHistory = new LogHistoryService(5000);
                 _loggingControl = new LoggingControlService(
-                    Settings.Default.EnableLogging,
+                    _applicationPreferenceSettings.LoggingEnabled ?? false,
                     _logHistory,
                     PersistLoggingSetting);
 #if DEBUG
@@ -306,10 +311,36 @@ namespace Prometheus
             }
         }
 
-        private static void PersistLoggingSetting(bool enabled)
+        private static void InitializeLoggingPreference(
+            IApplicationPreferenceSettings preferenceSettings)
         {
-            Settings.Default.EnableLogging = enabled;
-            Settings.Default.Save();
+            if (preferenceSettings.LoggingEnabled.HasValue)
+            {
+                return;
+            }
+
+            var legacyValue = false;
+            try
+            {
+                Settings.Default.Upgrade();
+                legacyValue = Settings.Default.EnableLogging;
+            }
+            catch (ConfigurationErrorsException)
+            {
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+
+            preferenceSettings.SaveLoggingEnabled(legacyValue);
+        }
+
+        private void PersistLoggingSetting(bool enabled)
+        {
+            _applicationPreferenceSettings.SaveLoggingEnabled(enabled);
         }
 
         private static void ReportLogCleanupResult(LogFileCleanupResult result)

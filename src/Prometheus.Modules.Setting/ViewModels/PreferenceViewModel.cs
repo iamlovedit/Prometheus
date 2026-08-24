@@ -5,10 +5,10 @@ using Prism.Events;
 using Prometheus.Core;
 using Prometheus.Core.Events;
 using Prometheus.Core.Models;
-using Prometheus.Modules.Setting.Properties;
 using Prometheus.Services.Interfaces;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.Services.Interfaces.Updates;
+using System.Globalization;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
@@ -22,6 +22,7 @@ namespace Prometheus.Modules.Setting.ViewModels
         private readonly ILogHistoryService _logHistory;
         private readonly ILoggingControlService _loggingControl;
         private readonly IUpdateService _updateService;
+        private readonly IApplicationPreferenceSettings _preferenceSettings;
 
         protected override string TitleResourceKey { get; set; } = "Setting.Personalization";
 
@@ -32,7 +33,8 @@ namespace Prometheus.Modules.Setting.ViewModels
             IMatchService matchService,
             ILogHistoryService logHistory,
             ILoggingControlService loggingControl,
-            IUpdateService updateService)
+            IUpdateService updateService,
+            IApplicationPreferenceSettings preferenceSettings)
             : base(eventAggregator, resourceService)
         {
             _automationSettings = automationSettings;
@@ -40,9 +42,13 @@ namespace Prometheus.Modules.Setting.ViewModels
             _logHistory = logHistory;
             _loggingControl = loggingControl;
             _updateService = updateService;
+            _preferenceSettings = preferenceSettings;
 
-            _selectedLanguageIndex = Settings.Default.LanguageIndex;
-            _selectedThemeIndex = Settings.Default.ThemeIndex;
+            _selectedLanguageIndex = preferenceSettings.LanguageIndex
+                ?? ApplicationPreferenceDefaults.ResolveLanguageIndex(
+                    CultureInfo.CurrentUICulture);
+            _selectedThemeIndex = preferenceSettings.ThemeIndex
+                ?? (int)resourceService.GetSystemThemeMode();
             _connectionState = matchService.Current?.ConnectionState ?? ConnectionState.Disconnected;
             _logCount = loggingControl.IsEnabled ? logHistory.GetSnapshot().Count : 0;
 
@@ -75,8 +81,7 @@ namespace Prometheus.Modules.Setting.ViewModels
                 }
 
                 ResourceService.SwitchLanguage(value);
-                Settings.Default.LanguageIndex = value;
-                Settings.Default.Save();
+                _preferenceSettings.SaveLanguageIndex(value);
                 EventAggregator.GetEvent<LanguageSwitchedEvent>().Publish();
             }
         }
@@ -94,8 +99,7 @@ namespace Prometheus.Modules.Setting.ViewModels
                 }
 
                 ResourceService.SwitchTheme(value);
-                Settings.Default.ThemeIndex = value;
-                Settings.Default.Save();
+                _preferenceSettings.SaveThemeIndex(value);
             }
         }
 
