@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-08-26
+
+### 新增
+
+- 在设置页新增 GitHub 项目入口，可使用系统默认浏览器打开 Prometheus 仓库，并在打开失败时显示本地化提示。
+
+### 改进
+
+- 统一语言、主题和诊断日志开关的本地持久化，将应用偏好保存到 `%LocalAppData%\Prometheus\application-preferences.json`。
+- 支持从旧版设置自动迁移应用偏好，并在配置缺失、损坏或包含无效值时安全回退到默认设置。
+- 使用临时文件替换方式保存应用偏好，降低写入中断导致配置损坏的风险。
+
+### 升级说明
+
+- 通过 GitHub Release 下载 `Prometheus-1.0.8-win-x64.msi` 或便携 ZIP 手动升级。
+- 现有语言、主题和日志设置会在首次启动时自动迁移，无需手动重新配置。
+- 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
+
 ## [1.0.7] - 2026-08-18
 
 ### 改进
@@ -89,6 +107,7 @@
 - 通过 GitHub Release 下载 `Prometheus-1.0.4-win-x64.msi` 或便携 ZIP 手动升级。
 - 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
 
+[1.0.8]: https://github.com/iamlovedit/Prometheus/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/iamlovedit/Prometheus/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/iamlovedit/Prometheus/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/iamlovedit/Prometheus/compare/v1.0.4...v1.0.5
