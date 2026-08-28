@@ -60,6 +60,10 @@ namespace Prometheus.ViewModels
 
         public bool IsEnabled { get; init; }
 
+        public bool HasToggle => ToggleCommand is not null;
+
+        public DelegateCommand ToggleCommand { get; init; }
+
         public string ChampionName
         {
             get => _championName;
@@ -452,7 +456,9 @@ namespace Prometheus.ViewModels
                         Text("Companion.Automation.Aram", "Auto swap"),
                         targetChampionId,
                         GetAramStatus(snapshot, currentChampionId, targetChampionId),
-                        _automationSettings.AutoSwapAramBench)
+                        _automationSettings.AutoSwapAramBench,
+                        () => _automationSettings.AutoSwapAramBench =
+                            !_automationSettings.AutoSwapAramBench)
                 ];
             }
 
@@ -465,7 +471,9 @@ namespace Prometheus.ViewModels
                 CreateChampionSelectCard(snapshot, "pick",
                     Text("Companion.Automation.Pick", "Auto Pick"),
                     _automationSettings.AutoPickChampion,
-                    _automationSettings.PreferredPickChampionIds)
+                    _automationSettings.PreferredPickChampionIds,
+                    () => _automationSettings.AutoPickChampion =
+                        !_automationSettings.AutoPickChampion)
             ];
         }
 
@@ -474,7 +482,8 @@ namespace Prometheus.ViewModels
             string actionType,
             string label,
             bool enabled,
-            IReadOnlyList<int> preferredChampionIds)
+            IReadOnlyList<int> preferredChampionIds,
+            Action toggleAction = null)
         {
             var championId = enabled
                 ? LcuCompanionPresentation.GetChampionSelectAutomationTarget(
@@ -490,7 +499,7 @@ namespace Prometheus.ViewModels
                         : action?.IsInProgress == true
                             ? Text("Companion.Status.Executing", "Executing")
                             : Text("Companion.Status.Waiting", "Waiting");
-            return CreateCard(label, championId, status, enabled);
+            return CreateCard(label, championId, status, enabled, toggleAction);
         }
 
         private string GetAramStatus(
@@ -524,7 +533,8 @@ namespace Prometheus.ViewModels
             string label,
             int championId,
             string status,
-            bool enabled)
+            bool enabled,
+            Action toggleAction = null)
         {
             return new LcuCompanionAutomationCardViewModel
             {
@@ -532,7 +542,10 @@ namespace Prometheus.ViewModels
                 ChampionId = championId,
                 ChampionName = championId > 0 ? $"#{championId}" : "--",
                 StatusText = status,
-                IsEnabled = enabled
+                IsEnabled = enabled,
+                ToggleCommand = toggleAction is null
+                    ? null
+                    : new DelegateCommand(toggleAction)
             };
         }
 

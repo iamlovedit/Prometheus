@@ -35,6 +35,47 @@
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
         </Style>
+        <Style x:Key="CompanionQuickToggle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Background" Value="{DynamicResource SecondaryRegionBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Grid Background="Transparent">
+                            <Border
+                                x:Name="AutomationTrack"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" />
+                            <Ellipse
+                                x:Name="AutomationThumb"
+                                Width="10"
+                                Height="10"
+                                Margin="3"
+                                HorizontalAlignment="Left"
+                                Fill="{DynamicResource SecondaryTextBrush}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="AutomationTrack" Property="Background" Value="{DynamicResource InfoBrush}" />
+                                <Setter TargetName="AutomationTrack" Property="BorderBrush" Value="{DynamicResource InfoBrush}" />
+                                <Setter TargetName="AutomationThumb" Property="HorizontalAlignment" Value="Right" />
+                                <Setter TargetName="AutomationThumb" Property="Fill" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="AutomationTrack" Property="Opacity" Value="0.82" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <DataTemplate x:Key="RunePerkTemplate">
             <Border
                 Width="28"
@@ -137,6 +178,26 @@
                                 Style="{StaticResource CompanionCaption}"
                                 Text="{Binding Label}"
                                 TextTrimming="CharacterEllipsis" />
+                            <ToggleButton
+                                Grid.Column="1"
+                                Margin="5,0,0,0"
+                                AutomationProperties.Name="{DynamicResource Companion.Automation.Toggle.ToolTip}"
+                                Command="{Binding ToggleCommand}"
+                                IsChecked="{Binding IsEnabled, Mode=OneWay}"
+                                Style="{StaticResource CompanionQuickToggle}"
+                                ToolTip="{DynamicResource Companion.Automation.Toggle.ToolTip}"
+                                Visibility="{Binding HasToggle, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        </Grid>
+                        <Grid Grid.Row="1" Margin="0,5,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                FontSize="10"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Text="{Binding StatusText}"
+                                TextTrimming="CharacterEllipsis" />
                             <TextBlock
                                 Grid.Column="1"
                                 Margin="5,0,0,0"
@@ -146,13 +207,6 @@
                                 Text="{Binding ChampionName}"
                                 TextTrimming="CharacterEllipsis" />
                         </Grid>
-                        <TextBlock
-                            Grid.Row="1"
-                            Margin="0,5,0,0"
-                            FontSize="10"
-                            Foreground="{DynamicResource SecondaryTextBrush}"
-                            Text="{Binding StatusText}"
-                            TextTrimming="CharacterEllipsis" />
                     </Grid>
                 </Grid>
             </Border>

@@ -581,6 +581,7 @@
     <sys:String x:Key="Companion.Automation.Ban">自动 Ban</sys:String>
     <sys:String x:Key="Companion.Automation.Pick">自动 Pick</sys:String>
     <sys:String x:Key="Companion.Automation.Title">自动操作</sys:String>
+    <sys:String x:Key="Companion.Automation.Toggle.ToolTip">开启或关闭此项自动操作</sys:String>
     <sys:String x:Key="Companion.Status.Disabled">未启用</sys:String>
     <sys:String x:Key="Companion.Status.NotConfigured">未配置英雄</sys:String>
     <sys:String x:Key="Companion.Status.Waiting">等待操作阶段</sys:String>

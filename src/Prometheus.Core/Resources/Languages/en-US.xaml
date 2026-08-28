@@ -582,6 +582,7 @@
     <sys:String x:Key="Companion.Automation.Ban">Auto Ban</sys:String>
     <sys:String x:Key="Companion.Automation.Pick">Auto Pick</sys:String>
     <sys:String x:Key="Companion.Automation.Title">Automation</sys:String>
+    <sys:String x:Key="Companion.Automation.Toggle.ToolTip">Turn this automation on or off</sys:String>
     <sys:String x:Key="Companion.Status.Disabled">Disabled</sys:String>
     <sys:String x:Key="Companion.Status.NotConfigured">No champion configured</sys:String>
     <sys:String x:Key="Companion.Status.Waiting">Waiting for action</sys:String>

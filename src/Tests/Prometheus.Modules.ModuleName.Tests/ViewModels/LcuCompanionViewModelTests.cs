@@ -80,6 +80,88 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         }
 
         [Fact]
+        public void AutoPickToggle_WhenClicked_UpdatesSharedSettingAndCard()
+        {
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            var autoPickEnabled = false;
+            automationSettings.SetupGet(settings => settings.AutoPickChampion)
+                .Returns(() => autoPickEnabled);
+            automationSettings.SetupSet(settings =>
+                    settings.AutoPickChampion = It.IsAny<bool>())
+                .Callback((bool value) =>
+                {
+                    autoPickEnabled = value;
+                    automationSettings.Raise(
+                        settings => settings.Changed += null,
+                        EventArgs.Empty);
+                });
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                new Mock<IGameResourceManager>().Object,
+                automationSettings.Object);
+
+            viewModel.Start();
+            var pickCard = Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto Pick");
+
+            Assert.True(pickCard.HasToggle);
+            Assert.False(pickCard.IsEnabled);
+            pickCard.ToggleCommand.Execute();
+
+            Assert.True(autoPickEnabled);
+            Assert.True(Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto Pick").IsEnabled);
+            Assert.False(Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto Ban").HasToggle);
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public void AramSwapToggle_WhenClicked_UpdatesSharedSettingAndCard()
+        {
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.Aram);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            var autoSwapEnabled = false;
+            automationSettings.SetupGet(settings => settings.AutoSwapAramBench)
+                .Returns(() => autoSwapEnabled);
+            automationSettings.SetupSet(settings =>
+                    settings.AutoSwapAramBench = It.IsAny<bool>())
+                .Callback((bool value) =>
+                {
+                    autoSwapEnabled = value;
+                    automationSettings.Raise(
+                        settings => settings.Changed += null,
+                        EventArgs.Empty);
+                });
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                new Mock<IGameResourceManager>().Object,
+                automationSettings.Object);
+
+            viewModel.Start();
+            var swapCard = Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto swap");
+
+            Assert.True(swapCard.HasToggle);
+            Assert.False(swapCard.IsEnabled);
+            swapCard.ToggleCommand.Execute();
+
+            Assert.True(autoSwapEnabled);
+            Assert.True(Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto swap").IsEnabled);
+            Assert.False(Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Current champion").HasToggle);
+            viewModel.Stop();
+        }
+
+        [Fact]
         public void Start_InHextechAram_HidesRunesAndDoesNotRequestRecommendations()
         {
             var snapshot = CreateRuneSnapshot(GameQueueIds.HextechAram);
@@ -319,13 +401,20 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             IGameService gameService,
             IGameResourceManager gameResourceManager)
         {
-            var automationSettings = new Mock<IGameAutomationSettings>();
-            automationSettings.SetupGet(settings => settings.PreferredPickChampionIds)
-                .Returns([]);
-            automationSettings.SetupGet(settings => settings.PreferredBanChampionIds)
-                .Returns([]);
-            automationSettings.SetupGet(settings => settings.PreferredAramChampionIds)
-                .Returns([]);
+            var automationSettings = CreateAutomationSettings();
+            return CreateViewModel(
+                matchService,
+                gameService,
+                gameResourceManager,
+                automationSettings.Object);
+        }
+
+        private static LcuCompanionViewModel CreateViewModel(
+            IMatchService matchService,
+            IGameService gameService,
+            IGameResourceManager gameResourceManager,
+            IGameAutomationSettings automationSettings)
+        {
             var resourceService = new Mock<IResourceService>();
             resourceService.Setup(service => service.FindResource<string>(
                     It.IsAny<string>()))
@@ -334,9 +423,21 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 new EventAggregator(),
                 matchService,
                 gameService,
-                automationSettings.Object,
+                automationSettings,
                 gameResourceManager,
                 resourceService.Object);
+        }
+
+        private static Mock<IGameAutomationSettings> CreateAutomationSettings()
+        {
+            var automationSettings = new Mock<IGameAutomationSettings>();
+            automationSettings.SetupGet(settings => settings.PreferredPickChampionIds)
+                .Returns([103]);
+            automationSettings.SetupGet(settings => settings.PreferredBanChampionIds)
+                .Returns([]);
+            automationSettings.SetupGet(settings => settings.PreferredAramChampionIds)
+                .Returns([103]);
+            return automationSettings;
         }
 
         private static Mock<IGameResourceManager> CreateRuneResourceManager(
@@ -391,6 +492,40 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                             AssignedPosition = "middle"
                         }
                     ]
+                }
+            };
+        }
+
+        private static LiveMatchSnapshot CreateAutomationSnapshot(int queueId)
+        {
+            var isAram = queueId is GameQueueIds.Aram or
+                GameQueueIds.HextechAram or GameQueueIds.HextechAramGameflow;
+            return new LiveMatchSnapshot
+            {
+                ConnectionState = ConnectionState.Connected,
+                GameflowPhase = GameflowPhase.ChampSelect,
+                GameflowSession = new GameflowSessionSnapshot
+                {
+                    GameData = new GameflowGameData
+                    {
+                        QueueId = queueId,
+                        GameMode = isAram ? "ARAM" : "CLASSIC",
+                        MapId = isAram ? 12 : 11
+                    }
+                },
+                ChampionSelect = new ChampionSelectSnapshot
+                {
+                    LocalPlayerCellId = 1,
+                    BenchEnabled = isAram,
+                    BenchChampions = isAram
+                        ?
+                        [
+                            new ChampionSelectBenchChampionSnapshot
+                            {
+                                ChampionId = 103
+                            }
+                        ]
+                        : []
                 }
             };
         }
