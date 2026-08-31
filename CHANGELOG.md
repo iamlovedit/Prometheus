@@ -4,6 +4,23 @@
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-08-31
+
+### 新增
+
+- 在英雄选择伴随窗口的自动化卡片中新增快捷开关，可直接开启或关闭自动 Pick 与大乱斗自动交换。
+
+### 改进
+
+- 伴随窗口快捷开关与主界面及托盘共享设置，修改后立即生效并沿用现有持久化行为。
+- 为自动化快捷开关增加紧凑的视觉状态和中英文提示，并调整卡片布局以保持英雄与执行状态清晰可见。
+- 自动 Pick 与大乱斗自动交换的快捷变更会记录结构化操作结果；持久化失败时明确记录失败而不会误报成功。
+
+### 升级说明
+
+- 通过 GitHub Release 下载 `Prometheus-1.0.9-win-x64.msi` 或便携 ZIP 手动升级。
+- 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
+
 ## [1.0.8] - 2026-08-26
 
 ### 新增
@@ -107,6 +124,7 @@
 - 通过 GitHub Release 下载 `Prometheus-1.0.4-win-x64.msi` 或便携 ZIP 手动升级。
 - 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
 
+[1.0.9]: https://github.com/iamlovedit/Prometheus/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/iamlovedit/Prometheus/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/iamlovedit/Prometheus/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/iamlovedit/Prometheus/compare/v1.0.5...v1.0.6
