@@ -3,6 +3,9 @@ using Prism.Events;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.ViewModels;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using Xunit;
 
 namespace Prometheus.Modules.ModuleName.Tests.ViewModels
@@ -82,10 +85,13 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         [Fact]
         public void AutoPickToggle_WhenClicked_UpdatesSharedSettingAndCard()
         {
+            using var logScope = new TestLoggerScope();
             var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
             var matchService = new Mock<IMatchService>();
             matchService.SetupGet(service => service.Current).Returns(snapshot);
             var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.LastPersistenceSucceeded)
+                .Returns(true);
             var autoPickEnabled = false;
             automationSettings.SetupGet(settings => settings.AutoPickChampion)
                 .Returns(() => autoPickEnabled);
@@ -117,16 +123,26 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 card => card.Label == "Auto Pick").IsEnabled);
             Assert.False(Assert.Single(viewModel.AutomationCards,
                 card => card.Label == "Auto Ban").HasToggle);
+            var logEvent = Assert.Single(logScope.Sink.Events,
+                entry => IsEventNamed(entry, "automation.auto_pick.changed"));
+            Assert.Equal(LogEventLevel.Information, logEvent.Level);
+            Assert.Equal("Succeeded", GetScalar<string>(logEvent, "Outcome"));
+            Assert.Equal("Companion", GetScalar<string>(logEvent, "Module"));
+            Assert.False(GetScalar<bool>(logEvent, "OldValue"));
+            Assert.True(GetScalar<bool>(logEvent, "NewValue"));
             viewModel.Stop();
         }
 
         [Fact]
         public void AramSwapToggle_WhenClicked_UpdatesSharedSettingAndCard()
         {
+            using var logScope = new TestLoggerScope();
             var snapshot = CreateAutomationSnapshot(GameQueueIds.Aram);
             var matchService = new Mock<IMatchService>();
             matchService.SetupGet(service => service.Current).Returns(snapshot);
             var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.LastPersistenceSucceeded)
+                .Returns(true);
             var autoSwapEnabled = false;
             automationSettings.SetupGet(settings => settings.AutoSwapAramBench)
                 .Returns(() => autoSwapEnabled);
@@ -158,6 +174,53 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 card => card.Label == "Auto swap").IsEnabled);
             Assert.False(Assert.Single(viewModel.AutomationCards,
                 card => card.Label == "Current champion").HasToggle);
+            var logEvent = Assert.Single(logScope.Sink.Events,
+                entry => IsEventNamed(
+                    entry, "automation.aram_bench_swap.changed"));
+            Assert.Equal(LogEventLevel.Information, logEvent.Level);
+            Assert.Equal("Succeeded", GetScalar<string>(logEvent, "Outcome"));
+            Assert.Equal("Companion", GetScalar<string>(logEvent, "Module"));
+            Assert.False(GetScalar<bool>(logEvent, "OldValue"));
+            Assert.True(GetScalar<bool>(logEvent, "NewValue"));
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public void AutoPickToggle_WhenPersistenceFails_LogsFailedResult()
+        {
+            using var logScope = new TestLoggerScope();
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.LastPersistenceSucceeded)
+                .Returns(false);
+            var autoPickEnabled = false;
+            automationSettings.SetupGet(settings => settings.AutoPickChampion)
+                .Returns(() => autoPickEnabled);
+            automationSettings.SetupSet(settings =>
+                    settings.AutoPickChampion = It.IsAny<bool>())
+                .Callback((bool value) => autoPickEnabled = value);
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                new Mock<IGameResourceManager>().Object,
+                automationSettings.Object);
+
+            viewModel.Start();
+            var pickCard = Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto Pick");
+
+            pickCard.ToggleCommand.Execute();
+
+            var logEvent = Assert.Single(logScope.Sink.Events,
+                entry => IsEventNamed(entry, "automation.auto_pick.changed"));
+            Assert.Equal(LogEventLevel.Error, logEvent.Level);
+            Assert.Equal("Failed", GetScalar<string>(logEvent, "Outcome"));
+            Assert.Equal("PersistenceFailed",
+                GetScalar<string>(logEvent, "ErrorCode"));
+            Assert.False(GetScalar<bool>(logEvent, "OldValue"));
+            Assert.True(GetScalar<bool>(logEvent, "NewValue"));
             viewModel.Stop();
         }
 
@@ -553,6 +616,55 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 Popular = option,
                 WinRate = option
             };
+        }
+
+        private static T GetScalar<T>(LogEvent logEvent, string propertyName)
+        {
+            var scalar = Assert.IsType<ScalarValue>(
+                logEvent.Properties[propertyName]);
+            return Assert.IsType<T>(scalar.Value);
+        }
+
+        private static bool IsEventNamed(LogEvent logEvent, string eventName)
+        {
+            return logEvent.Properties.TryGetValue("EventName", out var value)
+                && value is ScalarValue { Value: string actualEventName }
+                && string.Equals(actualEventName, eventName,
+                    StringComparison.Ordinal);
+        }
+
+        private sealed class CollectingSink : ILogEventSink
+        {
+            public List<LogEvent> Events { get; } = [];
+
+            public void Emit(LogEvent logEvent)
+            {
+                Events.Add(logEvent);
+            }
+        }
+
+        private sealed class TestLoggerScope : IDisposable
+        {
+            private readonly Serilog.ILogger _previousLogger;
+            private readonly Serilog.ILogger _logger;
+
+            public TestLoggerScope()
+            {
+                Sink = new CollectingSink();
+                _previousLogger = Log.Logger;
+                _logger = new LoggerConfiguration()
+                    .WriteTo.Sink(Sink)
+                    .CreateLogger();
+                Log.Logger = _logger;
+            }
+
+            public CollectingSink Sink { get; }
+
+            public void Dispose()
+            {
+                Log.Logger = _previousLogger;
+                (_logger as IDisposable)?.Dispose();
+            }
         }
 
         private static async Task WaitUntilAsync(Func<bool> condition)

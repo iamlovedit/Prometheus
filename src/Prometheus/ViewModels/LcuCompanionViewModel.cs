@@ -457,8 +457,11 @@ namespace Prometheus.ViewModels
                         targetChampionId,
                         GetAramStatus(snapshot, currentChampionId, targetChampionId),
                         _automationSettings.AutoSwapAramBench,
-                        () => _automationSettings.AutoSwapAramBench =
-                            !_automationSettings.AutoSwapAramBench)
+                        () => ToggleAutomationSetting(
+                            "automation.aram_bench_swap.changed",
+                            "Automatic ARAM champion swapping",
+                            () => _automationSettings.AutoSwapAramBench,
+                            value => _automationSettings.AutoSwapAramBench = value))
                 ];
             }
 
@@ -472,9 +475,47 @@ namespace Prometheus.ViewModels
                     Text("Companion.Automation.Pick", "Auto Pick"),
                     _automationSettings.AutoPickChampion,
                     _automationSettings.PreferredPickChampionIds,
-                    () => _automationSettings.AutoPickChampion =
-                        !_automationSettings.AutoPickChampion)
+                    () => ToggleAutomationSetting(
+                        "automation.auto_pick.changed",
+                        "Automatic champion picking",
+                        () => _automationSettings.AutoPickChampion,
+                        value => _automationSettings.AutoPickChampion = value))
             ];
+        }
+
+        private void ToggleAutomationSetting(
+            string eventName,
+            string settingName,
+            Func<bool> getValue,
+            Action<bool> persist)
+        {
+            var oldValue = getValue();
+            var newValue = !oldValue;
+            persist(newValue);
+
+            var persisted = _automationSettings.LastPersistenceSucceeded;
+            var properties = new Dictionary<string, object>
+            {
+                ["OldValue"] = oldValue,
+                ["NewValue"] = newValue
+            };
+            if (!persisted)
+            {
+                properties["ErrorCode"] = "PersistenceFailed";
+            }
+
+            OperationLog.Write(
+                persisted ? LogEventLevel.Information : LogEventLevel.Error,
+                eventName,
+                "Automation",
+                "Manual",
+                persisted ? "Succeeded" : "Failed",
+                Guid.NewGuid(),
+                "Companion",
+                persisted
+                    ? $"{settingName} was {(newValue ? "enabled" : "disabled")}."
+                    : $"Unable to save the {settingName.ToLowerInvariant()} setting.",
+                properties);
         }
 
         private LcuCompanionAutomationCardViewModel CreateChampionSelectCard(
