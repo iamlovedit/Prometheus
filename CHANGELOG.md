@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-10-08
+
+### 改进
+
+- 改进英雄选择伴随窗口的推荐符文加载与应用流程，切换英雄、符文方案或语言时保持当前状态准确，并支持失败后重试。
+- 缓存自动化卡片的英雄名称与图标，减少重复快照触发的资源加载，切换语言时重新加载名称。
+- 统一实时对局与伴随窗口中的玩家名称和段位显示，保持 Riot ID、段位分段和胜点的展示一致。
+
+### 修复
+
+- 修复旧英雄或旧符文方案的异步结果可能覆盖当前选择，以及应用失败或取消后状态提示丢失的问题。
+- 修复英雄联盟客户端窗口更换、暂时隐藏或定位失败后，伴随窗口可能无法及时恢复的问题，并改善普通窗口层级下的显示稳定性。
+- 避免伴随窗口因其他置顶窗口而意外进入全局置顶状态。
+
+### 升级说明
+
+- 通过 GitHub Release 下载 `Prometheus-1.0.10-win-x64.msi` 或便携 ZIP 手动升级。
+- 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
+
 ## [1.0.9] - 2026-08-31
 
 ### 新增
@@ -124,6 +143,7 @@
 - 通过 GitHub Release 下载 `Prometheus-1.0.4-win-x64.msi` 或便携 ZIP 手动升级。
 - 用户配置、日志和资源缓存继续保存在 `%LocalAppData%\Prometheus`，升级不会覆盖这些数据。
 
+[1.0.10]: https://github.com/iamlovedit/Prometheus/compare/v1.0.9...v1.0.10
 [1.0.9]: https://github.com/iamlovedit/Prometheus/compare/v1.0.8...v1.0.9
 [1.0.8]: https://github.com/iamlovedit/Prometheus/compare/v1.0.7...v1.0.8
 [1.0.7]: https://github.com/iamlovedit/Prometheus/compare/v1.0.6...v1.0.7
