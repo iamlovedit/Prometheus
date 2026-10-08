@@ -70,9 +70,21 @@ namespace Prometheus.Desktop.Services
             LiveMatchSnapshot snapshot,
             IReadOnlyList<int> preferredChampionIds)
         {
+            return GetAramAutomationTarget(
+                snapshot,
+                preferredChampionIds,
+                GetMode(snapshot));
+        }
+
+        public static int GetAramAutomationTarget(
+            LiveMatchSnapshot snapshot,
+            IReadOnlyList<int> preferredChampionIds,
+            LcuCompanionMode mode)
+        {
             var championSelect = snapshot?.ChampionSelect;
             var preferred = Normalize(preferredChampionIds);
-            if (championSelect is null || preferred.Length == 0 || !IsAram(snapshot))
+            if (championSelect is null || preferred.Length == 0 ||
+                mode is not (LcuCompanionMode.Aram or LcuCompanionMode.HextechAram))
             {
                 return 0;
             }
@@ -123,7 +135,15 @@ namespace Prometheus.Desktop.Services
             string actionType,
             IReadOnlyList<int> preferredChampionIds)
         {
-            var action = FindLocalAction(snapshot, actionType);
+            return GetChampionSelectAutomationTarget(
+                FindLocalAction(snapshot, actionType),
+                preferredChampionIds);
+        }
+
+        public static int GetChampionSelectAutomationTarget(
+            ChampionSelectActionSnapshot action,
+            IReadOnlyList<int> preferredChampionIds)
+        {
             if (action?.ChampionId > 0)
             {
                 return action.ChampionId;

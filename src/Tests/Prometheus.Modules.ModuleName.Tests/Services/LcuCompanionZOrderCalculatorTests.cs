@@ -47,5 +47,44 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
             Assert.Equal(IntPtr.Zero, result.InsertAfter);
             Assert.False(result.PreserveCurrent);
         }
+
+        [Fact]
+        public void Calculate_WhenPrecedingWindowIsTopmost_RaisesOrdinaryCompanion()
+        {
+            var result = LcuCompanionZOrderCalculator.Calculate(
+                new IntPtr(10),
+                new IntPtr(20),
+                _ => new IntPtr(30),
+                window => window == new IntPtr(30));
+
+            Assert.Equal(IntPtr.Zero, result.InsertAfter);
+            Assert.False(result.PreserveCurrent);
+        }
+
+        [Fact]
+        public void Calculate_WhenPrecedingWindowAndCompanionAreTopmost_DemotesCompanion()
+        {
+            var result = LcuCompanionZOrderCalculator.Calculate(
+                new IntPtr(10),
+                new IntPtr(20),
+                _ => new IntPtr(30),
+                window => window == new IntPtr(20) || window == new IntPtr(30));
+
+            Assert.Equal(new IntPtr(-2), result.InsertAfter);
+            Assert.False(result.PreserveCurrent);
+        }
+
+        [Fact]
+        public void Calculate_WhenCompanionIsAlreadyTopmost_DemotesIt()
+        {
+            var result = LcuCompanionZOrderCalculator.Calculate(
+                new IntPtr(10),
+                new IntPtr(20),
+                _ => new IntPtr(20),
+                window => window == new IntPtr(20));
+
+            Assert.Equal(new IntPtr(-2), result.InsertAfter);
+            Assert.False(result.PreserveCurrent);
+        }
     }
 }

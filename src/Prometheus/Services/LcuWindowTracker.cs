@@ -150,19 +150,40 @@ namespace Prometheus.Desktop.Services
                 }
 
                 var handle = _trackedWindowHandle;
-                if (_trackedProcessId != processId || handle == IntPtr.Zero ||
-                    !IsWindow(handle))
+                NativeWindowBounds bounds;
+                var cachedWindowIsValid = false;
+                var isVisible = false;
+                var isCloaked = false;
+                if (_trackedProcessId == processId && handle != IntPtr.Zero &&
+                    IsWindow(handle))
+                {
+                    GetWindowThreadProcessId(handle, out var windowProcessId);
+                    isVisible = IsWindowVisible(handle);
+                    isCloaked = TryGetCloaked(handle);
+                    cachedWindowIsValid = IsTrackedWindowCandidate(
+                        handle,
+                        processId,
+                        isWindow: true,
+                        actualProcessId: windowProcessId,
+                        isVisible,
+                        isCloaked);
+                }
+
+                if (!cachedWindowIsValid || !TryGetBounds(handle, out bounds))
                 {
                     handle = FindMainWindow(processId);
                     _trackedProcessId = processId;
                     _trackedWindowHandle = handle;
-                }
 
-                if (handle == IntPtr.Zero || !TryGetBounds(handle, out var bounds))
-                {
-                    _trackedWindowHandle = IntPtr.Zero;
-                    Publish(LcuWindowState.Unavailable);
-                    return;
+                    if (handle == IntPtr.Zero || !TryGetBounds(handle, out bounds))
+                    {
+                        _trackedWindowHandle = IntPtr.Zero;
+                        Publish(LcuWindowState.Unavailable);
+                        return;
+                    }
+
+                    isVisible = IsWindowVisible(handle);
+                    isCloaked = TryGetCloaked(handle);
                 }
 
                 var monitor = MonitorFromWindow(handle, MonitorDefaultToNearest);
@@ -181,13 +202,12 @@ namespace Prometheus.Desktop.Services
 
                 var foregroundHandle = GetForegroundWindow();
                 GetWindowThreadProcessId(foregroundHandle, out var foregroundProcessId);
-                var isCloaked = TryGetCloaked(handle);
                 Publish(new LcuWindowState(
                     handle,
                     bounds,
                     workArea,
                     dpi,
-                    IsWindowVisible(handle) && !isCloaked,
+                    isVisible && !isCloaked,
                     IsIconic(handle),
                     foregroundProcessId == processId));
             }
@@ -196,6 +216,36 @@ namespace Prometheus.Desktop.Services
                 Log.Debug(exception, "Unable to inspect the League client window");
                 Publish(LcuWindowState.Unavailable);
             }
+        }
+
+        internal static bool IsTrackedWindowCandidate(
+            IntPtr handle,
+            int expectedProcessId,
+            bool isWindow,
+            int actualProcessId,
+            bool isVisible,
+            bool isCloaked)
+        {
+            return isWindow && IsMainWindowCandidate(
+                handle,
+                expectedProcessId,
+                actualProcessId,
+                isVisible,
+                isCloaked);
+        }
+
+        internal static bool IsMainWindowCandidate(
+            IntPtr handle,
+            int expectedProcessId,
+            int actualProcessId,
+            bool isVisible,
+            bool isCloaked)
+        {
+            return handle != IntPtr.Zero &&
+                   expectedProcessId > 0 &&
+                   actualProcessId == expectedProcessId &&
+                   isVisible &&
+                   !isCloaked;
         }
 
         private void ResetTrackedWindow()
@@ -223,7 +273,19 @@ namespace Prometheus.Desktop.Services
             EnumWindows((handle, _) =>
             {
                 GetWindowThreadProcessId(handle, out var candidateProcessId);
-                if (candidateProcessId != processId || !IsWindowVisible(handle) ||
+                if (candidateProcessId != processId)
+                {
+                    return true;
+                }
+
+                var isVisible = IsWindowVisible(handle);
+                var isCloaked = TryGetCloaked(handle);
+                if (!IsMainWindowCandidate(
+                        handle,
+                        processId,
+                        candidateProcessId,
+                        isVisible,
+                        isCloaked) ||
                     !TryGetBounds(handle, out var bounds) ||
                     bounds.Width < 400 || bounds.Height < 300)
                 {
@@ -290,6 +352,9 @@ namespace Prometheus.Desktop.Services
         private static extern bool IsIconic(IntPtr handle);
 
         [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetWindowRect(
             IntPtr handle,
@@ -299,9 +364,6 @@ namespace Prometheus.Desktop.Services
         private static extern uint GetWindowThreadProcessId(
             IntPtr handle,
             out int processId);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
         private static extern uint GetDpiForWindow(IntPtr handle);

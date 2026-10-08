@@ -108,6 +108,24 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
         }
 
         [Fact]
+        public void GetAramAutomationTarget_WithPrecomputedMode_UsesThatMode()
+        {
+            var snapshot = CreateSnapshot(9999, currentChampionId: 22);
+            snapshot.ChampionSelect.BenchEnabled = true;
+            snapshot.ChampionSelect.BenchChampions =
+            [
+                new ChampionSelectBenchChampionSnapshot { ChampionId = 99 }
+            ];
+
+            var result = LcuCompanionPresentation.GetAramAutomationTarget(
+                snapshot,
+                [99],
+                LcuCompanionMode.Aram);
+
+            Assert.Equal(99, result);
+        }
+
+        [Fact]
         public void GetAramAutomationTarget_SelectsHighestPriorityBenchChampion()
         {
             var snapshot = CreateSnapshot(GameQueueIds.Aram, currentChampionId: 22);
@@ -157,6 +175,22 @@ namespace Prometheus.Modules.ModuleName.Tests.Services
                 snapshot, "ban", [55, 99]);
 
             Assert.Equal(55, result);
+        }
+
+        [Fact]
+        public void GetChampionSelectAutomationTarget_WhenActionIsProvided_UsesActionChampion()
+        {
+            var action = new ChampionSelectActionSnapshot
+            {
+                ChampionId = 99,
+                Type = "pick",
+                IsInProgress = true
+            };
+
+            var result = LcuCompanionPresentation.GetChampionSelectAutomationTarget(
+                action, [22, 55]);
+
+            Assert.Equal(99, result);
         }
 
         [Fact]

@@ -1,4 +1,5 @@
 using Prometheus.Core.Models;
+using Prometheus.Core.Mvvm;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.ViewModels;
 using Prometheus.Views;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 
 namespace Prometheus.Desktop.Services
 {
@@ -24,12 +26,18 @@ namespace Prometheus.Desktop.Services
         private const uint ShowWindowFlag = 0x0040;
         private const uint NoOwnerZOrder = 0x0200;
         private const uint PreviousWindowCommand = 3;
+        private const int ExtendedStyleIndex = -20;
+        private const long TopmostStyle = 0x00000008L;
+        private const int HealthCheckIntervalMilliseconds = 300;
 
         private readonly ILcuWindowTracker _windowTracker;
         private readonly IMatchService _matchService;
         private readonly ILcuCompanionSettings _settings;
         private readonly LcuCompanionWindow _window;
         private readonly LcuCompanionViewModel _viewModel;
+        private readonly LatestValueDispatcher<byte> _updateDispatcher;
+        private readonly DispatcherTimer _positionRetryTimer;
+        private readonly DispatcherTimer _healthTimer;
         private LiveMatchSnapshot _snapshot = LiveMatchSnapshot.Empty;
         private bool _mainWindowHiddenForPhase;
         private bool _started;
@@ -48,6 +56,19 @@ namespace Prometheus.Desktop.Services
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _window = window ?? throw new ArgumentNullException(nameof(window));
             _viewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+            _updateDispatcher = new LatestValueDispatcher<byte>(
+                action => Dispatch(action),
+                _ => UpdateWindow());
+            _positionRetryTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+            _positionRetryTimer.Tick += HandlePositionRetryTimerTick;
+            _healthTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(HealthCheckIntervalMilliseconds)
+            };
+            _healthTimer.Tick += HandleHealthTimerTick;
         }
 
         public void Start()
@@ -64,7 +85,8 @@ namespace Prometheus.Desktop.Services
             _windowTracker.StateChanged += HandleWindowStateChanged;
             _viewModel.Start();
             _windowTracker.Start();
-            Dispatch(UpdateWindow);
+            _healthTimer.Start();
+            QueueUpdate();
         }
 
         public void Stop()
@@ -77,6 +99,8 @@ namespace Prometheus.Desktop.Services
             if (_started)
             {
                 _started = false;
+                _positionRetryTimer.Stop();
+                _healthTimer.Stop();
                 _matchService.SnapshotChanged -= HandleSnapshotChanged;
                 _settings.PropertyChanged -= HandleSettingsPropertyChanged;
                 _windowTracker.StateChanged -= HandleWindowStateChanged;
@@ -101,14 +125,14 @@ namespace Prometheus.Desktop.Services
             LiveMatchSnapshotChangedEventArgs args)
         {
             _snapshot = args?.Snapshot ?? LiveMatchSnapshot.Empty;
-            Dispatch(UpdateWindow);
+            QueueUpdate();
         }
 
         private void HandleWindowStateChanged(
             object sender,
             LcuWindowStateChangedEventArgs args)
         {
-            Dispatch(UpdateWindow);
+            QueueUpdate();
         }
 
         private void HandleSettingsPropertyChanged(
@@ -118,8 +142,53 @@ namespace Prometheus.Desktop.Services
             if (string.IsNullOrEmpty(args?.PropertyName) ||
                 args.PropertyName == nameof(ILcuCompanionSettings.IsEnabled))
             {
-                Dispatch(UpdateWindow);
+                QueueUpdate();
             }
+        }
+
+        private void HandlePositionRetryTimerTick(object sender, EventArgs args)
+        {
+            _positionRetryTimer.Stop();
+            QueueUpdate();
+        }
+
+        private void HandleHealthTimerTick(object sender, EventArgs args)
+        {
+            if (!_started || _windowClosed ||
+                _snapshot.GameflowPhase != GameflowPhase.ChampSelect ||
+                !_settings.IsEnabled)
+            {
+                return;
+            }
+
+            var state = _windowTracker.Current;
+            if (state?.IsAvailable == true && state.IsVisible && !state.IsMinimized &&
+                NeedsWindowRefresh(state))
+            {
+                QueueUpdate();
+            }
+        }
+
+        private void QueueUpdate()
+        {
+            _updateDispatcher.Publish(0);
+        }
+
+        private bool NeedsWindowRefresh(LcuWindowState state)
+        {
+            if (!_window.IsVisible)
+            {
+                return true;
+            }
+
+            var companionHandle = new WindowInteropHelper(_window).Handle;
+            return companionHandle == IntPtr.Zero ||
+                !IsWindowVisible(companionHandle) ||
+                !LcuCompanionZOrderCalculator.Calculate(
+                    state.Handle,
+                    companionHandle,
+                    window => GetWindow(window, PreviousWindowCommand),
+                    IsTopmostWindow).PreserveCurrent;
         }
 
         private void UpdateWindow()
@@ -167,7 +236,8 @@ namespace Prometheus.Desktop.Services
                 var zOrder = LcuCompanionZOrderCalculator.Calculate(
                     state.Handle,
                     handle,
-                    window => GetWindow(window, PreviousWindowCommand));
+                    window => GetWindow(window, PreviousWindowCommand),
+                    IsTopmostWindow);
                 var flags = NoActivate | ShowWindowFlag | NoOwnerZOrder;
                 if (zOrder.PreserveCurrent)
                 {
@@ -184,8 +254,11 @@ namespace Prometheus.Desktop.Services
                         flags))
                 {
                     HideWindow();
+                    SchedulePositionRetry();
                     return;
                 }
+
+                _positionRetryTimer.Stop();
 
                 if (!_mainWindowHiddenForPhase)
                 {
@@ -204,6 +277,16 @@ namespace Prometheus.Desktop.Services
                 Log.Warning(exception,
                     "Unable to position the LCU champion-select companion window");
                 HideWindow();
+                SchedulePositionRetry();
+            }
+        }
+
+        private void SchedulePositionRetry()
+        {
+            if (_started && !_windowClosed)
+            {
+                _positionRetryTimer.Stop();
+                _positionRetryTimer.Start();
             }
         }
 
@@ -242,5 +325,34 @@ namespace Prometheus.Desktop.Services
         private static extern IntPtr GetWindow(
             IntPtr window,
             uint command);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr window);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+        private static extern IntPtr GetWindowLongPtr(
+            IntPtr window,
+            int index);
+
+        private static bool IsTopmostWindow(IntPtr window)
+        {
+            if (window == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            SetLastError(0);
+            var style = GetWindowLongPtr(window, ExtendedStyleIndex);
+            if (style == IntPtr.Zero && Marshal.GetLastWin32Error() != 0)
+            {
+                return true;
+            }
+
+            return (style.ToInt64() & TopmostStyle) != 0;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = false)]
+        private static extern void SetLastError(uint errorCode);
     }
 }

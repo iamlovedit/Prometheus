@@ -1,5 +1,6 @@
 using Moq;
 using Prism.Events;
+using Prometheus.Core.Events;
 using Prometheus.Core.Models;
 using Prometheus.Services.Interfaces.Client;
 using Prometheus.ViewModels;
@@ -130,6 +131,185 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
             Assert.Equal("Companion", GetScalar<string>(logEvent, "Module"));
             Assert.False(GetScalar<bool>(logEvent, "OldValue"));
             Assert.True(GetScalar<bool>(logEvent, "NewValue"));
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public async Task SnapshotChanged_WhenAutomationChampionIdsAreUnchanged_DoesNotReloadResources()
+        {
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.AutoPickChampion)
+                .Returns(true);
+            var iconLoadCount = 0;
+            var resourceManager = new Mock<IGameResourceManager>();
+            resourceManager.Setup(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 103, Name = "Ahri" }
+                ]);
+            resourceManager.Setup(service => service.GetChampoinIconByIdAsync(103))
+                .ReturnsAsync(() =>
+                {
+                    iconLoadCount++;
+                    return "103.png";
+                });
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                resourceManager.Object,
+                automationSettings.Object);
+
+            viewModel.Start();
+            await WaitUntilAsync(() => iconLoadCount == 1);
+
+            matchService.Raise(service => service.SnapshotChanged += null,
+                new LiveMatchSnapshotChangedEventArgs(snapshot));
+            await Task.Delay(100);
+
+            Assert.Equal(1, iconLoadCount);
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public async Task SnapshotChanged_WhenChampionReturnsToCachedId_DoesNotReloadResources()
+        {
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
+            snapshot.ChampionSelect.Actions =
+            [
+                [
+                    new ChampionSelectActionSnapshot
+                    {
+                        Id = 1,
+                        ActorCellId = 1,
+                        Type = "pick",
+                        ChampionId = 103,
+                        IsInProgress = true
+                    }
+                ]
+            ];
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.AutoPickChampion)
+                .Returns(true);
+            var iconLoadCount = 0;
+            var resourceManager = new Mock<IGameResourceManager>();
+            resourceManager.Setup(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 103, Name = "Ahri" },
+                    new ChampionSummary { Id = 104, Name = "Akali" }
+                ]);
+            resourceManager.Setup(service => service.GetChampoinIconByIdAsync(
+                    It.IsAny<int>()))
+                .ReturnsAsync((int championId) =>
+                {
+                    iconLoadCount++;
+                    return $"{championId}.png";
+                });
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                resourceManager.Object,
+                automationSettings.Object);
+
+            viewModel.Start();
+            await WaitUntilAsync(() => iconLoadCount == 1);
+
+            snapshot.ChampionSelect.Actions[0][0].ChampionId = 104;
+            matchService.Raise(service => service.SnapshotChanged += null,
+                new LiveMatchSnapshotChangedEventArgs(snapshot));
+            await WaitUntilAsync(() => iconLoadCount == 2);
+
+            snapshot.ChampionSelect.Actions[0][0].ChampionId = 103;
+            matchService.Raise(service => service.SnapshotChanged += null,
+                new LiveMatchSnapshotChangedEventArgs(snapshot));
+            await Task.Delay(150);
+
+            Assert.Equal(2, iconLoadCount);
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public async Task LanguageSwitched_InvalidatesChampionNameCache()
+        {
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.AutoPickChampion)
+                .Returns(true);
+            var summaryLoadCount = 0;
+            var resourceManager = new Mock<IGameResourceManager>();
+            resourceManager.Setup(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync(() =>
+                {
+                    summaryLoadCount++;
+                    return new List<ChampionSummary>
+                    {
+                        new() { Id = 103, Name = "Ahri" }
+                    };
+                });
+            resourceManager.Setup(service => service.GetChampoinIconByIdAsync(103))
+                .ReturnsAsync("103.png");
+            var eventAggregator = new EventAggregator();
+            var resourceService = new Mock<IResourceService>();
+            resourceService.Setup(service => service.FindResource<string>(
+                    It.IsAny<string>()))
+                .Returns((string _) => null);
+            var viewModel = new LcuCompanionViewModel(
+                eventAggregator,
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                automationSettings.Object,
+                resourceManager.Object,
+                resourceService.Object);
+
+            viewModel.Start();
+            await WaitUntilAsync(() => summaryLoadCount == 1);
+
+            eventAggregator.GetEvent<LanguageSwitchedEvent>().Publish();
+            await WaitUntilAsync(() => summaryLoadCount == 2);
+            viewModel.Stop();
+        }
+
+        [Fact]
+        public async Task Start_WhenChampionNameIsInitiallyUnavailable_RetriesResourceLoad()
+        {
+            var snapshot = CreateAutomationSnapshot(GameQueueIds.RankedSoloDuo);
+            var matchService = new Mock<IMatchService>();
+            matchService.SetupGet(service => service.Current).Returns(snapshot);
+            var automationSettings = CreateAutomationSettings();
+            automationSettings.SetupGet(settings => settings.AutoPickChampion)
+                .Returns(true);
+            var resourceManager = new Mock<IGameResourceManager>();
+            resourceManager.SetupSequence(service => service.GetChampionSummarysAsync())
+                .ReturnsAsync((List<ChampionSummary>)null)
+                .ReturnsAsync(
+                [
+                    new ChampionSummary { Id = 103, Name = "Ahri" }
+                ]);
+            resourceManager.Setup(service => service.GetChampoinIconByIdAsync(103))
+                .ReturnsAsync("103.png");
+            var viewModel = CreateViewModel(
+                matchService.Object,
+                new Mock<IGameService>().Object,
+                resourceManager.Object,
+                automationSettings.Object);
+
+            viewModel.Start();
+
+            await WaitUntilAsync(() =>
+                viewModel.AutomationCards.Any(card => card.ChampionName == "Ahri"));
+
+            Assert.Equal("Ahri", Assert.Single(viewModel.AutomationCards,
+                card => card.Label == "Auto Pick").ChampionName);
+            resourceManager.Verify(
+                service => service.GetChampionSummarysAsync(),
+                Times.Exactly(2));
             viewModel.Stop();
         }
 
@@ -333,7 +513,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
                 });
             var resourceManager = new Mock<IGameResourceManager>();
             resourceManager.Setup(service => service.GetPerksAsync())
-                .ReturnsAsync(recommendation.Popular.SelectedPerkIds
+                .ReturnsAsync((recommendation.Popular.SelectedPerkIds ?? [])
+                    .Concat(recommendation.WinRate?.SelectedPerkIds ?? [])
                     .Distinct()
                     .Select(perkId => new Perk
                     {
@@ -508,7 +689,8 @@ namespace Prometheus.Modules.ModuleName.Tests.ViewModels
         {
             var resourceManager = new Mock<IGameResourceManager>();
             resourceManager.Setup(service => service.GetPerksAsync())
-                .ReturnsAsync(recommendation.Popular.SelectedPerkIds
+                .ReturnsAsync((recommendation.Popular.SelectedPerkIds ?? [])
+                    .Concat(recommendation.WinRate?.SelectedPerkIds ?? [])
                     .Distinct()
                     .Select(perkId => new Perk
                     {

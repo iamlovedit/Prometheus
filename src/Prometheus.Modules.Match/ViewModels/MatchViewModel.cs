@@ -9,6 +9,7 @@ using Prometheus.Core.Mvvm;
 using Prometheus.Core.Tasks;
 using Prometheus.Modules.Match.Controls;
 using Prometheus.Services.Interfaces.Client;
+using Prometheus.Core.Presentation;
 using Serilog;
 using Serilog.Events;
 using System.Collections.ObjectModel;
@@ -590,9 +591,14 @@ namespace Prometheus.Modules.Match.ViewModels
                 Spell2Icon = source.Spell2Icon,
                 DisplayName = isHidden
                     ? Text("Match.Live.Player.Hidden", "Hidden player")
-                    : FormatDisplayName(source),
+                    : LiveMatchPlayerTextFormatter.FormatDisplayName(
+                        source,
+                        () => Text("Match.Live.LocalPlayer", "You"),
+                        () => Text("Match.Live.Player.Unknown", "Unknown player")),
                 PositionText = FormatPosition(source.Position),
-                RankText = isLoaded ? FormatRank(source.SoloRank) : "--",
+                RankText = isLoaded
+                    ? LiveMatchPlayerTextFormatter.FormatRank(source.SoloRank, Text)
+                    : "--",
                 RecentRecordText = isLoaded
                     ? string.Format(Text("Match.Live.Record.Format", "{0}W {1}L · {2}%"),
                         source.RecentWins, source.RecentLosses, winRate)
@@ -735,61 +741,6 @@ namespace Prometheus.Modules.Match.ViewModels
                     Text("Match.Live.Player.NoData", "No recent data"),
                 _ => string.Empty
             };
-        }
-
-        private string FormatDisplayName(LiveMatchPlayerSnapshot player)
-        {
-            var summoner = player.Summoner;
-            if (summoner is not null)
-            {
-                var gameName = FirstNotEmpty(summoner.GameName, summoner.DisplayName,
-                    summoner.SummonerName);
-                if (!string.IsNullOrWhiteSpace(gameName))
-                {
-                    return string.IsNullOrWhiteSpace(summoner.TagLine)
-                        ? gameName
-                        : $"{gameName}#{summoner.TagLine}";
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(player.DisplayName))
-            {
-                return player.DisplayName;
-            }
-
-            return player.IsLocalPlayer
-                ? Text("Match.Live.LocalPlayer", "You")
-                : Text("Match.Live.Player.Unknown", "Unknown player");
-        }
-
-        private string FormatRank(Rank rank)
-        {
-            if (rank is null || rank.Tier == Tier.UNRANKED)
-            {
-                return Text("Match.Live.Rank.Unranked", "Unranked");
-            }
-
-            var tierKey = rank.Tier switch
-            {
-                Tier.IRON => "Career.Rank.Tier.Iron",
-                Tier.BRONZE => "Career.Rank.Tier.Bronze",
-                Tier.SILVER => "Career.Rank.Tier.Silver",
-                Tier.GOLD => "Career.Rank.Tier.Gold",
-                Tier.PLATINUM => "Career.Rank.Tier.Platinum",
-                Tier.EMERALD => "Career.Rank.Tier.Emerald",
-                Tier.DIAMOND => "Career.Rank.Tier.Diamond",
-                Tier.MASTER => "Career.Rank.Tier.Master",
-                Tier.GRANDMASTER => "Career.Rank.Tier.Grandmaster",
-                Tier.CHALLENGER => "Career.Rank.Tier.Challenger",
-                _ => "Career.Rank.Tier.Unranked"
-            };
-            var tier = Text(tierKey, rank.Tier.ToString());
-            var division = string.IsNullOrWhiteSpace(rank.Division) ||
-                string.Equals(rank.Division, nameof(Division.NA),
-                    StringComparison.OrdinalIgnoreCase)
-                ? string.Empty
-                : $" {rank.Division}";
-            return $"{tier}{division} · {rank.LeaguePoints} LP";
         }
 
         private string FormatPosition(string position)
